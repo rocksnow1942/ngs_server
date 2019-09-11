@@ -1,0 +1,8 @@
+{% for sample in form.samples %}
+<tr>
+    {% for field in sample %}
+        <td >{{field(class = "form-control input-sm add-ngs-sample-column-"+loop.index|string)}}</td>
+    {% endfor %}
+    <td><span class= "add-ngs-sample-delete" id='{{loop.index}}' > <span class="btn glyphicon glyphicon-trash" aria-hidden="true" id='{{loop.index}}'></span> </span> </td>
+</tr>
+{% endfor %}

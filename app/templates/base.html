@@ -1,0 +1,204 @@
+{% extends "bootstrap/base.html" %}
+
+{%- block styles %}
+<!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"> -->
+<link href="{{url_for('static',filename='styles.css')}}" rel="stylesheet">
+{{super()}}
+{%- endblock styles %}
+
+
+{% block title %}
+    {% if title %}
+     {{ title }} - Aptitude
+    {% else %}
+      Welcome to Aptitude
+    {% endif %}
+{% endblock %}
+
+{% block navbar %}
+    <div class='container'>
+
+
+            <nav class="navbar navbar-inverse">
+              <div class="container-fluid">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                  <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                  </button>
+                  <a class="navbar-brand" href="{{ url_for('main.index') }}">Aptitude</a>
+                </div>
+
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                  <ul class="nav navbar-nav">
+                    <li><a href="{{ url_for('main.index') }}"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> Home</a></li>
+                    <li><a href="{{ url_for('ngs.ngs') }}"><span class="glyphicon glyphicon-link" aria-hidden="true"></span> NGS</a></li>
+
+                  </ul>
+
+                  <ul class="nav navbar-nav navbar-right">
+
+
+                      {% if current_user.is_anonymous %}
+                      <li><a href="{{ url_for('auth.login') }}"><span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Login</a></li>
+                      {% else %}
+                      <form class="navbar-form navbar-left">
+                        <div class="form-group">
+                          <input type="text" class="form-control" placeholder="Search">
+                        </div>
+                        <button type="submit" class="btn btn-default"><span class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+                      </form>
+
+                      <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{current_user.username}} <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                          <li><a href="#">Action</a></li>
+                          <li><a href="#">Another action</a></li>
+                          <li><a href="#">Something else here</a></li>
+                          <li role="separator" class="divider"></li>
+                          <li><a href="#">Separated link</a></li>
+                          <li role="separator" class="divider"></li>
+                          <li><a href="#">One more separated link</a></li>
+                        </ul>
+                      </li>
+                      <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Logout</a></li>
+                      {% endif %}
+                  </ul>
+
+                </div><!-- /.navbar-collapse -->
+              </div><!-- /.container-fluid -->
+            </nav>
+
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+            {% for category, message in messages %}
+                    <div class='alert alert-{{category}} alert-info' role='alert'>
+                        {{ message }}
+                    </div>
+            {% endfor %}
+    {% endif %}
+    {% endwith %}
+    {#
+        application content need to be provided in app_content block
+    #}
+    {% block app_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
+    <script type="text/javascript">
+            $(document).ready(function () {
+              var url = window.location;
+              $('ul.nav a[href="'+ url +'"]').parent().addClass('active');
+              $('ul.nav a').filter(function() {
+                   return this.href == url;
+              }).parent().addClass('active');
+          });
+
+        $("#add-ngs-sample-member").on('click', function(event){
+            $.ajax({
+                url: "{{ url_for('ngs.add_extrasample') }}",
+                type : "POST",
+                //dataType : 'json', // data type
+                data : $("#add-ngs-sample-form").serialize(),
+                success : function(result) {
+                    $("#add-ngs-sample-samples").html(result);
+                },
+                error: function(xhr, resp, text) {
+                    console.log(xhr, resp, text);
+                }
+            });
+            event.preventDefault();
+            });
+
+            $(document).on("click", '.add-ngs-sample-delete', function(event) {
+                var todelete = event.target.id;
+                if (confirm('Are you sure you want to delete item '+todelete.toString()+" ?")) {
+                    $.ajax({
+                        url: "{{ url_for('ngs.delete_sample')}}"+"?todelete="+todelete.toString(),
+                        type : "POST",
+                        data : $("#add-ngs-sample-form").serialize(),
+                        success : function(result) {
+                            $("#add-ngs-sample-samples").html(result);
+                        },
+                        error: function(xhr, resp, text) {
+                            console.log(xhr, resp, text);
+                        }
+                    });
+            } else {
+            // Do nothing!
+                    }
+                ;
+                event.preventDefault();
+                });
+
+    // add ngs sample page dynamicly change round options.
+    $(document).on("change", '.add-ngs-sample-column-1', function(event) {
+        let selectionname = event.target.value;
+        let eventid = event.target.id
+        let roundcolid = eventid.replace('selection','round_id')
+        $.ajax({
+            url: "{{ url_for('ngs.get_selection_round')}}",
+            type : "POST",
+            data : {selection:selectionname},
+            success : function(result) {
+
+                let options = '';
+                for (let round of result.rounds) {
+                    options += '<option value="'+round.id+'">'+round.name+'</option>';
+                };
+                $("#"+roundcolid).html(options);
+
+            },
+            error: function(xhr, resp, text) {
+                console.log(xhr, resp, text);
+            }
+        });
+        event.preventDefault();
+        });
+
+        // update progressbar
+        function set_bar_progress(barid, progress) {
+            const p = progress + '%';
+            $('#'+barid).css('width', p ).attr('aria-valuenow', p).text(p);
+        };
+
+
+        // making progressbar dynamic
+        $(document).ready(function(){
+            if($(".progress-bar").length){
+                setInterval(function(){
+                    var barlist = [];
+                    $('.progress-bar').each(function () {
+                       barlist.push(this.id);});
+                // make ajax request to get  progress info
+                $.ajax({
+                    url: "{{ url_for('ngs.get_bar_progress')}}",
+                    type : "POST",
+                    data : JSON.stringify({barlist:barlist}),
+                    contentType: 'application/json',
+                    success : function(result) {
+                        console.log(result);
+                        for (let [barid,progress] of Object.entries(result)){
+                            set_bar_progress(barid,progress)
+                        };
+                    },
+                    error: function(xhr, resp, text) {
+                        console.log(xhr, resp, text);
+                    }
+                }); },300);};
+        });
+
+    </script>
+{% endblock %}

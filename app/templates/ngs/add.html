@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+
+{% block app_content %}
+
+
+
+
+        <!-- <div class="col-xs-6 col-md-4"></div> -->
+
+        <div class="panel panel-default col" >
+          <div class="panel-body">
+            <h2>{{title}} - {{ toadd.upper() }}</h2>
+            <form action="" method="post" class="form" role="form">
+                {{ form.hidden_tag() }}
+
+                    {{wtf.quick_form(form)}}
+            </form>
+        </div>
+       </div>
+
+        <!-- <div class="col-xs-6 col-md-4"></div> -->
+
+
+
+{% for key,item in datalist.items() %}
+      <datalist id ="{{key}}">
+        {% for value in item %}
+      <option value ="{{value[0]}}" />
+        {% endfor %}
+        </datalist>
+
+{% endfor %}
+
+{% endblock %}
+<!-- {% for field in form if field.widget.input_type != 'hidden' %}
+    {% if field.name=="submit" %}
+            {{wtf.form_field(field,class='btn btn-secondary')}}
+    {%else%}
+        {{wtf.form_field(field)}}
+    {% endif %}
+
+{% endfor %} -->

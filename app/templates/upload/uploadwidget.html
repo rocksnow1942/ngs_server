@@ -1,0 +1,16 @@
+
+<form method=post enctype=multipart/form-data action="{{url_for('upload.ngsuploadwidget',uploadto=uploadto)}}">
+  <div class="input-group input-group-sm">
+    <span class="input-group-addon"><span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span></span>
+    <input type="file" name='file1' class="form-control" placeholder="File1" aria-describedby="sizing-addon3">
+  </div>
+
+<div class="input-group input-group-sm">
+  <span class="input-group-addon"><span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span></span>
+  <input type="file" name='file2' class="form-control" placeholder="File2" aria-describedby="sizing-addon3">
+  <span class="input-group-btn">
+        <button class="btn btn-default" type="submit"><span class="glyphicon glyphicon-cloud-upload" aria-hidden="true"></span></button>
+      </span>
+</div>
+
+</form>
