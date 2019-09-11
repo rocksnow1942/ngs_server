@@ -31,23 +31,6 @@ session = Session()
 #
 # meta.reflect(extend_existing=True)
 
-def convert_id_to_string(id,base=''):
-    c='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    l = id//36
-    r = id%36
-    base = c[r] + base
-    if l:
-        return convert_id_to_string(l,base)
-    return base
-
-def convert_string_to_id(s):
-    c='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    result = 0
-    for k,i in enumerate(s[::-1]):
-        result = result + c.index(i.upper())*(36**k)
-    return result
-
-
 def auto_rollback(func):
     def wrapper(*args,**kwargs):
         try:

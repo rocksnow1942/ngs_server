@@ -1,4 +1,7 @@
 from itertools import islice
+import os
+
+
 def reverse_comp(s):
     s=s.upper()
     comp=''.join(map(lambda x:dict(zip('ATCGN','TAGCN'))[x]  ,s))
@@ -20,3 +23,24 @@ def check_file_reverse_comp(f1,f2):
     if nonrevcount>50:
         return False
     return True
+
+def create_folder_if_not_exist(savefolder):
+    if not os.path.isdir(savefolder):
+        os.makedirs(savefolder)
+
+
+def convert_id_to_string(id,base=''):
+    c='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    l = id//36
+    r = id%36
+    base = c[r] + base
+    if l:
+        return convert_id_to_string(l,base)
+    return base
+
+def convert_string_to_id(s):
+    c='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    result = 0
+    for k,i in enumerate(s[::-1]):
+        result = result + c.index(i.upper())*(36**k)
+    return result

@@ -16,10 +16,10 @@
         <td width="50px">
             {% if entry.haschildren() and nextcontent %}
                 <a href="{{ url_for('ngs.browse', content=nextcontent, id=entry.id ) }}">
-                    {{ entry.id }}
+                    {{ entry.id_display }}
                     </a>
             {%else%}
-            {{entry.id}}
+            {{entry.id_display}}
             {% endif %}
         </td>
         <td>

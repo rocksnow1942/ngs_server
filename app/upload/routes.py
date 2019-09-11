@@ -5,7 +5,7 @@ from datetime import datetime
 from app.upload import bp
 from app.models import Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup
 from werkzeug.utils import secure_filename
-from app.utils.ngs_util import check_file_reverse_comp
+from app.utils.ngs_util import check_file_reverse_comp,create_folder_if_not_exist
 import os
 import json
 
@@ -36,6 +36,7 @@ def process_ngssample_files(file1,file2):
 
     assert check_file_reverse_comp(file1,file2), ('Two many sequences are not reverse complementary.')
     savefolder = current_app.config['UPLOAD_FOLDER']
+    create_folder_if_not_exist(savefolder)
     f1,f2 = secure_filename(file1.filename),secure_filename(file2.filename)
     f1 = f1.rsplit('.',1)[0]+datetime.now().strftime("%m%d%H%M%S")+'-1.'+f1.rsplit('.',1)[1]
     f2 = f2.rsplit('.',1)[0]+datetime.now().strftime("%m%d%H%M%S")+'-2.'+f2.rsplit('.',1)[1]

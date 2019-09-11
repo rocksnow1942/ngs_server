@@ -7,6 +7,7 @@ from app.models import Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup
 from app.ngs.forms import AddSelectionForm, AddRoundForm,AddPrimerForm,EditPrimerForm,EditRoundForm,EditSelectionForm, AddSampleGroupForm
 from sqlalchemy.exc import IntegrityError
 
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def ngs():
@@ -179,7 +180,7 @@ def delete():
                 flash('{} was deleted.'.format(todelete), 'success')
             except IntegrityError as e:
                 db.session.rollback()
-                flash('Cannot delete {}. Exception: {}.'.format(todelete,e), 'danger')           
+                flash('Cannot delete {}. Exception: {}.'.format(todelete,e), 'danger')
     return redirect(edit_redirect_url)
 
 

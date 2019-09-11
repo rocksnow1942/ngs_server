@@ -11,6 +11,7 @@ import json
 from sqlalchemy import Column, String,ForeignKey,DateTime
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
+from app.utils.ngs_util import convert_id_to_string
 
 
 
@@ -49,6 +50,13 @@ class User(UserMixin,db.Model):
         return User.query.get(id)
 
 
+class BaseDataModel():
+    @property
+    def id_display(self):
+        return self.id
+
+
+
 class SeqRound(db.Model):
     __tablename__ = 'sequence_round'
     # __table_args__ = {'extend_existing': True}
@@ -75,10 +83,14 @@ class SeqRound(db.Model):
     def id(self):
         return self.sequence_id
 
+    @property
+    def id_display(self):
+        return convert_id_to_string(self.id)
+
     def haschildren(self):
         return True
 
-class KnownSequence(db.Model):
+class KnownSequence(db.Model,BaseDataModel):
     __tablename__ = 'known_sequence'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
@@ -89,7 +101,7 @@ class KnownSequence(db.Model):
     def __repr__(self):
         return f"KnownSequence id:{self.id}, Sequence Name: {self.sequence_name}"
 
-class Sequence(db.Model):
+class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -103,7 +115,14 @@ class Sequence(db.Model):
     def haschildren(self):
         return False
 
-class Rounds(db.Model):
+    @property
+    def id_display(self):
+        return convert_id_to_string(self.id)
+
+
+
+
+class Rounds(db.Model,BaseDataModel):
     __tablename__ = 'round'
     # __table_args__ = {'extend_existing': True}
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -141,7 +160,7 @@ class Rounds(db.Model):
         return bool(self.totalread) or bool(self.samples)
 
 
-class Selection(db.Model):
+class Selection(db.Model,BaseDataModel):
     __tablename__ = 'selection'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     selection_name = Column(String(100),unique=True)
@@ -165,7 +184,7 @@ class Selection(db.Model):
 
 
 
-class Primers(db.Model):
+class Primers(db.Model,BaseDataModel):
     __tablename__ = 'primer'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(20), unique=True)
@@ -187,7 +206,7 @@ class Primers(db.Model):
 
 
 
-class NGSSampleGroup(db.Model):
+class NGSSampleGroup(db.Model,BaseDataModel):
     __tablename__ = 'ngs_sample_group'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(50))
@@ -297,16 +316,7 @@ class NGSSampleGroup(db.Model):
 
 
 
-
-
-
-
-
-
-
-
-
-class NGSSample(db.Model):
+class NGSSample(db.Model,BaseDataModel):
     __tablename__='ngs_sample'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     round_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('round.id'))
@@ -317,7 +327,7 @@ class NGSSample(db.Model):
     def __repr__(self):
         return f"ID:{self.id},Round:{self.round_id}"
 
-class Task(db.Model):
+class Task(db.Model,BaseDataModel):
     __tablename__='task'
     id = db.Column(db.String(36), primary_key=True)
     name = db.Column(db.String(128), index=True)
