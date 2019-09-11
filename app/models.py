@@ -48,6 +48,13 @@ class User(UserMixin,db.Model):
         except:
             return
         return User.query.get(id)
+        
+    def test_task(self,n):
+        def testfunction(n):
+            for i in range(n):
+                print("****runging test -", i)
+        job=current_app.task_queue.enqueue(testfunction,n)
+        
 
 
 class BaseDataModel():
