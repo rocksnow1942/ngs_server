@@ -7,6 +7,8 @@ from app.models import Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup
 from app.ngs.forms import AddSelectionForm, AddRoundForm,AddPrimerForm,EditPrimerForm,EditRoundForm,EditSelectionForm, AddSampleGroupForm
 from sqlalchemy.exc import IntegrityError
 
+# TODO 
+# 1. add details page
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
