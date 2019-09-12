@@ -199,8 +199,11 @@ def addsample():
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
     rdlist = [(i.id,i.round_name) for i in Rounds.query.all()]
     title = 'Edit' if id else 'Add'
-    if id and request.method=='GET':
-        form.load_obj(id)
+    if id:
+        if request.method == 'GET':
+            form.load_obj(id)
+        elif request.method == 'POST':
+            form.old_name = NGSSampleGroup.query.get(id).name
     for f in form.samples:
         f.form.fp_id.choices= plist
         f.form.rp_id.choices= plist
