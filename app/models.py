@@ -50,10 +50,7 @@ class User(UserMixin,db.Model):
         return User.query.get(id)
         
     def test_task(self,n):
-        def testfunction(n):
-            for i in range(n):
-                print("****runging test -", i)
-        job=current_app.task_queue.enqueue(testfunction,n)
+        job=current_app.task_queue.enqueue("app.tasks.ngs_data_processing.test_worker",n)
         
 
 
