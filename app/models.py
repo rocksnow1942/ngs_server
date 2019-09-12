@@ -13,7 +13,9 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string
 
-
+#TODO 
+#1. for rounds, add parent child relationship.
+#
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer,primary_key=True)
@@ -58,8 +60,6 @@ class BaseDataModel():
     @property
     def id_display(self):
         return self.id
-
-
 
 class SeqRound(db.Model):
     __tablename__ = 'sequence_round'
@@ -123,9 +123,6 @@ class Sequence(db.Model,BaseDataModel):
     def id_display(self):
         return convert_id_to_string(self.id)
 
-
-
-
 class Rounds(db.Model,BaseDataModel):
     __tablename__ = 'round'
     # __table_args__ = {'extend_existing': True}
@@ -142,6 +139,8 @@ class Rounds(db.Model,BaseDataModel):
                             ForeignKey('primer.id'))
     samples = relationship('NGSSample',backref='round')
     date = Column(DateTime(), default=datetime.now)
+    parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
+    children = relationship("Rounds")
     def __repr__(self):
         return f"Round id:{self.id},name:{self.round_name}"
 
@@ -162,7 +161,6 @@ class Rounds(db.Model,BaseDataModel):
 
     def haschildren(self):
         return bool(self.totalread) or bool(self.samples)
-
 
 class Selection(db.Model,BaseDataModel):
     __tablename__ = 'selection'
@@ -186,8 +184,6 @@ class Selection(db.Model,BaseDataModel):
     def haschildren(self):
         return bool(self.rounds)
 
-
-
 class Primers(db.Model,BaseDataModel):
     __tablename__ = 'primer'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -195,7 +191,7 @@ class Primers(db.Model,BaseDataModel):
     sequence = Column(mysql.VARCHAR(200, charset='ascii'), unique=True)
     role = Column(String(10)) # can be PD
     note = Column(String(300))
-
+   
     def __repr__(self):
         return f"Primer {self.name}, id:{self.id}"
 
@@ -208,15 +204,14 @@ class Primers(db.Model,BaseDataModel):
     def haschildren(self):
         return self.role != 'Other'
 
-
-
 class NGSSampleGroup(db.Model,BaseDataModel):
     __tablename__ = 'ngs_sample_group'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(50))
     note = Column(mysql.VARCHAR(500))
     date = Column(DateTime(), default=datetime.now)
-    samples = relationship('NGSSample',backref='ngs_sample_group')
+    samples = relationship(
+        'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
     datafile = Column(String(200))
     processingresult = Column(db.Text)
     task_id = Column(db.String(36),ForeignKey('task.id'))
@@ -317,9 +312,6 @@ class NGSSampleGroup(db.Model,BaseDataModel):
             self.datafile = json.dumps(datadict)
             db.session.commit()
 
-
-
-
 class NGSSample(db.Model,BaseDataModel):
     __tablename__='ngs_sample'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -349,6 +341,8 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-
+models_table_name_dictionary = {'task': Task, 'ngs_sample': NGSSample, 
+'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
+'known_sequence':KnownSequence, 'sequence_round':SeqRound}
 from app.tasks.ngs_data_processing import generate_sample_info
 from app.utils.ngs_util import reverse_comp,file_blocks

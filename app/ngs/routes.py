@@ -6,7 +6,10 @@ from app.ngs import bp
 from app.models import Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup,NGSSample
 from app.ngs.forms import AddSelectionForm, AddRoundForm,AddPrimerForm,EditPrimerForm,EditRoundForm,EditSelectionForm, AddSampleGroupForm
 from sqlalchemy.exc import IntegrityError
+from app.models import models_table_name_dictionary
 
+# TODO
+# 1. add details page
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -129,6 +132,8 @@ def edit():
         if  request.method == 'GET':
             form.selection_name.data = newitem.selection_name
             form.target = newitem.target
+    elif toadd=='ngs_sample_group':
+        return redirect(url_for('ngs.addsample',id=id))
     else:
         return redirect(edit_redirect_url)
 
@@ -188,10 +193,14 @@ def delete():
 @login_required
 def addsample():
     form = AddSampleGroupForm()
+    id = request.args.get('id', 0, type=int)
     datalist={}
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
     rdlist = [(i.id,i.round_name) for i in Rounds.query.all()]
+    title = 'Edit' if id else 'Add'
+    if id and request.method=='GET':
+        form.load_obj(id)
     for f in form.samples:
         f.form.fp_id.choices= plist
         f.form.rp_id.choices= plist
@@ -203,16 +212,23 @@ def addsample():
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
         if len(set(indextuple)) != len(indextuple):
             flash('Error: FP RP Index have duplicates. Check Primers.','danger')
-            return render_template('ngs/editsample.html',title='Add',form=form,toadd='Sample',datalist=datalist)
-        sg = form.populate_obj(NGSSampleGroup)
+            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id)
+        if form.validate_name():
+            flash('Name < {} > already used.'.format(form.name.data), 'danger')
+            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id)
+
+        sg = form.populate_obj(NGSSampleGroup,id=id)
         for i in form.samples:
             sg.samples.append(i.form.populate_obj(NGSSample))
         db.session.add(sg)
         db.session.commit()
-        flash('<{}> was added.'.format(sg),'info')
-        return redirect(url_for('ngs.addsample'))
-
-    return render_template('ngs/editsample.html',title='Add',form=form,toadd='Sample',datalist=datalist)
+        msg = 'edited' if id else 'added'
+        flash('<{}> was {}.'.format(sg,msg),'info')
+        if id:
+            return redirect(edit_redirect_url)
+        else:
+            return redirect(url_for('ngs.addsample'))
+    return render_template('ngs/editsample.html',title=title,form=form,toadd='NGS Sample',datalist=datalist,id=id)
 
 
 @bp.route('/add_extrasample', methods=[ 'POST'])
@@ -287,7 +303,14 @@ def get_bar_progress():
     return jsonify(progresses)
 
 
+
 @bp.route('/details', methods=['GET', 'POST'])
 @login_required
 def details():
-    abort(404)
+    table = request.args.get('table','',str)
+    id = request.args.get('id',0,int)
+    target = models_table_name_dictionary.get(table,None)
+    if not target: print(5/0)
+    entry = target.query.get(id)
+    if not entry: abort(404)
+    return render_template('ngs/details.html', title = 'Details', entry = entry, table=table)
