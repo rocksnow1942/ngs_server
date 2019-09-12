@@ -194,11 +194,11 @@ def parse_ngs_data(nsg_id):
     _set_task_progress(100)
 
 
-def mockprocessing(f1,f2):
-    for i in range(100):
-        _set_task_progress(i/100*100)
-        time.sleep(0.1)
-    return "task is finished with {} and {}".format(f1,f2)
+def test_worker(n):
+    
+    for i in range(n):
+        print("****runging test -", i)
+    
 
 
 if __name__ == '__main__':
