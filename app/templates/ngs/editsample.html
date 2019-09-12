@@ -7,7 +7,7 @@
 <div class="panel panel-default col" >
   <div class="panel-body">
 
-<form action="{{url_for('ngs.addsample')}}" method="post" class="form" id='add-ngs-sample-form'>
+<form action="{{url_for('ngs.addsample',id=id)}}" method="post" class="form" id='add-ngs-sample-form'>
     <h2>{{title}} - {{ toadd.upper() }}</h2>
     {{ form.hidden_tag() }}
 

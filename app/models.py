@@ -219,7 +219,8 @@ class NGSSampleGroup(db.Model,BaseDataModel):
     name = Column(String(50))
     note = Column(mysql.VARCHAR(500))
     date = Column(DateTime(), default=datetime.now)
-    samples = relationship('NGSSample',backref='ngs_sample_group')
+    samples = relationship(
+        'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
     datafile = Column(String(200))
     processingresult = Column(db.Text)
     task_id = Column(db.String(36),ForeignKey('task.id'))

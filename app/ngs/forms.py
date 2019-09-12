@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField,TextAreaField,FieldList,FormField
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo,Length,Optional
-from app.models import Selection, Rounds, Primers, NGSSampleGroup
+from app.models import Selection, Rounds, Primers, NGSSampleGroup, NGSSample
 from app import db
 
 
@@ -118,11 +118,39 @@ class AddSampleGroupForm(CheckName):
     
     add_sample = SubmitField('Add another sample')
     submit = SubmitField('Save Samples')
-    def validate_name(self,name):
-        if name.data != self.old_name:
-            if NGSSampleGroup.query.filter_by(name=name.data).first():
-                raise ValidationError(
-                    'Name {} is already used.'.format(name.data))
+    def validate_name(self):
+        if self.name.data != self.old_name:
+            if NGSSampleGroup.query.filter_by(name=self.name.data).first():
+                return False
+        return True
 
-    def populate_obj(self,obj):
-        return obj(name=self.name.data,note=self.note.data)
+    def populate_obj(self,obj,id=0):
+        nsg = NGSSampleGroup.query.get(id)
+        if nsg:
+            nsg.name= self.name.data 
+            nsg.note = self.note.data
+            nsg.samples = []
+            return nsg
+        else:
+            return obj(name=self.name.data,note=self.note.data)
+    
+    def load_obj(self,id):
+        """
+        load obj into form.
+        """
+        nsg = NGSSampleGroup.query.get(id)
+        self.old_name = nsg.name
+        if nsg:
+            self.name.data=nsg.name
+            self.note.data=nsg.note 
+            self.samples.pop_entry()
+            samples = NGSSample.query.filter_by(sample_group_id=id).all()
+            for s in samples:
+                self.samples.append_entry()
+                sele = Rounds.query.get(s.round_id).selection.selection_name
+                self.samples[-1].round_id.data = s.round_id 
+                self.samples[-1].selection.data = sele
+                self.samples[-1].fp_id.data = s.fp_id 
+                self.samples[-1].rp_id.data = s.rp_id 
+                
+
