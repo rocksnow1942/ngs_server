@@ -125,8 +125,8 @@ class AddSampleGroupForm(CheckName):
     def validate_name(self):
         if self.name.data != self.old_name:
             if NGSSampleGroup.query.filter_by(name=self.name.data).first():
-                return False
-        return True
+                return True
+        return False
 
     def populate_obj(self,obj,id=0):
         nsg = NGSSampleGroup.query.get(id)

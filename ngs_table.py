@@ -1,8 +1,3 @@
-
-
-
-
-
 from datetime import datetime
 from sqlalchemy import Column, String,ForeignKey,DateTime
 from sqlalchemy.dialects import mysql
