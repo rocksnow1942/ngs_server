@@ -26,6 +26,10 @@ class AddSelectionForm(CheckName):
             if a is not None:
                 raise ValidationError('Please use a different selection name.')
 
+# TODO
+# 1. add pareent child relationship to round.
+# 2. preload available rounds in both round name field and parent field.
+
 class AddRoundForm(CheckName):
     selection = StringField('Selection',validators=[DataRequired()],render_kw={'list':'selections','placeholder':'Selection'})
     round_name = StringField('Round Name', validators=[

@@ -5,3 +5,26 @@ a.custom-card:hover {
 a.custom-card:link {
   text-decoration: none;
 }
+
+.bgimg {
+    background-image: url('{{url_for("static", filename="images/404.gif")}}');
+    height: 600px;
+    background-size: auto;
+}
+ .tagfloat {
+   float: left;
+   position: absolute;
+   left: 0px;
+   top: 0px;
+   z-index: 1000;
+   background-color: #92AD40;
+   padding: 5px;
+   color: #FFFFFF;
+   font-weight: bold;
+}
+.customcontainer {
+border: 1px solid #DDDDDD;
+width: 800px;
+height: 600px;
+position: relative;
+}
