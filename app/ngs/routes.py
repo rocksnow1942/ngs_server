@@ -328,12 +328,12 @@ def details():
     if not entry: abort(404)
     rounds=next_url=prev_url=None
 
-    if table=='selection':    
+    if table=='selection':
         rounds = Rounds.query.filter_by(selection_id=id).order_by(Rounds.id.desc()).paginate(page,pagelimit,False)
         next_url = url_for('ngs.details', table=table, id=id,
                            page=rounds.next_num, ) if rounds.has_next else None
         prev_url = url_for('ngs.details', table=table, id=id,
                            page=rounds.prev_num, ) if rounds.has_prev else None
-    
+
     return render_template('ngs/details.html', title = 'Details', entry = entry, table=table,
                     rounds=rounds, next_url=next_url, prev_url=prev_url)
