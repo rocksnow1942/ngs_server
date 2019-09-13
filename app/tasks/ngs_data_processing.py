@@ -167,7 +167,7 @@ class NGS_Sample_Process:
         return smry
 
 class NGS_Sample_Process_Tester(NGS_Sample_Process):
-
+    #TODO: run test on ngs data processing
     def __init__(self, f1, f2, sampleinfo,save_loc):
         self.save_loc=save_loc
         self.f1 = f1

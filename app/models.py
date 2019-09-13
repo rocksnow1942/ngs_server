@@ -13,11 +13,9 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string
 
-#TODO urgent
+#TODO
 #1. for rounds, add parent child relationship.
-#BUG
-#knwon
-
+#
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer,primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
