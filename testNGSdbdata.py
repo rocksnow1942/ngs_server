@@ -189,3 +189,22 @@ def convert_old_style_to_new(oldtablename,selection_name,roundlist,target,note,p
         count = [i[1] for i in roundata]
         round_ = create_round(r,sum(),target,primerset,note,selection)
         create_sequence(round_,)
+
+
+a=["SOMAFP	    ", "CGCCCTCGTCCCATCTC",
+"SOMARP	    ", "CGTTCTCGGTTGGTGTTC",
+"PatsFP	    ", "ACATGGAACAGTCGAGAATCT",
+"PatsRP	    ", "ATGAGTCTGTTGTTGCTCA",
+"N2FP	    ", "TCTGACTAGCGCTCTTCA",
+"LadderRP	", "CGACTCGACTAAACAGCAC",
+"LadderRPC	", "GTGCTGTTTAGTCGAGTCG",
+"IronmanTFP	", "GATGTGAGTGTGTGACGATG",
+"IronmanRP	", "GGTCTTGTTTCTTCTCTGTG",
+"IronmanRPC	", "CACAGAGAAGAAACAAGACC",
+"VEGF33RP1C	", "GAGATCCGACTCACTGG"]
+
+a = [i.strip() for i in a]
+
+from itertools import izip
+c = [ (a[i*2],a[i*2+1]) for i in range(len(a)//2)]
+c

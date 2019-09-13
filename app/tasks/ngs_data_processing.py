@@ -55,7 +55,6 @@ class NGS_Sample_Process:
         ssp = {i[j] for i in self.sampleinfo for j in [3,4] }
         self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
 
-
     def file_generator(self):
         with open(self.f1,'rt') as f, open(self.f2,'rt') as r:
             for line,rev in zip(islice(f,1,None,4),islice(r,1,None,4)):
@@ -167,7 +166,84 @@ class NGS_Sample_Process:
         smry+="\nFailures: {} / {:.2%}".format(self.failure,self.failure/ttl)
         return smry
 
+class NGS_Sample_Process_Tester(NGS_Sample_Process):
+
+    def __init__(self, f1, f2, sampleinfo,save_loc):
+        self.save_loc=save_loc
+        self.f1 = f1
+        self.f2 = f2
+        self.sampleinfo = sampleinfo
+        self.collection = Counter()
+        self.primer_collection = Counter()  # log wrong primers
+        self.index_collection = Counter()  # log wrong index
+        self.failure = 0  # log other un explained.
+        self.total = 0  # total reads
+        self.revcomp = 0  # passed rev comp reads
+        self.success = 0  # find match
+        self.pattern = [(re.compile(j+'[AGTCN]{0,3}'+l), re.compile(
+            m+'[AGTCN]{0,3}'+k)) for i, j, k, l, m in self.sampleinfo]
+        self._totalread = self.totalread()
+        ngsprimer = [("i701",	"CGAGTAAT"),
+                     ("i702",	"TCTCCGGA"),
+                     ("i703",	"AATGAGCG"),
+                     ("i704",	"GGAATCTC"),
+                     ("i705",	"TTCTGAAT"),
+                     ("i706",	"ACGAATTC"),
+                     ("i707",	"AGCTTCAG"),
+                     ("i708",	"GCGCATTA"),
+                     ("i709",	"CATAGCCG"),
+                     ("i710",	"TTCGCGGA"),
+                     ("i711",	"GCGCGAGA"),
+                     ("i712",	"CTATCGCT")]
+        ngsprimer = ngsprimer + [(i, reverse_comp(j)) for i, j in ngsprimer]
+        samplengsprimer = {i[j] for i in self.sampleinfo for j in [1, 2]}
+        self.ngsprimer = [i for i in ngsprimer if i[1] not in samplengsprimer]
+        selectionprimer = [('SOMAFP', 'CGCCCTCGTCCCATCTC'),
+                           ('SOMARP', 'CGTTCTCGGTTGGTGTTC'),
+                           ('PatsFP', 'ACATGGAACAGTCGAGAATCT'),
+                           ('PatsRP', 'ATGAGTCTGTTGTTGCTCA'),
+                           ('N2FP', 'TCTGACTAGCGCTCTTCA'),
+                           ('LadderRP', 'CGACTCGACTAAACAGCAC'),
+                           ('LadderRPC', 'GTGCTGTTTAGTCGAGTCG'),
+                           ('IronmanTFP', 'GATGTGAGTGTGTGACGATG'),
+                           ('IronmanRP', 'GGTCTTGTTTCTTCTCTGTG'),
+                           ('IronmanRPC', 'CACAGAGAAGAAACAAGACC'),
+                           ('VEGF33RP1C', 'GAGATCCGACTCACTGG')]
+        selectionprimer = selectionprimer + \
+            [(i, reverse_comp(j)) for i, j in selectionprimer]
+        ssp = {i[j] for i in self.sampleinfo for j in [3, 4]}
+        self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
+
+    def commit(self,counter):
+        towrite=[]
+        for k in list(self.collection.keys()):
+            rd_id, seq = k
+            count = self.collection[k]
+            if count > 1:
+                towrite.append(self.collection.pop(k))
+        with open(self.save_loc, 'a') as f:
+            f.write()
+
+    def process(self):
+        import pickle
+        for seq in self.file_generator():
+            self.process_seq(seq)
+        with open(self.save_loc, 'wb') as f:
+            self.collection['result'] = self.results()
+            pickle.dump(self.collection,f)
+        return self.collection
+        
+
+
+
+
+
+
 def generate_sample_info(nsg_id):
+    """
+    sample info is a list consist of [ () ()]
+    (round_id, fpindex, rpcindex, fp, rpc)
+    """
     nsg = NGSSampleGroup.query.get(nsg_id)
     savefolder = current_app.config['UPLOAD_FOLDER']
     f1 = os.path.join(savefolder, json.loads(nsg.datafile)['file1'])
@@ -195,14 +271,13 @@ def parse_ngs_data(nsg_id):
 
 
 def test_worker(n):
-    
     for i in range(n):
         print("****runging test -", i)
     
 
 
 if __name__ == '__main__':
-    # count lines
+    """test data processing module"""
 
     file1 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R1_001.fastq"
     file2 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R2_001.fastq"

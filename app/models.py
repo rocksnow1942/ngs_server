@@ -67,7 +67,7 @@ class SeqRound(db.Model):
     # __table_args__ = {'extend_existing': True}
     sequence_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('sequence.id'), primary_key=True)
     rounds_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'), primary_key=True)
-    count = Column(mysql.INTEGER(unsigned=True))
+    count = Column(mysql.INTEGER(unsigned=True),default=1)
     sequence = relationship("Sequence", back_populates="rounds")
     round = relationship("Rounds", back_populates="sequences")
 
@@ -165,12 +165,12 @@ class Rounds(db.Model,BaseDataModel):
     
     def top_seq(self,n):
         seq = sorted(self.sequences,key=lambda x:x.count,reverse=True)
+        self.totalread = sum(i.count for i in self.sequences)
+        db.session.commit()
         seq = ["{}: {:.2%}".format(
-            i.sequence.aka, i.count/self.totalread) for i in seq[0:n]]
+            i.sequence.aka, i.count/(self.totalread)) for i in seq[0:n]]
         return "; ".join(seq)
     
- 
-
     def info(self):
         l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
         l2="Top Seq: {}".format(self.top_seq(5))
@@ -211,7 +211,7 @@ class Selection(db.Model,BaseDataModel):
 
     def info(self):
         l1=("Total Rounds",len(self.rounds))
-        l2=("Sequenced",len([i for i in self.rounds if i.totalread>0]))
+        l2=("Sequenced",len([i for i in self.rounds if i.totalread]))
         return l1,l2
 
 class Primers(db.Model,BaseDataModel):
