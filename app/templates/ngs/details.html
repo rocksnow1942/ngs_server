@@ -3,7 +3,157 @@
 
 
 {% block app_content %}
+<h1>{{entry.__repr__()}} - Details </h1>
+{% if table == 'ngs_sample_group' %}
+<h3>Rounds in this sample:</h3>
+<table class="table table-hover">
+    <tr>
+        <th width = "200px" >
+            Round Name
+        </th>
+        <th width = "200px">
+            Round FP
+        </th>
+        <th width = "200px">
+            Round RP
+        </th>
+        <th width = "200px">
+            NGS Index FP
+        </th>
+        <th width = "200px">
+            NGS Index RP
+        </th>
+    </tr>
+    {% for sample in entry.samples %}
+        <tr>
+            {% for col,table,id in sample.info() %}
+                    <td width="75px">
+                       <a href="{{url_for('ngs.details',table=table,id=id)}}">{{col}}</a>
+                    </td>
+            {% endfor %}
+        </tr>
+    {% endfor %}  
+</table> 
+<div class="row">
+        <div class="col-xs-6 col-md-4">
+            <div class="thumbnail alert-default well-md">
+                <h5 class="card-title">Processing Result</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.processingresult %}{{entry.processingresult}}{%else%}None{% endif %}</p>
+            </div>
+        </div>
+        <div class="col-xs-6 col-md-4">
+            <div class="thumbnail alert-default well-md">
+                <h5 class="card-title">Note</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.note %}{{entry.note}}{%else%}None{% endif %}</p>
+                <h5 class="card-title">Sample Submission Date</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{{entry.date}}</p>
+               <hr>
+                <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'> <b>Edit NGS Sample</b> </a>
+            </div>
+        </div>
+        <div class="col-xs-6 col-md-4">
+            <div class="thumbnail alert-default well-md">
+                <h5 class="card-title">Data files</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{{entry.showdatafiles}}</p>
+            </div>
+        </div>
+</div>
+    
 
-<h1>Hi this is the details page.</h1>
+{% elif table == 'primer' %}
+<h3>Sequence:</h3>
+<h4>5'- {{entry.sequence}} -3'</h4>
+<div class="row">
+    <div class="col-xs-6 col-md-4">
+        <div class="thumbnail alert-default well-md">
+            <h5 class="card-title">Note</h5>
+            <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.note %}{{entry.note}}{%else%}None{% endif %}</p>
+            <h5 class="card-title">Primer Role</h5>
+            <p class="card-text-light" style="white-space:pre-wrap;">{{entry.role}}</p>
+            <hr>
+            <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'>
+                <b>Edit Primer</b> </a>
+        </div>
+    </div>
+</div>
+
+{% elif table == 'selection' %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="thumbnail well-md">
+            <h4 class="card-title">Selection</h4>
+            <li><b>Target:</b> {{entry.target}}</li>
+            <li><b>Date:</b> {{entry.date}}</li>
+            <li><b>Note:</b> {{entry.note}}</li>
+            <p class="card-text-light" style="white-space:pre-wrap;">{{entry.showdatafiles}}</p>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="thumbnail  well-md">
+        <h4 class="card-title">Basic Info</h4>
+        {% for info in entry.info() %}
+            <li><b>{{info[0]}}:</b> {{info[1]}}</li>
+        {% endfor %}
+        <hr>
+        <div class="row">
+            <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'>Edit
+                Selection</a></div>
+            <div class="col-sm-6"><a href="" class='btn btn-info btn-block' role='button'>Draw Selection Tree</a></div>
+        </div>
+        </div>
+    </div>
+</div>
+<h4>Round List</h4>
+<table class="table table-hover">
+    <tr>
+        <th width="100px">
+            Round Name
+        </th>
+        <th width="500px">
+            Round Brief
+        </th>
+        <th width="125px">
+            Round Note
+        </th>
+    </tr>
+    {% for round in rounds.items %}
+    <tr>
+        <td >
+            <a href="{{url_for('ngs.details',table='round',id=round.id)}}">{{round.round_name}}</a>
+        </td>
+        <td >
+            {% for info in round.info() %}
+            <li>{{info}}</li>
+            {% endfor %}
+        </td>
+        <td> <b>Note:</b><br>{{round.note}}</td>   
+    </tr>
+    {% endfor %}
+</table>
+<nav aria-label="...">
+    <ul class="pager">
+        <li class="previous {% if not prev_url %} disabled{% endif %}">
+            <a class="page-link" href="{{ prev_url or '#' }}" tabindex="-1">&larr; Previous</a>
+        </li>
+       
+        <li class="next {% if not next_url %} disabled{% endif %}">
+            <a class="page-link" href="{{ next_url or '#' }}">Next &rarr;</a>
+        </li>
+    </ul>
+</nav>
+
+{% elif table == 'round' %}
+
+
+{% elif table == 'sequence_round' %}
+
+
+
+{% else %}
+        blockofcode
+    
+{% endif %}
+
+
 
 {% endblock %}

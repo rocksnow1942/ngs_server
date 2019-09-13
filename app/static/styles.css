@@ -6,6 +6,7 @@ a.custom-card:link {
   text-decoration: none;
 }
 
+
 .bgimg {
     background-image: url('{{url_for("static", filename="images/404.gif")}}');
     height: 600px;

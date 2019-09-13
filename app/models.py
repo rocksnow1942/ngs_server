@@ -13,9 +13,10 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string
 
-#TODO 
+#TODO urgent
 #1. for rounds, add parent child relationship.
-#
+#BUG
+#knwon
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer,primary_key=True)
@@ -71,29 +72,31 @@ class SeqRound(db.Model):
     round = relationship("Rounds", back_populates="sequences")
 
     def __repr__(self):
-        return f"SeqRound :{self.count} Seq{self.sequence_id} in {self.round.round_name}"
+        return f"Sequence {self.id_display}, {self.count} in {self.round.round_name}"
 
     def display(self):
         rd = Rounds.query.get(self.rounds_id)
         sq = Sequence.query.get(self.sequence_id)
         ks = sq.knownas or ''
         if ks:
-            ks = 'Known As: '+ks.sequence_name+'\n'
+            ks = 'A.K.A. : '+ks.sequence_name+'\n'
         l1= f"5'- {sq.aptamer_seq} -3'"
         l2=f"{ks}Count: {self.count} Ratio: {round(self.count/rd.totalread*100,2)}% in {rd.round_name} pool."
         return [l1,l2]
 
     @property
     def id(self):
-        return self.sequence_id
+        return (self.sequence_id,self.rounds_id)
 
     @property
     def id_display(self):
-        return convert_id_to_string(self.id)
+        return convert_id_to_string(self.id[0])
 
     def haschildren(self):
         return True
 
+#TODO
+# add ability to add, and show known sequence.
 class KnownSequence(db.Model,BaseDataModel):
     __tablename__ = 'known_sequence'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -103,7 +106,7 @@ class KnownSequence(db.Model,BaseDataModel):
     sequence_variants =  relationship('Sequence',backref='knownas')
 
     def __repr__(self):
-        return f"KnownSequence id:{self.id}, Sequence Name: {self.sequence_name}"
+        return f"<{self.sequence_name}> ID:{self.id}"
 
 class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
@@ -114,7 +117,7 @@ class Sequence(db.Model,BaseDataModel):
     rounds = relationship("SeqRound", back_populates="sequence")
 
     def __repr__(self):
-        return f"Sequence id:{self.id},sequence:{self.aptamer_seq}"
+        return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas}"
 
     def haschildren(self):
         return False
@@ -122,6 +125,11 @@ class Sequence(db.Model,BaseDataModel):
     @property
     def id_display(self):
         return convert_id_to_string(self.id)
+
+    @property
+    def aka(self):
+        if self.knownas: return self.knownas.sequence_name
+        else: return self.id_display
 
 class Rounds(db.Model,BaseDataModel):
     __tablename__ = 'round'
@@ -142,7 +150,7 @@ class Rounds(db.Model,BaseDataModel):
     parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
     children = relationship("Rounds")
     def __repr__(self):
-        return f"Round id:{self.id},name:{self.round_name}"
+        return f"Round <{self.round_name}>, ID:{self.id}"
 
     def display(self):
         selectionname = self.selection_id and Selection.query.get(self.selection_id).selection_name
@@ -153,6 +161,23 @@ class Rounds(db.Model,BaseDataModel):
         l2=f"Target: {self.target}, Selection name: {selectionname}, Total Read: {self.totalread}"
         l3=f"Primers: {fp} + {rp}, Date:{self.date}"
         l4=f"Note: {self.note}"
+        return l1,l2,l3,l4
+    
+    def top_seq(self,n):
+        seq = sorted(self.sequences,key=lambda x:x.count,reverse=True)
+        seq = ["{}: {:.2%}".format(
+            i.sequence.aka, i.count/self.totalread) for i in seq[0:n]]
+        return "; ".join(seq)
+    
+ 
+
+    def info(self):
+        l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
+        l2="Top Seq: {}".format(self.top_seq(5))
+        parent = "None" if not self.parent_id else Rounds.query.get(self.parent_id).round_name
+        l3="Parent: {}".format(parent)
+        children = [i.round_name for i in self.children]
+        l4="Children: {}".format("None" if not children else '; '.join(children))
         return l1,l2,l3,l4
 
     @property
@@ -173,7 +198,7 @@ class Selection(db.Model,BaseDataModel):
     # samples = relationship('NGSSample',backref='selection')
 
     def __repr__(self):
-        return f"Selection id:{self.id}, selection name:{self.selection_name}"
+        return f"Selection <{self.selection_name}>, ID: {self.id}"
 
     def display(self):
         line1 = f"{self.selection_name}"
@@ -184,6 +209,11 @@ class Selection(db.Model,BaseDataModel):
     def haschildren(self):
         return bool(self.rounds)
 
+    def info(self):
+        l1=("Total Rounds",len(self.rounds))
+        l2=("Sequenced",len([i for i in self.rounds if i.totalread>0]))
+        return l1,l2
+
 class Primers(db.Model,BaseDataModel):
     __tablename__ = 'primer'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -193,7 +223,7 @@ class Primers(db.Model,BaseDataModel):
     note = Column(String(300))
    
     def __repr__(self):
-        return f"Primer {self.name}, id:{self.id}"
+        return f"Primer {self.name}, ID:{self.id}"
 
     def display(self):
         l1 = f"{self.name}"
@@ -217,10 +247,15 @@ class NGSSampleGroup(db.Model,BaseDataModel):
     task_id = Column(db.String(36),ForeignKey('task.id'))
 
     def __repr__(self):
-        return f"NGSSampleGroup: {self.name}, {len(self.samples)} samples"
+        return f"NGS Sample <{self.name}>, ID:{self.id}"
 
     def haschildren(self):
         return bool(self.datafile)
+    
+    @property
+    def showdatafiles(self):
+        data=json.loads(self.datafile)
+        return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
 
     @property
     def processed(self):
@@ -322,6 +357,18 @@ class NGSSample(db.Model,BaseDataModel):
 
     def __repr__(self):
         return f"ID:{self.id},Round:{self.round_id}"
+
+    def info(self):
+        """ return information in the order of 
+        round name, round FP, round RP, index FP, index RP"""
+        rd  = self.round
+        fp = Primers.query.get(rd.forward_primer)
+        rp = Primers.query.get(rd.reverse_primer)
+        fpi = Primers.query.get(self.fp_id)
+        rpi = Primers.query.get(self.rp_id)
+        return [(rd.round_name, rd.__tablename__, rd.id)] + [(p.name, p.__tablename__,p.id) for p in (fp,rp,fpi,rpi)]
+
+
 
 class Task(db.Model,BaseDataModel):
     __tablename__='task'

@@ -307,13 +307,33 @@ def get_bar_progress():
 
 
 
-@bp.route('/details', methods=['GET', 'POST'])
+@bp.route('/details', methods=['GET'])
 @login_required
 def details():
+    pagelimit = current_app.config['PAGE_LIMIT']
+    page = request.args.get('page', 1, type=int)
     table = request.args.get('table','',str)
-    id = request.args.get('id',0,int)
+    id = request.args.get('id')
     target = models_table_name_dictionary.get(table,None)
     if not target: print(5/0)
+    try:
+        if table =='sequence_round':
+            id = id[1:-1].split(',')
+            id = tuple(int(i) for i in id)
+        else:
+            id = int(id)
+    except:
+        abort(404)
     entry = target.query.get(id)
     if not entry: abort(404)
-    return render_template('ngs/details.html', title = 'Details', entry = entry, table=table)
+    rounds=next_url=prev_url=None
+
+    if table=='selection':    
+        rounds = Rounds.query.filter_by(selection_id=id).order_by(Rounds.id.desc()).paginate(page,pagelimit,False)
+        next_url = url_for('ngs.details', table=table, id=id,
+                           page=rounds.next_num, ) if rounds.has_next else None
+        prev_url = url_for('ngs.details', table=table, id=id,
+                           page=rounds.prev_num, ) if rounds.has_prev else None
+    
+    return render_template('ngs/details.html', title = 'Details', entry = entry, table=table,
+                    rounds=rounds, next_url=next_url, prev_url=prev_url)
