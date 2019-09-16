@@ -25,3 +25,12 @@ def index():
 def triggererror():
     assert False, ('new error')    
     return render_template('upload.html',title='Upload',form={'form':'upload'})
+
+
+
+@bp.route('/search', methods=['GET', 'POST'])
+@login_required
+def search():
+    print(request.form['search_para'])
+    
+    return render_template('search/search_result.html', title='Search Result', para=request.form['search_para'])
