@@ -17,8 +17,6 @@
 
 {% block navbar %}
     <div class='container'>
-
-
             <nav class="navbar navbar-inverse">
               <div class="container-fluid">
                 <!-- Brand and toggle get grouped for better mobile display -->
@@ -37,12 +35,10 @@
                   <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('main.index') }}"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> Home</a></li>
                     <li><a href="{{ url_for('ngs.ngs') }}"><span class="glyphicon glyphicon-link" aria-hidden="true"></span> NGS</a></li>
-
+                    <li><a href="{{ url_for('fold.index') }}"><span class="glyphicon glyphicon-send" aria-hidden="true"></span> FOLD</a></li>
                   </ul>
 
                   <ul class="nav navbar-nav navbar-right">
-
-
                       {% if current_user.is_anonymous %}
                       <li><a href="{{ url_for('auth.login') }}"><span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Login</a></li>
                       {% else %}

@@ -41,6 +41,9 @@ def create_app(config_class = Config):
     from app.ngs import bp as ngs_bp
     app.register_blueprint(ngs_bp,url_prefix='/ngs')
 
+    from app.fold import bp as fold_bp
+    app.register_blueprint(fold_bp, url_prefix='/fold')
+
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
 

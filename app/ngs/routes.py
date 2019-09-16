@@ -96,8 +96,6 @@ def add():
     return render_template('ngs/add.html', title='Add', toadd=toadd,form=form,datalist=datalist)
 
 
-
-
 def load_datalist(toadd):
     if toadd=='round':
         return dict(selections=db.session.query(
