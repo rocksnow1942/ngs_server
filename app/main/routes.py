@@ -5,6 +5,7 @@ from datetime import datetime
 from app.main import bp
 from app.models import Selection,Rounds
 
+
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:

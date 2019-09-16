@@ -1,0 +1,19 @@
+<nav aria-label="Page navigation">
+    <ul class="pagination ">
+        <li class=" previous {% if not prev_url %} disabled{% endif %}">
+            <a class='page-link' href="{{ prev_url or '#' }}" aria-label="Previous">
+                <span aria-hidden="true">&larr;</span>
+            </a>
+        </li>
+        {% for pn,pu in page_url %}
+
+        <li class="previous {% if pn==active %} active{% endif %}"><a href="{{pu}}">{{pn}}</a></li>
+
+        {% endfor %}
+        <li class=" previous {% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}" aria-label="Next">
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </li>
+    </ul>
+</nav>

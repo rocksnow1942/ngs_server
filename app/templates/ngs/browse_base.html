@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+
+
+{% block app_content %}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            {% if table !='ngs_sample_group' %}
+            <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}">Samples</a>
+            {% else %}<b>Samples</b>
+            {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+            {% if table!='primer' %}
+            <a href="{{url_for('ngs.browse',table='primer')}}">Primers</a>
+            {% else %}<b>Primers</b>
+            {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+          {% if table!='known_sequence' %}
+          <a href="{{url_for('ngs.browse',table='known_sequence')}}">Aptamers</a>
+          {% else %}<b>Aptamers</b>
+          {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+            {% if table!='selection' %}
+            <a href="{{url_for('ngs.browse',table='selection')}}">Selection</a>
+            {% else %}<b>Selection</b>
+            {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+            {% if table!='round' %}
+            <a href="{{url_for('ngs.browse',table='round')}}">Rounds</a>
+            {% else %} <b>Round</b>
+            {% endif %}
+        </li>
+        <li class="breadcrumb-item">
+            {% if table!='sequence' %}
+            Sequence
+            {% else %}<b>Sequence</b>
+            {% endif %}
+        </li>
+      </ol>
+</nav>
+
+{% block browse_content %}
+{% endblock %}
+
+
+
+
+{% endblock %}
+
+
+{% block scripts %}
+{{super()}}
+{% if table =='ngs_sample_group' %}
+<script>
+  // update progressbar
+  function set_bar_progress(barid, progress) {
+    const p = progress + '%';
+    $('#' + barid).css('width', p).attr('aria-valuenow', p).text(p);
+  };
+
+
+  // making progressbar dynamic
+  $(document).ready(function () {
+    if ($(".progress-bar").length) {
+      setInterval(function () {
+        var barlist = [];
+        $('.progress-bar').each(function () {
+          barlist.push(this.id);
+        });
+        // make ajax request to get  progress info
+        $.ajax({
+          url: "{{ url_for('ngs.get_bar_progress')}}",
+          type: "POST",
+          data: JSON.stringify({ barlist: barlist }),
+          contentType: 'application/json',
+          success: function (result) {
+            console.log(result);
+            for (let [barid, progress] of Object.entries(result)) {
+              set_bar_progress(barid, progress)
+            };
+          },
+          error: function (xhr, resp, text) {
+            console.log(xhr, resp, text);
+          }
+        });
+      }, 300);
+    };
+  });
+</script>
+{% endif %}
+
+
+{% endblock %}

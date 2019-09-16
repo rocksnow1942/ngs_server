@@ -1,3 +1,5 @@
+import numpy as np
+from matplotlib.figure import Figure
 from app import db,login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,14 +10,13 @@ import jwt
 from flask import current_app
 from itertools import islice
 import json
-from sqlalchemy import Column, String,ForeignKey,DateTime
+from sqlalchemy import Column, String,ForeignKey,DateTime,func
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
-from app.utils.ngs_util import convert_id_to_string
+from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
+from app.utils.folding._structurepredict import Structure
 
-#TODO
-#1. for rounds, add parent child relationship.
-#
+
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer,primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -70,17 +71,54 @@ class SeqRound(db.Model):
     round = relationship("Rounds", back_populates="sequences")
 
     def __repr__(self):
-        return f"Sequence {self.id_display}, {self.count} in {self.round.round_name}"
+        return f"Sequence <{self.id_display}>, {self.count} in {self.round.round_name}"
 
     def display(self):
-        rd = Rounds.query.get(self.rounds_id)
-        sq = Sequence.query.get(self.sequence_id)
-        ks = sq.knownas or ''
+        ks = self.sequence.knownas or ''
         if ks:
             ks = 'A.K.A. : '+ks.sequence_name+'\n'
-        l1= f"5'- {sq.aptamer_seq} -3'"
-        l2=f"{ks}Count: {self.count} Ratio: {round(self.count/rd.totalread*100,2)}% in {rd.round_name} pool."
-        return [l1,l2]
+        l1= self.sequence_display
+        l2=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
+        l3=f"Length: {len(self.sequence.aptamer_seq)} n.t."
+        return l1,l2,l3
+    
+    @property
+    def aka(self):
+        ks = self.sequence.knownas or ''
+        if ks:
+            ks = ks.sequence_name
+        return ks
+
+    @property
+    def length(self):
+        return len(self.sequence.aptamer_seq)
+
+    @property
+    def FP(self):
+        return self.round.FP
+
+    @property
+    def RP(self):
+        return self.round.RP
+
+    
+    @property
+    def sequence_display(self):
+        return f"{self.sequence.aptamer_seq}"
+
+    @property
+    def percentage(self):
+        return round(self.count/self.round.totalread*100,2)
+    
+    def percentage_in_selection(self):
+        rd = db.session.query(Rounds.id).filter(Rounds.selection_id==self.round.selection_id)
+        u= SeqRound.query.filter(SeqRound.sequence_id==self.sequence_id,SeqRound.rounds_id.in_(rd)).all()
+        return sorted(u,key=lambda x:x.percentage,reverse=True)
+
+    def percentage_in_other(self):
+        rd = db.session.query(Rounds.id).filter(Rounds.selection_id!=self.round.selection_id)
+        u= SeqRound.query.filter(SeqRound.sequence_id==self.sequence_id,SeqRound.rounds_id.in_(rd)).all()
+        return sorted(u,key=lambda x:x.percentage,reverse=True)
 
     @property
     def id(self):
@@ -89,22 +127,63 @@ class SeqRound(db.Model):
     @property
     def id_display(self):
         return convert_id_to_string(self.id[0])
+    
+    @property
+    def percentage_rank(self):
+        rd = sorted([i.count for i in self.round.sequences],reverse=True)
+        return rd.index(self.count)+1
+
 
     def haschildren(self):
         return True
 
-#TODO
-# add ability to add, and show known sequence.
+
 class KnownSequence(db.Model,BaseDataModel):
     __tablename__ = 'known_sequence'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
-    rep_seq = Column(mysql.VARCHAR(200,charset='ascii'))
+    rep_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True)
     note = Column(mysql.VARCHAR(500))
     sequence_variants =  relationship('Sequence',backref='knownas')
 
+    @property
+    def name(self):
+        return self.sequence_name
+    
+    @property 
+    def length(self):
+        return len(self.rep_seq)
+
     def __repr__(self):
-        return f"<{self.sequence_name}> ID:{self.id}"
+        return f"KnownSequence <{self.sequence_name}> ID:{self.id}"
+    
+    def haschildren(self):
+        f = Sequence.query.filter_by(known_sequence_id=self.id).first()
+        return bool(f)
+    
+    @property
+    def id_display(self):
+        return self.id
+    
+    def display(self):
+        l1 = "Name: {}".format(self.sequence_name)
+        l2 = "Sequence: {}".format(self.rep_seq)
+        l3 = 'Note: {}'.format(self.note)
+        return l1,l2,l3
+
+    def plot_structure(self):
+        fs = Structure(self.rep_seq, name=self.sequence_name)
+        return fs.quick_plot()
+    
+
+    def found_in(self):
+        result = db.session.query(Selection.selection_name, Rounds.selection_id, Rounds.round_name, SeqRound.rounds_id, func.sum(SeqRound.count) /
+                 Rounds.totalread).join(Sequence).join(Rounds).join(Selection).filter(Sequence.known_sequence_id == self.id).group_by(SeqRound.rounds_id).all()
+        result.sort(key=lambda x:x[-1],reverse=True)
+        result = [ ((a,b),(c,d),"{:.2%}".format(e)) for a,b,c,d,e in result]
+        return result
+
+
 
 class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
@@ -115,10 +194,14 @@ class Sequence(db.Model,BaseDataModel):
     rounds = relationship("SeqRound", back_populates="sequence")
 
     def __repr__(self):
-        return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas}"
+        return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas.sequence_name}"
 
     def haschildren(self):
         return False
+
+    @property 
+    def length(self):
+        return len(self.aptamer_seq)
 
     @property
     def id_display(self):
@@ -128,6 +211,19 @@ class Sequence(db.Model,BaseDataModel):
     def aka(self):
         if self.knownas: return self.knownas.sequence_name
         else: return self.id_display
+
+    def similar_to(self,n=10):
+        ks = KnownSequence.query.filter(KnownSequence.id!=self.known_sequence_id).all()
+        ksdistance = [lev_distance(self.aptamer_seq,i.rep_seq,n+abs(i.length-self.length)) for i in ks]
+        similarity = sorted([(i,j) for i,j in zip(ks,ksdistance)],key=lambda x: x[1])
+        similarity = [(ks, i) for ks, i in similarity if i <=
+                      (n+abs(ks.length-self.length))]
+        return similarity
+    
+    def plot_structure(self):
+        fs=Structure(self.aptamer_seq,name=self.id_display)
+        return fs.quick_plot()
+
 
 class Rounds(db.Model,BaseDataModel):
     __tablename__ = 'round'
@@ -150,6 +246,14 @@ class Rounds(db.Model,BaseDataModel):
     def __repr__(self):
         return f"Round <{self.round_name}>, ID:{self.id}"
 
+    @property
+    def name(self):
+        return self.round_name
+    
+    @property 
+    def sequenced(self):
+        return bool(self.samples)
+
     def display(self):
         selectionname = self.selection_id and Selection.query.get(self.selection_id).selection_name
         fp = self.forward_primer and Primers.query.get(self.forward_primer).name
@@ -161,12 +265,17 @@ class Rounds(db.Model,BaseDataModel):
         l4=f"Note: {self.note}"
         return l1,l2,l3,l4
     
-    def top_seq(self,n):
-        seq = sorted(self.sequences,key=lambda x:x.count,reverse=True)
+    def _top_seq(self,n):
+        seq = sorted(self.sequences, key=lambda x: x.count, reverse=True)
+        oldread = self.totalread
         self.totalread = sum(i.count for i in self.sequences)
-        db.session.commit()
+        if oldread != self.totalread:
+            db.session.commit()
+        return seq[0:n]
+    
+    def top_seq(self,n):
         seq = ["{}: {:.2%}".format(
-            i.sequence.aka, i.count/(self.totalread)) for i in seq[0:n]]
+            i.sequence.aka, i.count/(self.totalread)) for i in self._top_seq(n)]
         return "; ".join(seq)
     
     def info(self):
@@ -178,12 +287,57 @@ class Rounds(db.Model,BaseDataModel):
         l4="Children: {}".format("None" if not children else '; '.join(children))
         return l1,l2,l3,l4
 
+
     @property
     def unique_read(self):
         return len(self.sequences)
 
+    @property
+    def parent(self):
+        return Rounds.query.get(self.parent_id or 0)
+
+    @property
+    def FP(self):
+        return Primers.query.get(self.forward_primer or 0)
+    @property
+    def RP(self):
+        return Primers.query.get(self.reverse_primer or 0)
+
     def haschildren(self):
         return bool(self.totalread) or bool(self.samples)
+
+    def plot_pie(self):
+        # fig, ax = Figure.subplots(figsize=(4, 4), subplot_kw=dict(aspect="equal"))
+        fig = Figure(figsize=(6,4))
+        ax = fig.subplots(subplot_kw=dict(aspect="equal"))
+        seq = [(i.sequence.aka, i.count/(self.totalread)) for i in self._top_seq(9)]
+        seq = [i for i in seq if i[1]>=0.01]
+        seq = seq + [('<{:.1%}'.format(seq[-1][1]), 1-sum([i[1] for i in seq]))]
+        data = [i[1] for i in seq]
+        start = sum(i for i in data[:-1] if i>0.05)
+        start += 0.5*sum(i for i in data[:-1] if i<=0.05)
+        wedges, texts, autotexts = ax.pie(data, wedgeprops=dict(width=0.5), autopct=lambda pct: "{:.1f}%".format(pct),
+                                        textprops=dict(color="w", fontsize=6), pctdistance=0.75,startangle=180-360*start)       
+        kw = dict(arrowprops=dict(arrowstyle="-"),zorder=0, va="center")
+        lastxy=(1,0)
+        ax.set_title(self.round_name, weight='bold')
+        for i, p in enumerate(wedges):
+            ang = (p.theta2 - p.theta1)/2 + p.theta1
+            y = np.sin(np.deg2rad(ang))
+            x = np.cos(np.deg2rad(ang))
+            horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+            connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+            kw["arrowprops"].update({"connectionstyle": connectionstyle})
+            # jitter
+            if np.sign(x)==lastxy[0]:
+                if abs(y-lastxy[1])<0.06:
+                    y += 0.06*np.sign(x)-(y-lastxy[1])
+            ax.annotate(seq[i][0], xy=(x, y), xytext=(1.2*np.sign(x), 1.2*y),
+                        horizontalalignment=horizontalalignment, fontsize=8, **kw)
+            lastxy= (np.sign(x),y)
+        fig.set_tight_layout(True)
+        return fig
+
 
 class Selection(db.Model,BaseDataModel):
     __tablename__ = 'selection'
@@ -193,7 +347,10 @@ class Selection(db.Model,BaseDataModel):
     note = Column(String(300))
     rounds = relationship('Rounds',backref='selection')
     date = Column(DateTime(), default=datetime.now)
-    # samples = relationship('NGSSample',backref='selection')
+    
+    @property
+    def name(self):
+        return self.selection_name
 
     def __repr__(self):
         return f"Selection <{self.selection_name}>, ID: {self.id}"
@@ -232,6 +389,10 @@ class Primers(db.Model,BaseDataModel):
     def haschildren(self):
         return self.role != 'Other'
 
+    @property
+    def sequence_rc(self):
+        return reverse_comp(self.sequence)
+
 class NGSSampleGroup(db.Model,BaseDataModel):
     __tablename__ = 'ngs_sample_group'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -252,8 +413,11 @@ class NGSSampleGroup(db.Model,BaseDataModel):
     
     @property
     def showdatafiles(self):
-        data=json.loads(self.datafile)
-        return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
+        if self.datafile:
+            data=json.loads(self.datafile)
+            return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
+        else:
+            return None
 
     @property
     def processed(self):
@@ -335,11 +499,11 @@ class NGSSampleGroup(db.Model,BaseDataModel):
                 match += findmatch
             else:
                 revcomp-=1
-        print("***",revcomp,match,needtoswap)
+       
         assert revcomp>0,('Too Many non reverse-complimentary sequences.')
         assert match > 0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:
-            print(needtoswap)
+            
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']
             self.datafile = json.dumps(datadict)
@@ -360,10 +524,10 @@ class NGSSample(db.Model,BaseDataModel):
         """ return information in the order of 
         round name, round FP, round RP, index FP, index RP"""
         rd  = self.round
-        fp = Primers.query.get(rd.forward_primer)
-        rp = Primers.query.get(rd.reverse_primer)
-        fpi = Primers.query.get(self.fp_id)
-        rpi = Primers.query.get(self.rp_id)
+        fp = Primers.query.get(rd.forward_primer )
+        rp = Primers.query.get(rd.reverse_primer )
+        fpi = Primers.query.get(self.fp_id )
+        rpi = Primers.query.get(self.rp_id )
         return [(rd.round_name, rd.__tablename__, rd.id)] + [(p.name, p.__tablename__,p.id) for p in (fp,rp,fpi,rpi)]
 
 
@@ -386,7 +550,7 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-models_table_name_dictionary = {'task': Task, 'ngs_sample': NGSSample, 
+models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
 'known_sequence':KnownSequence, 'sequence_round':SeqRound}
 from app.tasks.ngs_data_processing import generate_sample_info

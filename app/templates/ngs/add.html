@@ -3,26 +3,15 @@
 
 
 {% block app_content %}
-
-
-
-
-        <!-- <div class="col-xs-6 col-md-4"></div> -->
-
         <div class="panel panel-default col" >
           <div class="panel-body">
             <h2>{{title}} - {{ toadd.upper() }}</h2>
             <form action="" method="post" class="form" role="form">
                 {{ form.hidden_tag() }}
-
                     {{wtf.quick_form(form)}}
             </form>
         </div>
        </div>
-
-        <!-- <div class="col-xs-6 col-md-4"></div> -->
-
-
 
 {% for key,item in datalist.items() %}
       <datalist id ="{{key}}">
@@ -34,11 +23,54 @@
 {% endfor %}
 
 {% endblock %}
-<!-- {% for field in form if field.widget.input_type != 'hidden' %}
-    {% if field.name=="submit" %}
-            {{wtf.form_field(field,class='btn btn-secondary')}}
-    {%else%}
-        {{wtf.form_field(field)}}
-    {% endif %}
 
-{% endfor %} -->
+
+{% block scripts %}
+{{super()}}
+
+<script>
+  // dynamically load knownas sequence
+  $(document).on("change", '#knownas', function (event) {
+      let knownasname = event.target.value;
+      let eventid = event.target.id
+      $.ajax({
+        url: "{{ url_for('ngs.get_known_as_sequence')}}",
+        type: "POST",
+        data: { knownas: knownasname },
+        success: function (result) {          
+          
+          $("#ks_sequence").val(result.sequence);
+
+        },
+        error: function (xhr, resp, text) {
+          console.log(xhr, resp, text);
+        }
+      });
+      event.preventDefault();
+    });
+
+  //dynamically adjust round options based on selection value
+  $(document).on("change", '#selection', function (event) {
+      let selectionname = event.target.value;
+      $.ajax({
+        url: "{{ url_for('ngs.get_selection_round')}}",
+        type: "POST",
+        data: { selection: selectionname },
+        success: function (result) {
+          let options = '';
+          for (let round of result.rounds) {
+            options += '<option value="' + round.name + '"></option>';
+          };
+          $("#rounds").html(options);
+
+        },
+        error: function (xhr, resp, text) {
+          console.log(xhr, resp, text);
+        }
+      });
+      event.preventDefault();
+    });
+</script>
+
+
+{% endblock %}

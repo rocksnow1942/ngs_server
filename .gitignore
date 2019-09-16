@@ -41,3 +41,6 @@ venv
 logs
 migrations
 cache
+RNAstructure/
+ViennaRNA/
+nupack3.0.6

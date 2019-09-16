@@ -1,9 +1,8 @@
-{% extends "base.html" %}
+{% extends "ngs/browse_base.html" %}
 
 
-
-{% block app_content %}
-<h1>{{entry.__repr__()}} - Details </h1>
+{% block browse_content %}
+<h2>{{entry.__repr__()}} - Details </h2>
 {% if table == 'ngs_sample_group' %}
 <h3>Rounds in this sample:</h3>
 <table class="table table-hover">
@@ -104,6 +103,7 @@
     </div>
 </div>
 <h4>Round List</h4>
+{% include "ngs/table_pagination.html" %}
 <table class="table table-hover">
     <tr>
         <th width="100px">
@@ -116,7 +116,7 @@
             Round Note
         </th>
     </tr>
-    {% for round in rounds.items %}
+    {% for round in query_result.items %}
     <tr>
         <td >
             <a href="{{url_for('ngs.details',table='round',id=round.id)}}">{{round.round_name}}</a>
@@ -130,24 +130,261 @@
     </tr>
     {% endfor %}
 </table>
-<nav aria-label="...">
-    <ul class="pager">
-        <li class="previous {% if not prev_url %} disabled{% endif %}">
-            <a class="page-link" href="{{ prev_url or '#' }}" tabindex="-1">&larr; Previous</a>
-        </li>
-       
-        <li class="next {% if not next_url %} disabled{% endif %}">
-            <a class="page-link" href="{{ next_url or '#' }}">Next &rarr;</a>
-        </li>
-    </ul>
-</nav>
+
 
 {% elif table == 'round' %}
+<div class="row">
+    <div class="col-sm-6">
+        <div class="thumbnail well-md">
+            <h4 class="card-title">Round</h4>
+            <li><b>In Selection:</b> {% if entry.selection %}
+            <a href="{{url_for('ngs.details',table=entry.selection.__tablename__,id=entry.selection.id)}}">{{entry.selection.selection_name}}</a>
+            {% else %}None{% endif %}</li>
+            <li><b>Parent:</b> {% if entry.parent %}
+                    <a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.parent.id)}}">{{entry.parent.round_name}}</a>
+                {% else %}None{% endif %}</li>
+            <li><b>Children:</b>{% if entry.children %}
+                {% for child in entry.children %}
+                <a href="{{url_for('ngs.details',table=child.__tablename__,id=child.id)}}">{{child.round_name}} </a>
+                {% endfor %}            
+            {% else %}None{% endif %}</li>
+            <li><b>Target:</b> {{entry.target}}</li>
+            <h4 class="card-title">Basic Info</h4>
+            <li><b>Forward Primer:</b> {% if entry.FP %}
+                <a href="{{url_for('ngs.details',table=entry.FP.__tablename__,id=entry.FP.id)}}">{{entry.FP.name}}</a>-{{entry.FP.sequence}}
+                {% else %}None{% endif %}</li>
+            <li><b>Reverse Primer:</b> {% if entry.RP %}
+                <a href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.FP.id)}}">{{entry.RP.name}}</a>-{{entry.RP.sequence}}
+                {% else %}None{% endif %}</li>
+            <li><b>Sequenced In:</b> {% if entry.samples %}
+                {% for sample in entry.samples %}
+                <a href="{{url_for('ngs.details',table=sample.ngs_sample_group.__tablename__,id=sample.ngs_sample_group.id)}}">{{sample.ngs_sample_group.name}} </a>
+                {% endfor %}
+                {% else %}None{% endif %}</li>
+            <li><b>Total Read:</b> {{entry.totalread}}</li>
+            <li><b>Unique Read:</b> {{entry.unique_read}}</li>
+            <li><b>Date:</b> {{entry.date}}</li>
+            <li><b>Note:</b> {{entry.note}}</li>
+            <hr>
+            <div class="row">
+                <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block'
+                        role='button'>Edit
+                        Round</a></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6">
+        <div class="thumbnail  well-md">
+            <h4 class="card-title">NGS Result</h4>
+            {% if entry.totalread %}
+                   <div><img src="{{url_for('ngs.details_image',funcname=entry.__tablename__,id=entry.id)}}" 
+                    class="img-responsive" alt="Responsive image"></div>
+            {% else %}
+                    No NGS Result Available
+            {% endif %}
+            
+        </div>
+    </div>
+</div>
+<h4>Sequence List</h4>
+{% include "ngs/table_pagination.html" %}
+<table class="table table-hover">
+    <tr>
+        <th width="25px">
+            ID
+        </th>
+        <th width="300px">
+            Sequence
+        </th>
+        <th width="25px">
+            Length
+        </th>
+        <th width="25px">
+           Percentage
+        </th>
+        <th width="50px">
+            A.K.A.
+        </th>
+        <th width="200px">
+            Similar To
+        </th>
+    </tr>
+    {% for seq in query_result.items %}
+    <tr>
+        <td>
+            <a href="{{url_for('ngs.details',table=seq.__tablename__,id=seq.id|string)}}">{{seq.id_display}}</a>
+        </td>
+        <td>
+            {{seq.sequence_display}}
+        </td>
+        <td>{{seq.length}}</td>
+        <td>
+            {{seq.percentage}}%
+        </td>
+        <td>
+            {% if seq.aka %}
+                <a href="{{url_for('ngs.details',table='known_sequence',id=seq.sequence.knownas.id)}}">{{seq.aka}}</a> 
+            {% else %}
+                    None
+            {% endif %}
+        </td>
+        <td>
+            {% for ele in seq.sequence.similar_to() %}
+                <a href="{{url_for('ngs.details',table='known_sequence',id=ele[0].id)}}">{{ele[0].sequence_name}} [{{ele[1]}}]</a> {% endfor %}       
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
 
 
 {% elif table == 'sequence_round' %}
+<div class="row">
+    <div class="col-sm-8">
+        <div class="thumbnail well-md">
+            <h4 class="card-title">Basic Info</h4>
+            <li><b>Length:</b> {{entry.length}}</li>
+            <li><b>In Selection:</b> {% if entry.round.selection %}
+                <a
+                    href="{{url_for('ngs.details',table=entry.round.selection.__tablename__,id=entry.round.selection.id)}}">{{entry.round.selection.selection_name}}</a>
+                {% else %}None{% endif %}</li>
+            <li><b>In Round:</b> {% if entry.round %}
+                <a
+                    href="{{url_for('ngs.details',table=entry.round.__tablename__,id=entry.round.id)}}">{{entry.round.round_name}}</a>
+                {% else %}None{% endif %}</li>
+            <li><b>Percentage:</b> {{entry.count}}/{{entry.round.totalread}}, {{entry.percentage}}%</li>
+            <li><b>Percentage Rank:</b> {{entry.percentage_rank}} / {{entry.round.unique_read}} </li>
+            <li><b>FP:</b> {% if entry.FP %}
+                <a
+                    href="{{url_for('ngs.details',table=entry.FP.__tablename__,id=entry.FP.id)}}">{{entry.FP.name}}</a> - {{entry.FP.sequence}}
+                {% else %}None{% endif %}</li>
+            <li><b>RPC:</b> {% if entry.RP %}
+                <a
+                    href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.FP.id)}}">{{entry.RP.name}}</a> - {{entry.RP.sequence_rc}}
+                {% else %}None{% endif %}</li>
+            <li><b>A.K.A.:</b>{% if entry.aka %}
+            <a href="{{url_for('ngs.details',table='known_sequence',id=entry.sequence.knownas.id)}}">{{entry.aka}}</a>
+            {% else %}None{% endif %}</li> 
+            
+            <hr>
+            <h4 class="card-title">Similar Sequence</h4>
+            <table class="table table-condensed table-hover">
+                <tr><th>Name</th><th>Sequence</th><th>Distance</th></tr>
+                <tr class='success'><td>{{entry.id_display}}</td><td>{{entry.sequence_display}}</td><td>0</td></tr>
+                {% for ele,dis in entry.sequence.similar_to(20)[0:10] %}
+                <tr>
+                <td><a href="{{url_for('ngs.details',table='known_sequence',id=ele.id)}}">{{ele.sequence_name}} </a></td>
+                <td>{{ele.rep_seq}}</td>
+                <td>{{dis}}</td></tr>
+                {% endfor %}
+            </table>            
+        </div>
+    </div>
 
+    <div class="col-sm-4">
+        <div class="thumbnail  well-md">
+            <h4 class="card-title">Secondary Structure</h4>
+            
+            <div><img src="{{url_for('ngs.details_image',funcname='sequence',id=entry.id[0])}}"
+                    class="img-responsive" alt="Responsive image"></div>
+            <div class="row">
+                <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id|string)}}" class='btn btn-info btn-block'
+                        role='button'>Edit Sequence</a></div>
+            </div>
+           
+        </div>
+    </div>
+</div>
+<hr>
+<div class="row">
+    <div class="col-sm-5">
+        <div class="thumbnail well-md">
+            <h4 class="card-title">% in Selection {% if entry.round.selection %}
+            <a
+                href="{{url_for('ngs.details',table=entry.round.selection.__tablename__,id=entry.round.selection.id)}}">{{entry.round.selection.selection_name}}</a>
+            {% else %}None{% endif %} </h4>
+            <table class="table table-hover">
+                <tr>
+                    <th>Round</th>
+                    <th>Percentage</th>
+                </tr>                
+                {% for srd in entry.percentage_in_selection() %}              
+                <tr class= "{% if srd.rounds_id == entry.rounds_id %} success {% endif %}"">
+                <td><a href="{{url_for('ngs.details',table='round',id=srd.rounds_id)}}">{{srd.round.round_name}} </a>
+                </td>
+                <td>{{srd.percentage}}%</td>
+                </tr>                   
+                {% endfor %}
+            </table>
+        </div>
+    </div>
 
+    <div class="col-sm-7">
+        <div class="thumbnail  well-md">
+            <h4 class="card-title">% in Other Pools</h4>
+            <table class="table table-hover">
+                <tr>
+                    <th>Selection</th>
+                    <th>Round</th>
+                    <th>Percentage</th>
+                </tr>
+                {% for srd in entry.percentage_in_other() %}
+                <tr>
+                    <td><a href=" {{url_for('ngs.details',table='selection',id=srd.round.selection_id)}}">{{srd.round.selection.selection_name}} </a></td>
+                    <td><a href=" {{url_for('ngs.details',table='round',id=srd.rounds_id)}}">{{srd.round.round_name}} </a></td>
+                    <td>{{srd.percentage}}%</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+        </div>
+    </div>
+</div>
+
+{% elif table == 'known_sequence' %}
+<div class="row">
+    <div class="col-sm-8">
+        <div class="thumbnail well-md">
+            <h4 class="card-title">Known Sequence</h4>
+            <li><b>Name : </b> {{entry.sequence_name}}</li>
+            <li><b>Sequence : </b> {{entry.rep_seq}}</li>
+            <li><b>Length : </b> {{(entry.length)}}</li>
+            <li><b>Note : </b> {{entry.note}}</li>
+            <hr>
+            <div class="row">
+                <div class = "col-sm-3"></div>
+                <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}"
+                        class='btn btn-info btn-block' role='button'>Edit Known Sequence</a></div>
+                <div class="col-sm-3"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="thumbnail  well-md">
+            <h4 class="card-title">Secondary Structure</h4>
+    
+            <div><img src="{{url_for('ngs.details_image',funcname='known_sequence',id=entry.id)}}" class="img-responsive"
+                    alt="Responsive image"></div>      
+        </div>
+    </div>
+</div>
+<hr>
+<h3>Percentage in Sequenced Rounds:</h3>
+<table class="table table-hover table-condensed">
+    <tr>
+        <th>Selection</th>
+        <th>Round</th>
+        <th>Percentage</th>
+    </tr>
+    {% for s,r,p in entry.found_in() %}
+    <tr>
+        <td><a href=" {{url_for('ngs.details',table='selection',id=s[1])}}">{{s[0]}}</a></td>
+        <td><a href=" {{url_for('ngs.details',table='round',id=r[1])}}">{{r[0]}}</a></td>
+        <td>{{p}}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% else %}
         blockofcode

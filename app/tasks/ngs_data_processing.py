@@ -38,6 +38,7 @@ class NGS_Sample_Process:
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
+        self.length_count=Counter()
         self.failure = 0 # log other un explained.
         self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
@@ -54,6 +55,7 @@ class NGS_Sample_Process:
         selectionprimer = selectionprimer + [(i,reverse_comp(j)) for i,j in selectionprimer]
         ssp = {i[j] for i in self.sampleinfo for j in [3,4] }
         self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
+        self.ks = {i.rep_seq:i.id for i in KnownSequence.query.all()}
 
     def file_generator(self):
         with open(self.f1,'rt') as f, open(self.f2,'rt') as r:
@@ -111,6 +113,7 @@ class NGS_Sample_Process:
             count = self.collection[k]
             if count > 1:
                 self.collection.pop(k)
+                self.length_count[len(seq)]+=count
                 sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
                 if sequence:
                     seqround = SeqRound.query.filter_by(sequence=sequence,rounds_id=rd_id).first()
@@ -120,7 +123,7 @@ class NGS_Sample_Process:
                         seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
                         db.session.add(seqround)
                 else:
-                    sequence = Sequence(aptamer_seq=seq)
+                    sequence = Sequence(aptamer_seq=seq,known_sequence_id=self.ks.get(seq,None))
                     db.session.add(sequence)
                     seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
                     db.session.add(seqround)
@@ -134,12 +137,14 @@ class NGS_Sample_Process:
 
     def process(self):
         counter = 0
+        print('*** total read:', self._totalread)
         for seq in self.file_generator():
             counter += 1
             _set_task_progress(counter/(self._totalread+10)*100)
             self.process_seq(seq)
             if counter % 52345 == 0:
                 self.commit()
+        print('*** ending total read:', counter)
         self.commit()
         self.finnal_commit()
         return self.results()
@@ -151,6 +156,10 @@ class NGS_Sample_Process:
         leftover = len(self.collection)
         smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count=1): {} / {:.2%}\n".format(
             self.success-leftover, (self.success-leftover)/ttl, leftover,leftover/ttl)
+        length = self.length_count.most_common(4)
+        total = sum([i for i in self.length_count.values()])
+        length = '; '.join(["{:.1%} {}nt".format(j/total,i) for i, j in length])
+        smry = smry + "Length Distribution: {}\n".format(length)
         primers = sorted([i for i in self.primer_collection.items()],key=lambda x: x[1],reverse=True)
         sumprimers = sum([i[1] for i in primers])
         index = sorted([i for i in self.index_collection.items()],key=lambda x: x[1],reverse=True)
@@ -233,12 +242,6 @@ class NGS_Sample_Process_Tester(NGS_Sample_Process):
             pickle.dump(self.collection,f)
         return self.collection
         
-
-
-
-
-
-
 def generate_sample_info(nsg_id):
     """
     sample info is a list consist of [ () ()]
@@ -273,6 +276,7 @@ def parse_ngs_data(nsg_id):
 def test_worker(n):
     for i in range(n):
         print("****runging test -", i)
+    
     
 
 

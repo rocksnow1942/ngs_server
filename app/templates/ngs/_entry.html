@@ -6,7 +6,7 @@
             ID
         </th>
         <th width = "400px">
-            {{ content.upper() }}
+            {{ table.upper() }}
         </th>
         <th></th>
     </tr>
@@ -15,7 +15,7 @@
     <tr>
         <td width="50px">
             {% if entry.haschildren() and nextcontent %}
-                <a href="{{ url_for('ngs.browse', content=nextcontent, id=entry.id ) }}">
+                <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">
                     {{ entry.id_display }}
                     </a>
             {%else%}
@@ -23,7 +23,7 @@
             {% endif %}
         </td>
         <td>
-            <li><b>{{entry.display()[0]}}</b></li>
+            <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a></li>
             {% for line in entry.display()[1:] %}
                     <li>{{line}}</li>
             {% endfor %}
@@ -56,7 +56,7 @@
           </button>
           <ul class="dropdown-menu">
             <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}">Details</a></li>
-            <li><a href="{{url_for('ngs.edit',toadd=entry.__tablename__,id=entry.id)}}">Edit</a></li>
+            <li><a href="{{url_for('ngs.edit',toadd=entry.__tablename__,id=entry.id|string)}}">Edit</a></li>
             <li role="separator" class="divider"></li>
             <li><a href="{{url_for('ngs.delete',table=entry.__tablename__,todelete=entry.id)}}" onclick="return confirm('Sure to delete {{entry.__repr__()}}?')">Delete</a></li>
           </ul>

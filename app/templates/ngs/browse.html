@@ -1,73 +1,57 @@
-{% extends "base.html" %}
+{% extends "ngs/browse_base.html" %}
 
 
 
-{% block app_content %}
-<!-- <nav aria-label="breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="#">Home</a></li>
-    <li class="breadcrumb-item"><a href="#">Library</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Data</li>
-  </ol>
-</nav> -->
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            {% if content !='ngssample' %}
-            <a href="{{url_for('ngs.browse',content='ngssample')}}">Samples</a>
-            {% else %}<b>Samples</b>
-            {% endif %}
-        </li>
-        <li class="breadcrumb-item">
-            {% if content!='primer' %}
-            <a href="{{url_for('ngs.browse',content='primer')}}">Primers</a>
-            {% else %}<b>Primers</b>
-            {% endif %}
-        </li>
-        <li class="breadcrumb-item">
-            {% if content!='selection' %}
-            <a href="{{url_for('ngs.browse',content='selection')}}">Selection</a>
-            {% else %}<b>Selection</b>
-            {% endif %}
-        </li>
-        <li class="breadcrumb-item">
-            {% if content!='round' %}
-            <a href="{{url_for('ngs.browse',content='round')}}">Rounds</a>
-            {% else %} <b>Round</b>
-            {% endif %}
-        </li>
-        <li class="breadcrumb-item">
-            {% if content!='sequence' %}
-            Sequence
-            {% else %}<b>Sequence</b>
-            {% endif %}
-        </li>
-      </ol>
-</nav>
-
+{% block browse_content %}
 {% if entries %}
 <!-- <hr> -->
 
 
+<nav aria-label="Page navigation">
+  <ul class="pagination ">
+    <li class=" previous {% if not prev_url %} disabled{% endif %}">
+      <a class='page-link' href="{{ prev_url or '#' }}" aria-label="Previous">
+        <span aria-hidden="true">&larr;</span>
+      </a>
+    </li>
+    {% for pn,pu in page_url %}
+       
+      <li class="previous {% if pn==active %} active{% endif %}"><a href="{{pu}}">{{pn}}</a></li>
+        
+    {% endfor %}
+    <li class=" previous {% if not next_url %} disabled{% endif %}">
+      <a href="{{ next_url or '#' }}" aria-label="Next">
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+    </li>
+    <li class = 'disabled'><span aria-hidden="true">&nbsp;&nbsp;|&nbsp;&nbsp;</span> </li>
+    {% if table != 'sequence_round' %}
+    <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
+          aria-hidden="true"></span> {{table.upper()}}</a></li>
+    {% endif %}
+  </ul>
+</nav>
+<!-- 
 <nav aria-label="...">
   <ul class="pager">
     <li class="previous {% if not prev_url %} disabled{% endif %}">
-      <a class="page-link" href="{{ prev_url or '#' }}" tabindex="-1">&larr; Previous</a>
+      <a class="page-link" href="{{ prev_url or '#' }}">&larr; Previous</a>
     </li>
-    <li class="previous" >
+    <li class="previous">
       <span>|</span>
     </li>
     <li class="previous {% if not next_url %} disabled{% endif %}">
       <a class="page-link" href="{{ next_url or '#' }}">Next &rarr;</a>
     </li>
-    {% if content != 'sequence' %}
-            <li class="next"><a href="{{url_for('ngs.add',toadd=content)}}"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> {{content.upper()}}</a></li>
+    {% if table != 'sequence' %}
+    <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
+          aria-hidden="true"></span> {{table.upper()}}</a></li>
     {% endif %}
   </ul>
-</nav>
-
+</nav> -->
 
 {% include "ngs/_entry.html" %}
 
 {% endif %}
+
 {% endblock %}

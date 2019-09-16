@@ -19,14 +19,25 @@
                 {{wtf.form_field(form.note)}}
             </div>
         </div>
-        <div class='form-row'>
+        <div class="form-row">
+            <div class="col-sm-4">
+                {{wtf.form_field(form.add_sample, id='add-ngs-sample-member' ,class='btn btn-info btn-block')}}
+            </div>
+            <div class="col-sm-4">
+                {{wtf.form_field(form.submit, class = 'btn btn-success btn-block')}}
+            </div>
+            <div class="col-sm-4">
+                {{wtf.form_field(form.ignore_duplicate )}}
+            </div>
+        </div>
+        <!-- <div class='form-row'>
             <div class='form-group col-xs-6'>
                 {{wtf.form_field(form.add_sample, id='add-ngs-sample-member' ,class='btn btn-info')}}
             </div>
             <div class='form-group col-xs-6'>
                 {{wtf.form_field(form.submit, class = 'btn btn-success')}}
             </div>
-        </div>
+        </div> -->
 
         <table class="table table-hover col">
           <thead>
@@ -49,17 +60,6 @@
 
 </div>
 </div>
-<!--
-{% for sample in form.samples %}
-<tr>
-    {% for field in sample %}
-        <td >{{field}}</td>
-    {% endfor %}
-    <td><input type="submit" name="delete{{loop.index}}" class="btn btn-default" ></button> </td>
-</tr>
-{% endfor %} -->
-    <!-- </div>
-</div> -->
 
 {% for key,item in datalist.items() %}
       <datalist id ="{{key}}">
@@ -69,6 +69,76 @@
         </datalist>
 
 {% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // add extra sample member by clicking the button
+    $("#add-ngs-sample-member").on('click', function (event) {
+        $.ajax({
+            url: "{{ url_for('ngs.add_extrasample') }}",
+            type: "POST",
+            //dataType : 'json', // data type
+            data: $("#add-ngs-sample-form").serialize(),
+            success: function (result) {
+                $("#add-ngs-sample-samples").html(result);
+            },
+            error: function (xhr, resp, text) {
+                console.log(xhr, resp, text);
+            }
+        });
+        event.preventDefault();
+    });
+    // delete certain member of the sample
+    $(document).on("click", '.add-ngs-sample-delete', function (event) {
+        var todelete = event.target.id;
+        if (confirm('Are you sure you want to delete item ' + todelete.toString() + " ?")) {
+            $.ajax({
+                url: "{{ url_for('ngs.delete_sample')}}" + "?todelete=" + todelete.toString(),
+                type: "POST",
+                data: $("#add-ngs-sample-form").serialize(),
+                success: function (result) {
+                    $("#add-ngs-sample-samples").html(result);
+                },
+                error: function (xhr, resp, text) {
+                    console.log(xhr, resp, text);
+                }
+            });
+        } else {
+            // Do nothing!
+        }
+        ;
+        event.preventDefault();
+    });
+
+    // add ngs sample page dynamicly change round options.
+    $(document).on("change", '.add-ngs-sample-column-1', function (event) {
+        let selectionname = event.target.value;
+        let eventid = event.target.id
+        let roundcolid = eventid.replace('selection', 'round_id')
+        $.ajax({
+            url: "{{ url_for('ngs.get_selection_round')}}",
+            type: "POST",
+            data: { selection: selectionname },
+            success: function (result) {
+
+                let options = '';
+                for (let round of result.rounds) {
+                    options += '<option value="' + round.id + '">' + round.name + '</option>';
+                };
+                $("#" + roundcolid).html(options);
+
+            },
+            error: function (xhr, resp, text) {
+                console.log(xhr, resp, text);
+            }
+        });
+        event.preventDefault();
+    });
+</script>
+
 
 
 {% endblock %}

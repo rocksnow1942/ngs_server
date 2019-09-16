@@ -37,7 +37,7 @@
     </div>
 
     <div class="row">
-          <div class="col-xs-6 col-md-4"><a href="{{url_for('ngs.browse',content='selection')}}" class="thumbnail custom-card alert-warning well-lg">
+          <div class="col-xs-6 col-md-4"><a href="{{url_for('ngs.browse',table='selection')}}" class="thumbnail custom-card alert-warning well-lg">
                 <h5 class="card-title">Browse Data</h5>
                 <p class="card-text">Browse saved selections, rounds, sequences and primers/NGS samples.</p>
           </a>
@@ -49,7 +49,7 @@
               </a>
           </div>
           <div class="col-xs-6 col-md-4">
-              <a href="{{url_for('ngs.browse',content='ngssample')}}" class="thumbnail custom-card alert-danger well-lg">
+              <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}" class="thumbnail custom-card alert-danger well-lg">
                     <h5 class="card-title">Upload NGS Data</h5>
                     <p class="card-text">Upload FASTA file to created NGS sample group and parse result.</p>
               </a>
