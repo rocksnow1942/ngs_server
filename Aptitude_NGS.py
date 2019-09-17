@@ -20,3 +20,6 @@ def make_shell_context():
 # add elastic search.
 # add sequence length distribution to round details.
 # ajax to sort order 
+
+# port foldojo to NGS server
+# download data to process.
