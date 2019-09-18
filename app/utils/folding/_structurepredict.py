@@ -14,22 +14,7 @@ from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
 from app.utils.folding.MSA import Alignment
-
-
-class lazyproperty():
-    """
-    lazy property descriptor class.
-    """
-    def __init__(self,func):
-        self.func=func
-
-    def __get__(self,instance,cls):
-        if instance is None:
-            return self
-        else:
-            value=self.func(instance)
-            setattr(instance,self.func.__name__,value)
-            return value
+from app.utils.ngs_util import lazyproperty
 
 
 class Structure:

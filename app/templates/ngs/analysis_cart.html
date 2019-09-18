@@ -1,0 +1,74 @@
+{% extends 'ngs/browse_base.html' %}
+
+{% block browse_content %}
+
+<table class='table table-condensed table-hover'>
+        <thead>
+                <tr class='info'><th></th>
+                        <th><h4 align='center'>Rounds in Cart</h4></th>
+                        <th><a href="{{url_for('ngs.analysis')}}" class="btn btn-primary"><span class="glyphicon glyphicon-export" aria-hidden="true"></span> To Analysis</a></th>
+                </tr>
+        </thead>
+        <tr>
+        <th width="90px">
+                ID
+        </th>
+        <th width="800px">
+               Round
+        </th>
+        <th>Remove</th>
+        </tr>
+{% if entries %}
+        {% for entry in entries %}
+        <tr id="{{entry.__tablename__}}_{{entry.id}}">
+                <td width="50px">
+                        {{entry.id_display}}
+                </td>
+                <td>
+                        <li>Round Name: <a
+                                        href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a>
+                        </li>
+                        <li>{{entry.display()[1]}}</li>
+                </td>
+                <td><span class="btn glyphicon glyphicon-trash" aria-hidden="true" id='{{entry.id}}'></span></td>
+        </tr>
+        {% endfor %}
+
+</table>
+{% else %}
+<h1>Your cart is empty.</h1>
+{% endif %}
+
+
+
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script>
+        $(".glyphicon-trash").on("click",  function (event) {
+                        console.log(event.target.id);
+                        $.ajax({
+                        url: "{{url_for('ngs.add_to_analysis')}}",
+                        type: "POST",
+                        data: JSON.stringify({data:['delete', event.target.id]}),
+                        contentType: 'application/json',
+                        success: function (result) {
+                                set_analysis_count_badge(result);
+                                let eles = $("tr[id*='round']");
+                                let remain = result['remaining'];
+                                for (let ele of eles) {
+                                if (!remain.includes(parseInt(ele.id.slice(6,)))) {
+                                        ele.remove();
+                                }
+                                };
+                               
+                        },
+                        error: function(xhr,resp,text) {
+                                console.log(xhr,resp,text);
+                        }
+                        })
+                });
+        
+</script>
+{% endblock %}

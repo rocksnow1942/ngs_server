@@ -61,7 +61,9 @@ def ngsuploadwidget():
                 f1,f2=process_ngssample_files(file1,file2)
                 id = request.args.get('uploadto',1,type=int)
                 sg=NGSSampleGroup.query.get(id)
-                sg.datafile=json.dumps({'file1':f1,'file2':f2})
+                tosavename = json.dumps({'file1': f1, 'file2': f2})
+                assert len(tosavename)<=199, ('File names too long. Max length <80.')
+                sg.datafile=tosavename
                 sg.processingresult=''
                 sg.task_id=None
                 db.session.commit()

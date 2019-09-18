@@ -23,3 +23,6 @@ def make_shell_context():
 
 # port foldojo to NGS server
 # download data to process.
+# monitor database size and database backup
+
+# kudo project management system.

@@ -1,5 +1,3 @@
-
-
 <table class="table table-hover">
     <tr>
         <th width="50px">
@@ -12,7 +10,7 @@
     </tr>
 
     {% for entry in entries %}
-    <tr>
+    <tr id="{{entry.__tablename__}}_{{entry.id}}">
         <td width="50px">
             {% if entry.haschildren() and nextcontent %}
                 <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">
@@ -57,6 +55,9 @@
           <ul class="dropdown-menu">
             <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}">Details</a></li>
             <li><a href="{{url_for('ngs.edit',toadd=entry.__tablename__,id=entry.id|string)}}">Edit</a></li>
+            {% if table=='selection' or table=='round' %}
+            <li><a href="javascript:add_to_analysis('{{entry.__tablename__}}',{{entry.id}});">Add To Analysis</a></li>
+            {% endif %}
             <li role="separator" class="divider"></li>
             <li><a href="{{url_for('ngs.delete',table=entry.__tablename__,todelete=entry.id)}}" onclick="return confirm('Sure to delete {{entry.__repr__()}}?')">Delete</a></li>
           </ul>
@@ -67,3 +68,4 @@
     </tr>
     {% endfor %}
 </table>
+

@@ -32,5 +32,7 @@ def triggererror():
 @login_required
 def search():
     print(request.form['search_para'])
+    print(request.url)
+    print(request.referrer)
     
     return render_template('search/search_result.html', title='Search Result', para=request.form['search_para'])

@@ -15,6 +15,22 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
+from app.utils.ngs_util import lazyproperty
+
+def data_string_descriptor(name):
+    class Data_Descriptor():
+        def __get__(self,instance,cls):
+            if instance.data.get(name, None) is None:
+                setattr(instance,name,[])
+            return instance.data.get(name)
+
+        def __set__(self,instance,value):
+            instance.data.update({name:value})
+
+        def __delete__(self,instance):
+            instance.data.pop(name)
+
+    return Data_Descriptor
 
 
 class User(UserMixin,db.Model):
@@ -23,6 +39,8 @@ class User(UserMixin,db.Model):
     email= db.Column(db.String(120), index=True, unique=True)
     privilege = db.Column(db.String(10),default='user')
     password_hash = db.Column(db.String(128))
+    data_string = Column(db.Text,default="{}")
+    analysis_cart= data_string_descriptor('analysis_cart')()
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -38,6 +56,18 @@ class User(UserMixin,db.Model):
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
 
+    @lazyproperty
+    def data(self):
+        if self.data_string:
+            return json.loads(self.data_string)
+        else:
+            return {}
+    
+    def save_data(self):
+        self.data_string=json.dumps(self.data)
+
+    def analysis_cart_count(self):
+        return len(self.analysis_cart)
 
     def get_reset_password_token(self,expires_in=600):
         return jwt.encode({'reset_password':self.id,'exp':time()+expires_in},

@@ -2,6 +2,22 @@ from itertools import islice
 import os
 
 
+class lazyproperty():
+    """
+    lazy property descriptor class.
+    """
+
+    def __init__(self, func):
+        self.func = func
+
+    def __get__(self, instance, cls):
+        if instance is None:
+            return self
+        else:
+            value = self.func(instance)
+            setattr(instance, self.func.__name__, value)
+            return value
+
 def reverse_comp(s):
     s=s.upper()
     comp=''.join(map(lambda x:dict(zip('ATCGN','TAGCN'))[x]  ,s))

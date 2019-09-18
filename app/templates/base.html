@@ -38,6 +38,8 @@
                     <li><a href="{{ url_for('fold.index') }}"><span class="glyphicon glyphicon-send" aria-hidden="true"></span> FOLD</a></li>
                   </ul>
 
+                  
+
                   <ul class="nav navbar-nav navbar-right">
                       {% if current_user.is_anonymous %}
                       <li><a href="{{ url_for('auth.login') }}"><span class="glyphicon glyphicon-log-in" aria-hidden="true"></span> Login</a></li>
@@ -52,9 +54,8 @@
                       <!-- Button trigger modal -->
                       <!-- <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">
                         Launch demo modal
-                      </button>  -->
-                      
-\
+                      </button>  -->                      
+                    
                       <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{current_user.username}} <span class="caret"></span></a>
                         <ul class="dropdown-menu">
@@ -67,11 +68,22 @@
                           <li><a href="#">One more separated link</a></li>
                         </ul>
                       </li>
-                      <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Logout</a></li>
+                      <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></a></li>
                       <li><a type="button"  data-toggle="modal" data-target="#search_dialog"><span
                           class="glyphicon glyphicon-search" aria-hidden="true"></span> </a></li>
-                      {% endif %}
+                    
+                    {% endif %}
+                    {% if not current_user.is_anonymous %}
                   </ul>
+                  <ul class="nav navbar-nav navbar-right">
+                    <li id="analysis_cart_count_container" style="visibility:{% if current_user.analysis_cart %}visible{%else%}hidden{%endif%};">
+                      <a href="{{url_for('ngs.analysis_cart')}}">  
+                        <span id='analysis_cart_count' class='badge'><span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>{{current_user.analysis_cart_count()}}</span>
+                      </a>
+                    </li>
+                  </ul>
+                  {% endif %}
+                  
 
                 </div><!-- /.navbar-collapse -->
               </div><!-- /.container-fluid -->

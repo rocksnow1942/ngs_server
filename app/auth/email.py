@@ -1,4 +1,3 @@
-
 from app.email import send_email
 from flask import render_template, current_app
 

@@ -372,4 +372,43 @@ def details_image(funcname):
     return Response(plt_byte, mimetype="image/svg+xml")
 
 
+@bp.route('/add_to_analysis', methods=['POST'])
+@login_required
+def add_to_analysis():
+    table,id = request.json['data']
+    id = int(id)
+    try:
+        if table == 'delete':
+            current_user.analysis_cart.remove(id)
+        else:
+            if table == 'selection':
+                sele = Selection.query.get(id)
+                ids = [i.id for i in sele.rounds]
+            elif table == 'round':
+                ids = [id]
+            ids = [i for i in ids if i not in current_user.analysis_cart]
+            current_user.analysis_cart.extend(ids)
+        current_user.save_data()
+        db.session.commit()
+    except:
+        flash('An Error occured. Please refresh page.','warning')
+    return jsonify({'analysis_count':current_user.analysis_cart_count(),'remaining':current_user.analysis_cart})
+
+
+@bp.route('/analysis_cart', methods=['POST','GET'])
+@login_required
+def analysis_cart():
+    cart = current_user.analysis_cart
+    entries = [Rounds.query.get(i) for i in cart]
+    return render_template('ngs/analysis_cart.html',entries=entries)
+
+
+@bp.route('/analysis', methods=['POST', 'GET'])
+@login_required
+def analysis():
+    cart = current_user.analysis_cart
+    entries = [Rounds.query.get(i) for i in cart]
+
+    return render_template('ngs/analysis.html', entries=entries)
+
 

@@ -56,8 +56,9 @@
 
 {% block scripts %}
 {{super()}}
-{% if table =='ngs_sample_group' %}
+
 <script>
+  {% if table == 'ngs_sample_group' %}
   // update progressbar
   function set_bar_progress(barid, progress) {
     const p = progress + '%';
@@ -92,8 +93,32 @@
       }, 300);
     };
   });
-</script>
-{% endif %}
+{% elif table=='selection' or table=='round' %}
+// ajax to add seleciton or round and update cart information.
+function add_to_analysis(table,id) {
+  $.ajax({
+    url: "{{ url_for('ngs.add_to_analysis')}}",
+    type: "POST",
+    data: JSON.stringify({ data: [table,id] }),
+    contentType: 'application/json',
+    success: function (result) {
+      // update cart rendering.
+      set_analysis_count_badge(result);
+    },
+    error: function (xhr, resp, text) {
+      console.log(xhr, resp, text);
+    }
+  });
+}
 
+
+{% endif %}
+// set badge count
+function set_analysis_count_badge(result) {
+  $('#analysis_cart_count').html(`<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>` + result['analysis_count']);
+  $('#analysis_cart_count_container').css('visibility', result['analysis_count'] ? 'visible' : 'hidden');
+}
+
+</script>
 
 {% endblock %}
