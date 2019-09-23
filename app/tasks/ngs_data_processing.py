@@ -1,16 +1,16 @@
 import time
 from rq import get_current_job
 from app import db
-from app.models import NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound
+from app.models import NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound,Analysis
 from app import create_app
 import os
 from flask import current_app
 import json
 from itertools import islice
-from app.utils.ngs_util import reverse_comp,file_blocks
+from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist
 from collections import Counter
 import re
-
+from app.utils.analysis import DataReader
 
 
 
@@ -21,7 +21,7 @@ def _set_task_progress(progress):
     job = get_current_job()
     if job:
         task = Task.query.get(job.get_id())
-        task.progress = progress
+        task.progress = round(progress,2)
         if progress >= 100:
             task.complete = True
         db.session.commit()
@@ -277,7 +277,23 @@ def test_worker(n):
     for i in range(n):
         print("****runging test -", i)
     
-    
+
+def load_rounds(id):
+    analysis = Analysis.query.get(id)
+    filepath = os.path.join(
+        current_app.config['ANALYSIS_FOLDER'], str(analysis.id))
+    create_folder_if_not_exist(filepath)
+    dr=DataReader(name=analysis.name,filepath=filepath)
+    dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
+    dr.save_json()
+    analysis.analysis_file=os.path.join(filepath,analysis.name+'.json')
+    analysis.save_data()
+    db.session.commit()
+    _set_task_progress(100)
+
+
+
+
 
 
 if __name__ == '__main__':

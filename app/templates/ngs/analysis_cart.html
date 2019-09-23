@@ -1,12 +1,51 @@
 {% extends 'ngs/browse_base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block browse_content %}
+
+<!-- {% if form %}
+        <form action="" method="post" class="form" role="form">
+                {{ form.hidden_tag() }}
+                {{wtf.quick_form(form)}}
+        </form>
+{% endif %} -->
+
+<!-- Modal -->
+<div class="modal fade" id="add_to_analysis" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                        <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                                                aria-hidden="true">&times;</span></button>
+                                <h4 class="modal-title" id="myModalLabel">Add To Analysis</h4>
+                        </div>
+                        <form action="{{url_for('ngs.add_analysis')}}" method="post" class="form" role="form">
+                                <div class="modal-body">
+                                <label class="control-label" for="name">Name:</label>
+                                <input class="form-control" id="name" name="name" placeholder="Analysis name" required="" type="text"
+                                        value="">
+                                <label class="control-label" for="note">Note:</label>
+                                <textarea class="form-control" id="note" name="note" placeholder="Notes (Optional)"></textarea>
+                                
+                                </div>
+                                <div class="modal-footer">
+                                        <button type="button" class="btn btn-default"
+                                                data-dismiss="modal">Cancel</button>
+                                        <input class="btn btn-primary" id="submit" name="submit" type="submit"
+                                                value="Save">
+                                </div>
+                        </form>
+                </div>
+        </div>
+</div>
 
 <table class='table table-condensed table-hover'>
         <thead>
                 <tr class='info'><th></th>
                         <th><h4 align='center'>Rounds in Cart</h4></th>
-                        <th><a href="{{url_for('ngs.analysis')}}" class="btn btn-primary"><span class="glyphicon glyphicon-export" aria-hidden="true"></span> To Analysis</a></th>
+                        <th><a type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_to_analysis"><span class="glyphicon glyphicon-export"
+                                                aria-hidden="true"></span> To Analysis</a></th>
+                        <!-- <th><a href="{{url_for('ngs.analysis')}}" class="btn btn-primary"><span class="glyphicon glyphicon-export" aria-hidden="true"></span> To Analysis</a></th> -->
                 </tr>
         </thead>
         <tr>
@@ -47,7 +86,6 @@
 {{super()}}
 <script>
         $(".glyphicon-trash").on("click",  function (event) {
-                        console.log(event.target.id);
                         $.ajax({
                         url: "{{url_for('ngs.add_to_analysis')}}",
                         type: "POST",
@@ -59,10 +97,9 @@
                                 let remain = result['remaining'];
                                 for (let ele of eles) {
                                 if (!remain.includes(parseInt(ele.id.slice(6,)))) {
-                                        ele.remove();
+                                        $(ele).fadeOut();
                                 }
                                 };
-                               
                         },
                         error: function(xhr,resp,text) {
                                 console.log(xhr,resp,text);

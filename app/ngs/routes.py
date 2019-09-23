@@ -5,7 +5,7 @@ from flask import render_template, flash, redirect, url_for, request, current_ap
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.ngs import bp
-from app.models import Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup,NGSSample,KnownSequence
+from app.models import Analysis,Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup,NGSSample,KnownSequence
 from app.ngs.forms import ngs_add_form_dictionary,ngs_edit_form_dictionary
 from sqlalchemy.exc import IntegrityError
 from app.models import models_table_name_dictionary
@@ -111,15 +111,18 @@ def load_datalist(toadd):
     else:
         return {}
 
-edit_redirect_url = "/"
+
 @bp.route('/edit', methods=['GET', 'POST'])
 @login_required
 def edit():
-    global edit_redirect_url
     if request.method == 'GET':
         edit_redirect_url = request.referrer or '/'
+    else:
+        edit_redirect_url = request.form.get('edit_redirect_url','/')
     toadd = request.args.get('toadd')
     id = request.args.get('id')
+    if toadd == 'analysis':
+        return redirect(url_for('ngs.analysis', id=id))
     try:
         if toadd == 'sequence_round':
             id = id[1:-1].split(',')
@@ -131,7 +134,7 @@ def edit():
     datalist = {}
     datalist = load_datalist(toadd)
     if toadd == 'ngs_sample_group':
-        return redirect(url_for('ngs.addsample', id=id))
+        return redirect(url_for('ngs.addsample', id=id, edit_redirect_url=edit_redirect_url))
     elif toadd in ngs_edit_form_dictionary.keys():
         target = models_table_name_dictionary.get(toadd,None)
         formtemplate = ngs_edit_form_dictionary.get(toadd,None)
@@ -148,13 +151,12 @@ def edit():
         flash('Your Edit to <{}> was saved.'.format(newitem),'success')
         return redirect(edit_redirect_url)
     
-    return render_template('ngs/add.html', title='Edit', toadd=toadd,form=form,datalist=datalist)
+    return render_template('ngs/add.html', title='Edit', toadd=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
 
 
-@bp.route('/delete', methods=['GET', 'POST'])
+@bp.route('/delete', methods=['POST','GET'])
 @login_required
 def delete():
-    global edit_redirect_url
     edit_redirect_url = request.referrer or '/'
     table = request.args.get('table')
     id = request.args.get('todelete',0,int)
@@ -179,6 +181,12 @@ def delete():
 def addsample():
     form = ngs_add_form_dictionary['ngs_sample_group']()
     id = request.args.get('id', 0, type=int)
+    if request.method=='GET':
+        edit_redirect_url = request.args.get('edit_redirect_url','/')
+    else:
+        edit_redirect_url = request.form.get('edit_redirect_url', '/')
+        print(edit_redirect_url)
+
     datalist={}
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
@@ -187,6 +195,7 @@ def addsample():
     if id:
         if request.method == 'GET':
             form.load_obj(id)
+            form.ignore_duplicate.data=True
         elif request.method == 'POST':
             form.old_name = NGSSampleGroup.query.get(id).name
     for f in form.samples:
@@ -201,14 +210,14 @@ def addsample():
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
         if len(set(indextuple)) != len(indextuple):
             flash('Error: FP RP Index have duplicates. Check Primers.','danger')
-            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id)
+            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         if form.validate_name():
             flash('Name < {} > already used.'.format(form.name.data), 'danger')
-            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id)
+            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         sequenced_round = form.validate_round()
         if sequenced_round:
             flash('Round {} already sequenced.'.format(', '.join(['<'+i+'>' for i in sequenced_round])))
-            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id)
+            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         
         sg = form.populate_obj(NGSSampleGroup,id=id)
         for i in form.samples:
@@ -221,7 +230,7 @@ def addsample():
             return redirect(edit_redirect_url)
         else:
             return redirect(url_for('ngs.addsample'))
-    return render_template('ngs/editsample.html',title=title,form=form,toadd='NGS Sample',datalist=datalist,id=id)
+    return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/add_extrasample', methods=[ 'POST'])
@@ -298,12 +307,12 @@ def ngs_data_processing():
 def get_bar_progress():
     ids = request.json['barlist']
     progresses = dict.fromkeys(ids)
-    tablenames = {'ngs_sample_group':NGSSampleGroup}
     for id in ids:
-        table,index = id.split('-')
-        t = tablenames.get(table,None)
+        table,index = id.split(':')
+        if table != 'task': indx=int(index)
+        t = models_table_name_dictionary.get(table, None)
         if t:
-            progress = t.query.get(int(index)).progress
+            progress = t.query.get(index).progress
             progresses[id] = progress
     return jsonify(progresses)
 
@@ -317,6 +326,8 @@ def details():
     table = request.args.get('table','',str)
     id = request.args.get('id')
     target = models_table_name_dictionary.get(table,None)
+    if table=='analysis':
+        return redirect(url_for('ngs.analysis',id=id))
     if not target: abort(404)
     try:
         if table =='sequence_round':
@@ -403,12 +414,64 @@ def analysis_cart():
     return render_template('ngs/analysis_cart.html',entries=entries)
 
 
-@bp.route('/analysis', methods=['POST', 'GET'])
+@bp.route('/add_analysis', methods=['POST'])
+@login_required
+def add_analysis():
+    if request.method=='POST':
+        cart = current_user.analysis_cart
+        name = request.form['name']
+        note = request.form['note']
+        analysis = Analysis(name=name,note=note,)
+        analysis._rounds=cart
+        analysis.user=current_user
+        analysis.save_data()
+        db.session.add(analysis)
+        current_user.analysis_cart=[]
+        current_user.save_data()
+        db.session.commit()
+        flash(f'Analysis <{analysis}> added.','success')
+    return redirect(url_for('ngs.analysis',id=analysis.id))
+
+@bp.route('/analysis', methods=['POST','GET'])
 @login_required
 def analysis():
-    cart = current_user.analysis_cart
-    entries = [Rounds.query.get(i) for i in cart]
+    
+    id = request.args.get('id',0,int)
+    analysis = Analysis.query.get(id)
+    # datareader=analysis.get_datareader()
+        
 
-    return render_template('ngs/analysis.html', entries=entries)
+    
+    return render_template('ngs/analysis.html', analysis=analysis)
 
 
+@bp.route('/load_analysis_rounds', methods=['POST'])
+@login_required
+def load_analysis_rounds():
+
+    id = request.json['id']
+    analysis = Analysis.query.get(id)
+    task = analysis.load_rounds()
+
+    return jsonify({"id":task.id})
+
+
+
+@bp.route('/eidt_analysis', methods=['POST'])
+@login_required
+def edit_analysis():
+    name = request.json['name']
+    note = request.json['note']
+    rd = request.json['round']
+    id = request.json['id']  
+    try:
+        analysis = Analysis.query.get(id)
+        rd = [int(i[6:]) for i in rd]
+        analysis.name=name
+        analysis.note=note
+        analysis._rounds=rd 
+        analysis.save_data()
+        db.session.commit()
+        return "Edit has been saved."
+    except Exception as e:
+        return f"Error: {e}"

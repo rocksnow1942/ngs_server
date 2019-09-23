@@ -7,8 +7,10 @@
           <div class="panel-body">
             <h2>{{title}} - {{ toadd.upper() }}</h2>
             <form action="" method="post" class="form" role="form">
+              <input type="hidden" name="edit_redirect_url" value="{{edit_redirect_url}}">
                 {{ form.hidden_tag() }}
                     {{wtf.quick_form(form)}}
+                
             </form>
         </div>
        </div>

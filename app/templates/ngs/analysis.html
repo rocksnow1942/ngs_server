@@ -3,7 +3,91 @@
 {% block browse_content %}
 
 
-<h1>hello This is analysis page</h1>
+<h1>ANALYSIS - {{'< '+analysis.name+' >' }}</h1>
+
+<div>
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#load" aria-controls="load" role="tab"
+                data-toggle="tab">LOAD</a></li>
+        <li role="presentation"><a href="#cluster" aria-controls="cluster" role="tab" data-toggle="tab">CLUSTER</a></li>
+        <li role="presentation"><a href="#result" aria-controls="result" role="tab" data-toggle="tab">RESULT</a>
+        </li>
+        <li role="presentation"><a href="#download" aria-controls="download" role="tab" data-toggle="tab">DOWNLOAD</a>
+        </li>
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+        <!-- load panel -->
+        <div role="tabpanel" class="tab-pane  fade in active" id="load">
+                <div class='row well'>
+                    <div class="col-md-6">
+                <label class="control-label" for="name">Name:</label>
+                <input class="form-control" id="name" name="name" placeholder="Analysis name" required="" type="text" value="{{analysis.name}}">
+                <label class="control-label" for="note">Note:</label>
+                <textarea class="form-control" id="note" name="note" placeholder="Notes (Optional)">{{analysis.note}}</textarea>
+                </div>
+                <div class='col-md-6'>
+                    <label class="control-label"> </label>
+                    <button  class="btn btn-default  btn-block" id="save_edit">Save Edit</button>
+                    <hr>
+                    <div id='load_progress'>
+                    {% if analysis.analysis_file %}
+                    <button class="btn btn-warning btn-block" id="load_rounds"> <b>RE-LOAD</b> Rounds</button>
+                    {% else %}
+                    <button class="btn btn-default btn-block" id="load_rounds">Load Rounds</button>
+                    {% endif %}
+                    </div>                                 
+                </div>
+                </div>
+                <hr>
+                
+                <table class='table table-condensed table-hover'>
+                    <thead><tr class='info'><th></th>
+                        <th ><h5 align='center'>Rounds in analysis "{{analysis.name}}"</h5></th>
+                        <th></th>
+                    </tr></thead>
+                    <tr>
+                        <th width="90px">
+                            ID
+                        </th>
+                        <th width="800px">
+                            Round
+                        </th>
+                        <th>Remove</th>
+                    </tr>
+                    
+                    {% for entry in analysis.rounds %}
+                    <tr id="{{entry.__tablename__}}_{{entry.id}}">
+                        <td width="50px">
+                            {{entry.id_display}}
+                        </td>
+                        <td>
+                            <li>Round Name: <a
+                                    href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a>
+                            </li>
+                            <li>{{entry.display()[1]}}</li>
+                        </td>
+                        <td><span class="btn glyphicon glyphicon-trash" aria-hidden="true" id='{{entry.id}}'></span></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+        </div>
+
+        <!-- cluster parameter panel -->
+        <div role="tabpanel" class="tab-pane fade " id="cluster">second</div>
+
+        <div role="tabpanel" class="tab-pane fade" id="result"> third </div>
+        <div role="tabpanel" class="tab-pane fade" id="download"> fourth </div>
+    </div>
+
+</div>
+
+
+
+
 
 
 {% endblock %}
@@ -11,6 +95,53 @@
 {% block scripts %}
 {{super()}}
 <script>
+    $(".glyphicon-trash").on("click", function (event) {
+        console.log(event.target.id);
+        let rowid = '#round_'+event.target.id;
+        $(rowid).fadeOut();
+        $(rowid).attr('id', 'trash' + event.target.id);
+    });
+
+    $("#save_edit").on('click',function save_edit () {
+        if (confirm('Save Edit to Current Analysis?')){
+        let name = $("#name").val();
+        let note = $("#note").val();
+        let round = $("tr[id*='round']").toArray().map((ele) => { return ele.id });
+        $.ajax({
+            url: "{{url_for('ngs.edit_analysis')}}",
+            type:"POST",
+            data:JSON.stringify({id: {{analysis.id}},name:name,note:note,round:round}),
+            contentType:"application/json",
+            success: function(result){
+                alert(result)
+            },
+            error: function (xhr, resp, text) {
+                console.log(xhr, resp, text);
+            }
+        })}
+    });
+
+    $('#load_rounds').on('click', function load_rounds() {
+        if (confirm('Load selected rounds data to analysis?')) {
+        $.ajax({
+            url:"{{url_for('ngs.load_analysis_rounds')}}",
+            type:"POST",
+            data:JSON.stringify({id:{{analysis.id}}}),
+            contentType:"application/json",
+        }).done(function(result) {
+            console.log(result.id);
+            $('#load_progress').html(
+            `<div class="progress ">
+                <div class="progress-bar progress-bar-striped active" id="task:`+result.id+`" role="progressbar"
+                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0 %">
+                    0%
+             </div>
+            </div>`);
+            update_progress_bar(); 
+        })    
+        }        
+    });
+
 
 </script>
 {% endblock %}

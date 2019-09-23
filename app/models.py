@@ -3,7 +3,7 @@ from matplotlib.figure import Figure
 from app import db,login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
+from flask_login import UserMixin, current_user
 from hashlib import md5
 from time import time
 import jwt
@@ -16,12 +16,13 @@ from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
+from app.utils.analysis import DataReader
 
-def data_string_descriptor(name):
+def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
         def __get__(self,instance,cls):
             if instance.data.get(name, None) is None:
-                setattr(instance,name,[])
+                setattr(instance,name,mode)
             return instance.data.get(name)
 
         def __set__(self,instance,value):
@@ -32,8 +33,20 @@ def data_string_descriptor(name):
 
     return Data_Descriptor
 
+class DataStringMixin():
+    @lazyproperty
+    def data(self):
+        if self.data_string:
+            return json.loads(self.data_string)
+        else:
+            return {}
 
-class User(UserMixin,db.Model):
+    def save_data(self):
+        self.data_string = json.dumps(self.data)
+
+
+class User(UserMixin,db.Model,DataStringMixin):
+    __tablename__='user'
     id = db.Column(db.Integer,primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email= db.Column(db.String(120), index=True, unique=True)
@@ -41,6 +54,7 @@ class User(UserMixin,db.Model):
     password_hash = db.Column(db.String(128))
     data_string = Column(db.Text,default="{}")
     analysis_cart= data_string_descriptor('analysis_cart')()
+    analysis = relationship('Analysis',backref='user')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -55,16 +69,6 @@ class User(UserMixin,db.Model):
         digest=md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
-
-    @lazyproperty
-    def data(self):
-        if self.data_string:
-            return json.loads(self.data_string)
-        else:
-            return {}
-    
-    def save_data(self):
-        self.data_string=json.dumps(self.data)
 
     def analysis_cart_count(self):
         return len(self.analysis_cart)
@@ -84,12 +88,59 @@ class User(UserMixin,db.Model):
     def test_task(self,n):
         job=current_app.task_queue.enqueue("app.tasks.ngs_data_processing.test_worker",n)
         
-
-
 class BaseDataModel():
     @property
     def id_display(self):
         return self.id
+
+
+class Analysis(db.Model, DataStringMixin, BaseDataModel):
+    __tablename__ = 'analysis'
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    name = Column(String(100))
+    date = Column(DateTime(), default=datetime.now)
+    user_id = Column(db.Integer, ForeignKey('user.id'))
+    data_string = Column(db.Text, default="{}")
+    note = Column(String(500))
+    _rounds = data_string_descriptor('rounds')()
+    analysis_file = data_string_descriptor('analysis_file','')()
+    task_id = data_string_descriptor('task_id', '')()
+
+    def __repr__(self):
+        return f"{self.name}, ID {self.id}"
+
+    def haschildren(self):
+        return False
+
+    @property
+    def rounds(self):
+        return [Rounds.query.get(i) for i in self._rounds]
+
+    def display(self):
+        rd = sum(i.totalread for i in self.rounds)
+        l1 = f"Analysis : {self.name}"
+        l2 = f"Total Rounds : {len(self.rounds)}, Total Read : {rd}"
+        l3 = f"User : {self.user.username}, Date : {self.date}"
+        l4 = f"Note : {self.note}"
+        return l1, l2, l3,l4
+    
+    def get_datareader(self):
+        if self.analysis_file:
+            return DataReader.load_json(self.analysis_file)
+            
+    def load_rounds(self):
+        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id)
+        t = Task(id=job.get_id(),name=f"Load analysis {self}.")
+        self.task_id=t.id 
+        self.save_data()
+        db.session.add(t)
+        db.session.commit()
+        return t
+        
+        
+
+
+
 
 class SeqRound(db.Model):
     __tablename__ = 'sequence_round'
@@ -173,6 +224,7 @@ class KnownSequence(db.Model,BaseDataModel):
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
     rep_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True)
+    target = Column(mysql.VARCHAR(50))
     note = Column(mysql.VARCHAR(500))
     sequence_variants =  relationship('Sequence',backref='knownas')
 
@@ -582,6 +634,6 @@ def load_user(id):
 
 models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
-'known_sequence':KnownSequence, 'sequence_round':SeqRound}
+'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis}
 from app.tasks.ngs_data_processing import generate_sample_info
 from app.utils.ngs_util import reverse_comp,file_blocks

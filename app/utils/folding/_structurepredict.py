@@ -13,7 +13,7 @@ import matplotlib as mpl
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
-from app.utils.folding.MSA import Alignment
+from app.utils.analysis import Alignment
 from app.utils.ngs_util import lazyproperty
 
 
@@ -1030,7 +1030,7 @@ class DotGraph(DotGraphConstructor):
         #rotate coordinates for best angle.
         rotate=[]
         for angle in range(-180,180,15):
-            tempcoords=np.zeros_like(coords)
+            tempcoords = np.zeros_like(coords)
             for k,i in enumerate(coords):
                 tempcoords[k,:]=np.array(rotate_coord((0,0),i,angle))
             tempwidth=np.max(tempcoords[:, 0])-np.min(tempcoords[:, 0])

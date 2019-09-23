@@ -42,15 +42,17 @@
             {% else %}<b>Sequence</b>
             {% endif %}
         </li>
+        <li class="breadcrumb-item">
+          {% if table!='analysis' %}
+          <a href="{{url_for('ngs.browse',table='analysis')}}">Analysis</a>
+          {% else %}<b>Analysis</b>
+          {% endif %}
+        </li>
       </ol>
 </nav>
 
 {% block browse_content %}
 {% endblock %}
-
-
-
-
 {% endblock %}
 
 
@@ -58,18 +60,21 @@
 {{super()}}
 
 <script>
-  {% if table == 'ngs_sample_group' %}
-  // update progressbar
-  function set_bar_progress(barid, progress) {
-    const p = progress + '%';
-    $('#' + barid).css('width', p).attr('aria-valuenow', p).text(p);
-  };
 
+    // jquery legal id names
+    function jq_id(myid) {
+        return "#" + myid.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
+    }
+   // update progressbar
+    function set_bar_progress(barid, progress) {
+        const p = progress + '%';
+        const txt = ((progress==100) ? 'Done.' : p); 
+        console.log(barid,txt);
+        $(jq_id(barid)).css('width', p).attr('aria-valuenow', progress).text(txt);
+      };
 
-  // making progressbar dynamic
-  $(document).ready(function () {
-    if ($(".progress-bar").length) {
-      setInterval(function () {
+    function update_progress_bar() {
+      let interval=setInterval(function () {
         var barlist = [];
         $('.progress-bar').each(function () {
           barlist.push(this.id);
@@ -81,18 +86,30 @@
           data: JSON.stringify({ barlist: barlist }),
           contentType: 'application/json',
           success: function (result) {
-            console.log(result);
+            let alldone = true;
             for (let [barid, progress] of Object.entries(result)) {
-              set_bar_progress(barid, progress)
+              set_bar_progress(barid, progress);
+              if (progress<100){alldone=false};
             };
+            // break out set interval if all done.
+            if (alldone) {clearInterval(interval)};
           },
           error: function (xhr, resp, text) {
             console.log(xhr, resp, text);
           }
         });
-      }, 300);
+      }, 500);
+    };
+
+  {% if table == 'ngs_sample_group' %}
+
+  // making progressbar when page first load.
+  $(document).ready(function () {
+    if ($(".progress-bar").length) {
+      update_progress_bar();
     };
   });
+
 {% elif table=='selection' or table=='round' %}
 // ajax to add seleciton or round and update cart information.
 function add_to_analysis(table,id) {

@@ -196,6 +196,8 @@ class Known_Sequence_Add(FlaskForm):
         DataRequired(), Length(min=0, max=50)], render_kw=dict(placeholder='Sequence Name'))
     sequence = StringField("Sequence 5'-3'", validators=[
         DataRequired(), Length(min=0, max=200)], render_kw=dict(placeholder="Sequence, 5'-3'"))
+    target = StringField("Target", validators=[
+        DataRequired(), Length(min=0, max=50)], render_kw=dict(placeholder="Target"))
     note = TextAreaField('Notes', validators=[Length(
         min=0, max=300)], render_kw=dict(placeholder="Notes (Optional)"))
     submit = SubmitField('Confirm Add Known Sequence')
@@ -211,6 +213,7 @@ class Known_Sequence_Add(FlaskForm):
         if newitem:
             self.name.data = newitem.sequence_name
             self.sequence.data = newitem.rep_seq
+            self.target.data = newitem.target
             self.note.data = newitem.note
 
     def populate_obj(self, id=0):
@@ -218,6 +221,7 @@ class Known_Sequence_Add(FlaskForm):
         if not newitem:
             newitem = KnownSequence()
         newitem.sequence_name = self.name.data
+        newitem.target= self.target.data
         newitem.rep_seq = self.sequence.data.upper().strip()
         newitem.note = self.note.data
         if newitem.rep_seq != self.old_sequence:

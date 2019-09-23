@@ -9,8 +9,8 @@
 
 <form action="{{url_for('ngs.addsample',id=id)}}" method="post" class="form" id='add-ngs-sample-form'>
     <h2>{{title}} - {{ toadd.upper() }}</h2>
+    <input type="hidden" name="edit_redirect_url" value="{{edit_redirect_url}}">
     {{ form.hidden_tag() }}
-
         <div class='form-row'>
             <div class='form-group col-xs-6'>
                 {{wtf.form_field(form.name)}}

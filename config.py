@@ -11,6 +11,8 @@ class Config():
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or '/Users/hui/Documents/Scripts/ngs_server/app/upload/cache'
+    ANALYSIS_FOLDER = os.environ.get(
+        'ANALYSIS_FOLDER') or '/Users/hui/Documents/Scripts/ngs_server/app/upload/cache/ANALYSIS_FOLDER'
 
     ALLOWED_EXTENSIONS = eval(os.environ.get('ALLOWED_EXTENSIONS')) or {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','csv','sql'}
     PAGE_LIMIT = int(os.environ.get('PAGE_LIMIT') or 10)
