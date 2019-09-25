@@ -92,7 +92,7 @@ def add():
         db.session.add(newitem)
         db.session.commit()
         flash('New {} added.'.format(toadd), 'success')
-        return redirect(url_for('ngs.add', toadd=toadd))
+        # return redirect(url_for('ngs.add', toadd=toadd))
     return render_template('ngs/add.html', title='Add', toadd=toadd,form=form,datalist=datalist)
 
 
