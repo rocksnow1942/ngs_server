@@ -2,9 +2,9 @@
 
 {%- block styles %}
 <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"> -->
-<link href="{{url_for('static',filename='styles.css')}}" rel="stylesheet">
-<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 {{super()}}
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<link href="{{url_for('static',filename='styles.css')}}" rel="stylesheet" type="text/css">
 {%- endblock styles %}
 
 
@@ -60,13 +60,13 @@
                       <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{current_user.username}} <span class="caret"></span></a>
                         <ul class="dropdown-menu">
-                          <li><a href="#">Action</a></li>
-                          <li><a href="#">Another action</a></li>
-                          <li><a href="#">Something else here</a></li>
+                          <li><a href="{{url_for('auth.profile')}}">Account Profile</a></li>
+                          <li><a href="#">...</a></li>
+                          <li><a href="#">...</a></li>
                           <li role="separator" class="divider"></li>
-                          <li><a href="#">Separated link</a></li>
+                          <li><a href="#">...</a></li>
                           <li role="separator" class="divider"></li>
-                          <li><a href="#">One more separated link</a></li>
+                          <li><a href="#">...</a></li>
                         </ul>
                       </li>
                       <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></a></li>
@@ -116,7 +116,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container" style="min-height: 100px;" id='main_container'>
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
             {% for category, message in messages %}
@@ -126,10 +126,14 @@
             {% endfor %}
     {% endif %}
     {% endwith %}
-    {#
-        application content need to be provided in app_content block
-    #}
     {% block app_content %}{% endblock %}
+    
+</div>
+<!-- footer -->
+<div class='container' style="padding: 20px;">
+<div class='row' >
+  <h5 align='center'>Copyright &copy;<a href="http://www.aptitudemedical.com/"> Aptitude Medical Systems, Inc. 2019</a></h5>
+</div>
 </div>
 {% endblock %}
 
@@ -144,6 +148,13 @@
               }).parent().addClass('active');
           });
     //search related scripts
+          $(document).ready(function () {
+              $(window).resize(function () {
+                var bodyheight = $(this).height();
+                console.log(bodyheight);
+                $("#main_container").css('min-height',bodyheight-150);
+              }).resize();
+            });
 
     </script>
 {% endblock %}

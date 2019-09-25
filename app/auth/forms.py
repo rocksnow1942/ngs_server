@@ -23,12 +23,40 @@ class RegistrationForm(FlaskForm):
     def validate_username(self,username):
         user = User.query.filter_by(username=username.data).first()
         if user is not None:
-            raise ValidationError('Please use a different user name ha.')
+            raise ValidationError('Please use a different user name.')
 
     def validate_email(self,email):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
-            raise ValidationError('Please use a different email address ha.')
+            raise ValidationError('Please use a different email address.')
+
+
+class ProfileForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit=SubmitField('Save Changes')
+    def __init__(self, old_obj=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_name = old_obj and old_obj.username
+        self.old_email = old_obj and old_obj.email
+
+    def load_obj(self,user):
+        self.username.data=user.username
+        self.email.data = user.email
+    
+
+    def validate_username(self,username):
+        if self.old_name != username.data:
+            user = User.query.filter_by(username=username.data).first()
+            if user is not None:
+                raise ValidationError('Please use a different user name.')
+
+    def validate_email(self, email):
+        if self.old_email != email.data:
+            user = User.query.filter_by(email=email.data).first()
+            if user is not None:
+                raise ValidationError('Please use a different email address.')
+
 
 class ResetPasswordRequestForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(),Email()])

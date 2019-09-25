@@ -92,7 +92,7 @@
               if (progress<100){alldone=false};
             };
             // break out set interval if all done.
-            if (alldone) {clearInterval(interval)};
+            if (alldone) {clearInterval(interval);window.location.reload()};
           },
           error: function (xhr, resp, text) {
             console.log(xhr, resp, text);
@@ -100,17 +100,17 @@
         });
       }, 500);
     };
-
-  {% if table == 'ngs_sample_group' %}
-
-  // making progressbar when page first load.
+// making progressbar when page first load.
   $(document).ready(function () {
-    if ($(".progress-bar").length) {
-      update_progress_bar();
-    };
-  });
+      if ($(".progress-bar").length) {
+        update_progress_bar();
+      };
+    });
 
-{% elif table=='selection' or table=='round' %}
+  
+  
+
+{% if table=='selection' or table=='round' %}
 // ajax to add seleciton or round and update cart information.
 function add_to_analysis(table,id) {
   $.ajax({

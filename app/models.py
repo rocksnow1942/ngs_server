@@ -105,12 +105,22 @@ class Analysis(db.Model, DataStringMixin, BaseDataModel):
     _rounds = data_string_descriptor('rounds')()
     analysis_file = data_string_descriptor('analysis_file','')()
     task_id = data_string_descriptor('task_id', '')()
+    hist = data_string_descriptor('hist',)()
+    cluster_para=data_string_descriptor('cluster_para')()
+    heatmap=data_string_descriptor('heatmap','')()
+    # Order: name, name_link, Seq Iddisplay, Seq Id link, (display,s.id, )
+    cluster_table = data_string_descriptor('cluster_table', [])()
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
 
     def haschildren(self):
-        return False
+        return (current_user.id!=self.user_id)
+
+    @property
+    def analysis_file_link(self):
+        parent = current_app.config['ANALYSIS_FOLDER']
+        return self.analysis_file.replace(parent,'')[1:]
 
     @property
     def rounds(self):
@@ -124,8 +134,10 @@ class Analysis(db.Model, DataStringMixin, BaseDataModel):
         l4 = f"Note : {self.note}"
         return l1, l2, l3,l4
     
+    @lazyproperty
     def get_datareader(self):
         if self.analysis_file:
+            print('***reading... ',self.analysis_file)
             return DataReader.load_json(self.analysis_file)
             
     def load_rounds(self):
@@ -136,10 +148,86 @@ class Analysis(db.Model, DataStringMixin, BaseDataModel):
         db.session.add(t)
         db.session.commit()
         return t
-        
-        
+    
+    def build_cluster(self):
+        job = current_app.task_queue.enqueue(
+            'app.tasks.ngs_data_processing.build_cluster', self.id,job_timeout=3600*10)
+        t = Task(id=job.get_id(), name=f"Build luster {self}.")
+        self.task_id = t.id
+        self.save_data()
+        db.session.add(t)
+        db.session.commit()
+        return t
+
+    def clustering_parameter(self):
+        # default is in the order of distance/lower bd/ upper bd/ count threshold
+        if self.cluster_para:
+            l1=f"Distance: {self.cluster_para[0]}"
+            l2 = f"Sequence Length Lower Boundary: {self.cluster_para[1]}"
+            l3 = f"Sequence Length Upper Boundary: {self.cluster_para[2]}"
+            l4 = f"Sequence Count Threshold: {self.cluster_para[3]}"
+            return l1,l2,l3,l4
+        else:
+            return []
+
+    def task_type(self):
+        if self.task_id:
+            task=Task.query.get(self.task_id).name
+            return task.split()[0]
+    
+    @property
+    def clustered(self):
+        return bool(self.cluster_para)
+
+    def top_clusters(self):
+        # result is list of tuple, in order of: C1/V33.1 , C1, Sequence, similarto ks, distance
+        dr=self.get_datareader
+        similaritythreshold=10
+        if dr:
+            topcluster=dr.plot_pie(50, plot=False, translate=False).drop(
+                labels='Others', axis=0).index.tolist()
+            result = []
+            ks = KnownSequence.query.all()
+            for i in topcluster:
+                a = bool(dr.alias.get(i, 0))*f" / {dr.alias.get(i,0)}"
+                repseq=dr[i].rep_seq().replace('-','')
+                seq=Sequence.query.filter_by(aptamer_seq=repseq).first()
+                ksdistance = [lev_distance(repseq,i.rep_seq,similaritythreshold+abs(i.length-len(repseq))) for i in ks]
+                similarity = sorted([(i,j) for i,j in zip(ks,ksdistance)],key=lambda x: x[1])
+                similarity = [(ks, i) for ks, i in similarity if i <= (similaritythreshold+abs(ks.length-len(repseq)))][0:5]
+                result.append((a,i,seq,similarity))
+            return result
+        else:
+            return []
+
+    def df_table(self):
+        dr = self.get_datareader
+        result={}
+        result.update(table=dr.df_table(),cluster=dr.cluster_summary())
+        return result
 
 
+    def cluster_display(self,cluster):
+        # get the C1 dna logo, etc.
+        cluster = self.get_datareader[cluster]
+        seq = [ (i.split('\t')[0], int(float(i.split('\t')[1].strip())) ) for i in cluster.format(count=1, order=1, returnraw=1)[0:100]]
+        alignscore=cluster.align_score()
+        totalcount = int(sum(cluster.count))
+        uniquecount = len(cluster.count)
+        return [totalcount, uniquecount,round(alignscore,2)],[ (SeqRound.query.filter_by(sequence_id=Sequence.query.filter_by(
+                    aptamer_seq=i.replace('-','')).first().id).first(),i,j) for i,j in seq]
+
+    def plot_logo(self,cluster):
+        dr=self.get_datareader
+        return dr.plot_logo(cluster)
+
+    
+
+    def plot_heatmap(self):
+        dr=self.get_datareader
+        if dr:
+            hm,df = dr.plot_heatmap()
+            return hm
 
 
 class SeqRound(db.Model):
@@ -276,7 +364,7 @@ class Sequence(db.Model,BaseDataModel):
     rounds = relationship("SeqRound", back_populates="sequence")
 
     def __repr__(self):
-        return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas.sequence_name}"
+        return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
 
     def haschildren(self):
         return False
@@ -295,6 +383,7 @@ class Sequence(db.Model,BaseDataModel):
         else: return self.id_display
 
     def similar_to(self,n=10):
+        # return tuble of knownsequence,distance
         ks = KnownSequence.query.filter(KnownSequence.id!=self.known_sequence_id).all()
         ksdistance = [lev_distance(self.aptamer_seq,i.rep_seq,n+abs(i.length-self.length)) for i in ks]
         similarity = sorted([(i,j) for i,j in zip(ks,ksdistance)],key=lambda x: x[1])

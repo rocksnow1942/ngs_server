@@ -1,7 +1,7 @@
 import io
 from app import db
 from matplotlib.backends.backend_svg import FigureCanvasSVG
-from flask import render_template, flash, redirect, url_for, request, current_app, abort, jsonify, Response
+from flask import render_template, flash, redirect, url_for, request, current_app, abort, jsonify, Response, send_from_directory
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.ngs import bp
@@ -435,26 +435,75 @@ def add_analysis():
 @bp.route('/analysis', methods=['POST','GET'])
 @login_required
 def analysis():
-    
     id = request.args.get('id',0,int)
     analysis = Analysis.query.get(id)
     # datareader=analysis.get_datareader()
-        
+    if analysis.clustered:
+        active_tab= 'result'
+    elif analysis.analysis_file:
+        active_tab='cluster'
+    else:
+        active_tab = 'load'
+    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab)
 
-    
-    return render_template('ngs/analysis.html', analysis=analysis)
 
+@bp.route('/analysis/cluster', methods=['POST', 'GET'])
+@login_required
+def analysis_cluster():
+    id = request.args.get('id', 0, int)
+    analysis = Analysis.query.get(id)
+    cluster = request.args.get('cluster', 'C1')
+    info,clusters=analysis.cluster_display(cluster)
+    colordict=dict(zip('ATCG-',['red','green','blue','orange','black']))
+    return render_template('ngs/analysis_cluster.html',cluster=cluster,colordict=colordict, analysis=analysis,clusters=clusters,clusterinfo=info)
+
+
+@bp.route('/analysis_image/<funcname>', methods=['GET'])
+@login_required
+def analysis_image(funcname):
+    id = request.args.get('id', 0, int)
+    cluster = request.args.get('cluster','C1')
+    analysis = Analysis.query.get(id)
+    if funcname == 'heatmap':
+        fig = analysis.plot_heatmap()
+    elif funcname == 'plot_logo':
+        fig = analysis.plot_logo(cluster)
+    buf = io.BytesIO()
+    fig.savefig(buf, format="svg")
+    plt_byte = buf.getvalue()
+    buf.close()
+    return Response(plt_byte, mimetype="image/svg+xml")
 
 @bp.route('/load_analysis_rounds', methods=['POST'])
 @login_required
 def load_analysis_rounds():
-
     id = request.json['id']
     analysis = Analysis.query.get(id)
     task = analysis.load_rounds()
-
     return jsonify({"id":task.id})
 
+
+@bp.route('/build_cluster', methods=['POST'])
+@login_required
+def build_cluster():
+    id = request.json['id']
+    analysis = Analysis.query.get(id)
+    distance = request.json['distance']
+    cutoff_l = request.json['cutoff_l']
+    cutoff_u = request.json['cutoff_u']
+    threshold =request.json['threshold']
+    try:
+        distance=int(distance)
+        lb=int(cutoff_l)
+        ub = int(cutoff_u)
+        threshold=int(threshold)
+        analysis.cluster_para = [distance,lb,ub,threshold]
+        analysis.save_data()
+        db.session.commit()
+        task = analysis.build_cluster()
+        return jsonify({"id": task.id})
+    except Exception as e:
+        return jsonify({"id":'','error':f"{e}"})
 
 
 @bp.route('/eidt_analysis', methods=['POST'])
@@ -475,3 +524,8 @@ def edit_analysis():
         return "Edit has been saved."
     except Exception as e:
         return f"Error: {e}"
+
+
+@bp.route('/analysis_data/<path:filename>',methods=['GET'])
+def analysis_data(filename):
+    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=True)

@@ -17,18 +17,25 @@ import platform
 
 ascii=True if platform.platform().startswith('Win') else None
 
-def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=None,desc='Progress:',**kwargs):
+def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=None,callback=None,progress_gap=(0,100),**kwargs):
     workerheads=psutil.cpu_count(logical=False)
     worker=multiprocessing.Pool(workerheads,initializer,initargs)
     total = total or len(workload)
     chunksize= int(total//chunks)+1 if chunks else 1
-    result=worker.imap(task,workload,chunksize)
+    result = []
+    count=0
+    for _ in worker.imap(task, workload, chunksize):
+        result.append(_)
+        if callback:
+            callback(
+                count/total*(progress_gap[1]-progress_gap[0])+progress_gap[0])
     worker.close()
     worker.join()
     worker.terminate()
     return result
 
-def lev_cluster_from_seed(seed,list_of_seq,distance,connect):
+
+def lev_cluster_from_seed(seed, list_of_seq, distance, connect):
     """
     give a list of seed and sequence,
     use the seed to cluster sequence.
@@ -36,9 +43,9 @@ def lev_cluster_from_seed(seed,list_of_seq,distance,connect):
     seedresult = {i:[] for i in seed}
     id = os.getpid()
     print("Process {} started....{} tasks.".format(id,len(list_of_seq)))
-    length = len(list_of_seq)
+   
     # percentcounter=0.05
-    for i in tqdm.tqdm(list_of_seq,desc='PID {} progress:'.format(id),total=length,mininterval=5,ascii=ascii):
+    for i in list_of_seq:
         # if (k/length)>percentcounter:
         #     print("Process {}: {:.2f}% done...".format(id,percentcounter*100))
         #     percentcounter+=0.05
@@ -63,7 +70,7 @@ def mapdistance(seq,seqlist,threshold,multithre=10000,showprogress=False):
     else:
         return list(map(discalc,seqlist))
 
-def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000,findoptimal=False):
+def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000,findoptimal=False,callback=None):
     """
     cluster a list of sequence and its count, based on their levenstein distance, threshold is given by 'distance'
     will return a dictionary of lists.
@@ -78,8 +85,12 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     result = {list_of_seq[0]: []}
     lenth = len(list_of_seq)
     # percentcounter=0.02
+    current=0
     starttime=time.time()
-    for k,i in tqdm.tqdm(enumerate(list_of_seq),desc='Cluster progress:',total=lenth,ascii=ascii):
+    for k,i in enumerate(list_of_seq):
+        if callback: 
+            current = k/lenth*80
+            callback(current)
         if len(result_key)>clusterlimit:
             print('Cluster limit of {} reached. Start seed clustering...'.format(clusterlimit))
             break
@@ -117,12 +128,18 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
             _.start()
         seedresult_list=[]
         # to avoid dead lock, fetch queue every 60s while process is active.
+        process_c = (80-current)/processnumber
+        cyclecount=0
         while any([i.is_alive() for i in process]):
             while not quene.empty():
                 _,r=quene.get()
                 print('Process {} result received.'.format(_))
                 seedresult_list.append(r)
+                current=current+process_c
+                cyclecount=0
+            callback(current+(process_c)*cyclecount/(300+cyclecount) )
             time.sleep(1)
+            cyclecount+=1
         time.sleep(1)
         while not quene.empty():
             _,r=quene.get()
@@ -140,6 +157,7 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
         sort_list = sorted([(k,seq[k]) for k in i],key=lambda x:x[1],reverse=True)
         new_result.update({'C'+str(counter_):sort_list})
         counter_+=1
+    callback(80)
     print('Cluster done. Time elapsed: {:.2f}s.'.format(time.time()-starttime))
     return new_result, stop_sum_count
 
@@ -315,8 +333,9 @@ def align_clustered_seq(data,**kwargs):
     print('Current time: {}'.format(datetime.datetime.now()))
     # percentcounter=0.05
     starttime=time.time()
+    callback=kwargs.pop('callback')
     wrapper = partial(_cluster_align,kwargs=kwargs)
-    z=poolwrapper(wrapper,data,desc='In cluster align:',showprogress=True)
+    z=poolwrapper(wrapper,data,callback=callback,progress_gap=(80,95))
     cluster = dict(z)
     print("In cluster alignment finished. Time Elapsed: {:.2f}s.".format(time.time()-starttime))
     return cluster

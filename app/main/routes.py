@@ -27,7 +27,6 @@ def triggererror():
     return render_template('upload.html',title='Upload',form={'form':'upload'})
 
 
-
 @bp.route('/search', methods=['GET', 'POST'])
 @login_required
 def search():
@@ -36,3 +35,11 @@ def search():
     print(request.referrer)
     
     return render_template('search/search_result.html', title='Search Result', para=request.form['search_para'])
+
+
+@bp.route('/clear_trash', methods=['GET', 'POST'])
+def clear_trash():
+    # TODO
+    # need to delete trash from SQL tasks, and unused analysis folders.
+    # clear up file uploads.
+    return render_template('upload.html', title='Upload', form={'form': 'upload'})

@@ -1,5 +1,5 @@
 from ._twig import Tree,draw,Clade
-import pickle,json,copy,os,math
+import json,copy,os,math
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +23,7 @@ Modified for NGS_server use
 
 """
 # TODO
-# add count distribution / length distribution / 
+# add count distribution / length distribution /
 
 class Reader(object):
     def ifexist(self,name):
@@ -66,7 +66,7 @@ class DataReader(Reader):
         self.alias={}
         self.processing_para={}
         # self.save_loc= abandoned save location.
-                    
+
 
     @property
     def dr_loc(self):
@@ -100,7 +100,7 @@ class DataReader(Reader):
         zero=zero.loc[zero==0].index.tolist()
         self.df.drop(labels=zero,inplace=True,axis=1)
 
-    
+
     def load_from_ngs_server(self,rounds,callback=None):
         import time
         df = self.read_df_from_round(rounds[0])
@@ -110,12 +110,12 @@ class DataReader(Reader):
             time.sleep(5) ###testing
             _df = self.read_df_from_round(r)
             df=df.merge(_df,how='outer',on=['id','aptamer_seq']).fillna(0)
-            if callback:               
+            if callback:
                 callback((2+index)/(len(rounds)+1)*100)
         self.df=df
         df['sum_count'] = df[[i for i in self.list_all_rounds()]].sum(axis=1)
         df['sum_per'] = df[[i+'_per' for i in self.list_all_rounds()]].sum(axis=1)
-        self.df=df
+
         return self
 
     def read_df_from_round(self,r):
@@ -136,8 +136,11 @@ class DataReader(Reader):
                 todump[k]=item
         return todump
 
+    def saveas(self,name):
+        return os.path.join(self.filepath,name)
+
     def save_json(self):
-        with open(os.path.join(self.filepath,self.name+'.json'),'wt') as f:
+        with open(self.saveas(self.name+'.json'),'wt') as f:
             json.dump(self.jsonify(),f)
 
     @classmethod
@@ -155,7 +158,7 @@ class DataReader(Reader):
         a.__dict__=data
         return a
 
-    def sequence_length_hist(self,fullrange=False):
+    def sequence_length_hist(self,fullrange=False,save=False):
         if getattr(self,'_df',None) is not None:
             df= self._df
         else:
@@ -169,7 +172,43 @@ class DataReader(Reader):
             bin=[i-0.5 for i in range(int(lm),int(ll)+1)]
         else:
             bin=[i-0.5 for i in range(int(lb)-2,int(up)+2)]
-        l.hist(bins=bin,density=1)
+        ax=l.hist(bins=bin,density=1)
+        ax.set_xticks([int(i) for i in bin[1::2]])
+        ax.set_title('Sequence Length CDF')
+        ax.set_xlabel('Length (n.t.)')
+        ax.set_ylabel('Frequency')
+        if save:
+            name = self.name+'LEN_hist.svg'
+            tosave=self.saveas(name)
+            plt.tight_layout()
+            plt.savefig(tosave)
+            plt.clf()
+            return name
+
+    def sequence_count_hist(self,save=False):
+        if getattr(self,'_df',None) is not None:
+            df= self._df
+        else:
+            df=self.df
+        ld2 = [i for i in df['sum_count'] for j in range(int(i))]
+        bin=np.geomspace(1,int(max(ld2)*1.2),int(max(ld2)*1.2))
+        fig,ax=plt.subplots()
+        ax.hist(ld2,histtype='step',cumulative=-1,bins=bin)
+        ax.set_xscale('log')
+        ax.set_title('Read count CDF (reversed)')
+        ax.set_xlabel('Read count')
+        ax.set_ylabel('Frequency/Total Count')
+        ax.ticklabel_format(style='sci', axis='y', scilimits=(1,0))
+        ax.grid(True)
+        if save:
+            name = self.name+'COUNT_hist.svg'
+            tosave=self.saveas(name)
+            plt.tight_layout()
+            plt.savefig(tosave)
+            plt.clf()
+            return name
+
+
 
     def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True):
         """
@@ -199,17 +238,19 @@ class DataReader(Reader):
         print('Current Dataframe:')
         print(self.df.head())
 
-    def df_cluster(self,distance=5,cutoff=(35,45),count_thre=1,clusterlimit=5000,findoptimal=False):
+    def df_cluster(self,distance=5,cutoff=(35,45),count_thre=1,clusterlimit=5000,findoptimal=False,callback=None):
         """
         cluster sequence in self.df.
         cluster limit is the maximum of clusters it will give.
         """
-        df = self.df
+        if getattr(self, '_df', None) is not None:
+            self.df = self._df
+        df = self.df.sort_values(by=['sum_per','sum_count'],ascending=[False,False])
         df = df.loc[df['sum_count']>=count_thre]
         apt_list= df.aptamer_seq.tolist()
         apt_count=df.sum_count.tolist()
         apt_dict,noncluster_count = lev_cluster(apt_list,apt_count,distance=distance,
-                                                cutoff=cutoff,clusterlimit=clusterlimit,findoptimal=findoptimal)
+                                                cutoff=cutoff,clusterlimit=clusterlimit,findoptimal=findoptimal,callback=callback)
         count_dict = dict.fromkeys(apt_dict)
         for key,item in apt_dict.items():
             temp = [[i[0],i[1],df.loc[df.aptamer_seq==i[0]]['id'].item()] for i in item]
@@ -217,14 +258,14 @@ class DataReader(Reader):
         self.cluster = count_dict
         self.processing_para.update({'df_cluster':{'distance':distance,'cutoff':cutoff,
                                 'count_thre':count_thre,'stop_cluster_index':noncluster_count[0],'stop_cluster_count':noncluster_count[1]}})
-        
 
-    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1}):
+
+    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None):
         data = self.cluster
-        cluster = align_clustered_seq(data,**cluster_para)
+        cluster = align_clustered_seq(data,**cluster_para,callback=callback)
         self.align = cluster
         self.processing_para.update({'cluster_para':cluster_para})
-        
+
 
     def build_tree_and_align(self,align_para={'offset':True,'k':4,'count':True,'gap':4,'gapext':1,'distance':'hybrid_distance'},save=True):
         cluster = self.align
@@ -360,6 +401,8 @@ class DataReader(Reader):
         if isinstance(knownsequence,str):
             with open(knownsequence,'rt') as f:
                 ks = json.load(f)
+        elif isinstance(knownsequence,dict):
+            ks = knownsequence
         else:
             ks=knownsequence.dict
         ks_list = list(ks)
@@ -462,8 +505,8 @@ class DataReader(Reader):
         for use externally to simplify things.
         """
         a=self.align[self.find(name)[0]]
-        b=self.tree[self.find(name)[0]]
-        return AlignClade(a,b)
+        # b=self.tree[self.find(name)[0]]
+        return AlignClade(a)
 
     def _scope_(self,scope):
         """
@@ -783,6 +826,7 @@ class DataReader(Reader):
         """
         # percentile calculation
         df=self.df.loc[[i.startswith('C') for i in self.df.index],:]
+        df_=self._df.loc[:,[i for i in self.df.columns]]
         round_list = df.columns.tolist()
         percentile = []
         for i in round_list:
@@ -790,7 +834,7 @@ class DataReader(Reader):
         percentile=np.array(percentile).T
         percentile = pd.DataFrame(percentile,index=['Min','20%','40%','60%','80%','Max'],columns=df.columns)
         # unique count, analysis read total read calculation.
-        uniquecount = df.apply(lambda x:x!=0).sum()
+        uniquecount = df_.apply(lambda x:x!=0).sum()
         uniquecount.name='Count'
         anaread = df.sum()
         anaread.name='AyRead'
@@ -813,6 +857,37 @@ class DataReader(Reader):
             print(a)
         else:
             return a
+
+    def df_table(self):
+        # in order of name, count, anaread, total read, percent, 80% read, Max read
+        result = []
+        df= self.df_info(show=False).to_dict()
+        for rn in self.list_all_rounds():
+            ar=df[rn]['AyRead']
+            tr=df[rn]['TlRead']
+            result.append((rn, df[rn]['Count'],ar,tr,"{:.2%}".format(ar/tr),
+                df[rn]['80%'],df[rn]['Max']))
+        return result
+
+    def cluster_summary(self):
+        # in order of percentile, count, sequence count.
+        result=[]
+        cluster=self.__dict__.get('cluster',None)
+        if cluster:
+
+            result.append('Total Clusters: {}'.format(len(cluster.keys())))
+            count = np.array([sum(k[1] for k in i) for i in self.cluster.values()])
+            seqcount = np.array([len(i) for i in self.cluster.values()])
+            percent=[0,20,40,60,80,90,100]
+            per_c = np.percentile(count,percent)
+            per_sc = np.percentile(seqcount,percent)
+            for i,j,k in zip(percent,per_c,per_sc):
+                result.append((str(i)+" %",int(j),int(k)))
+        else:
+            result.append('Doesn\'t Contain Cluster.')
+        return result
+
+
 
     # tools methods
     def compare(self,a,b,format=(1,1,1,0,0),show=True,**kwargs):
@@ -922,11 +997,12 @@ class DataReader(Reader):
         if align:
             result.append('Align Summary:')
             align_score = np.array([i.align_score() for j,i in align.items() if j not in self.cluster.keys()])
-            percent=[0,10,20,30,40,50,60,70,80,90,100]
-            per = np.percentile(align_score,percent)
-            result.append('Align counts: {}'.format(len(align_score)))
-            for i,j in zip(percent,per):
-                result.append('Align Score percentile {}%: {:.2f}'.format(i,j))
+            if align_score:
+                percent=[0,10,20,30,40,50,60,70,80,90,100]
+                per = np.percentile(align_score,percent)
+                result.append('Align counts: {}'.format(len(align_score)))
+                for i,j in zip(percent,per):
+                    result.append('Align Score percentile {}%: {:.2f}'.format(i,j))
         else:
             result.append('Doesn\'t Contain Align.')
         result.append('\n')
@@ -952,6 +1028,7 @@ class DataReader(Reader):
                 f.write(result)
         if show:
             print(result)
+        return result
 
     def describe(self,target=[],format=(1,1,1,0,0),count=True,save=False,show=True):
         """
@@ -1279,7 +1356,8 @@ class DataReader(Reader):
         if save:
             align.dna_logo(save=_save,show=False,count=count)
         else:
-            align.dna_logo(save=False,show=True,count=count)
+            fig=align.dna_logo(save=False,show=False,count=count)
+        return fig
 
     def plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,save=False,savedf=False):
         """
@@ -1327,6 +1405,7 @@ class DataReader(Reader):
         fig = plt.figure(figsize=(max(8,round(len(rounds)*0.7)),min(12,max(5,0.4*len(cluster)))))
         gs = gridspec.GridSpec(1,max(9,round(len(rounds)*0.8)),fig)
         ax = fig.add_subplot(gs[0,:-1])
+        df_np=df_np[::-1]
         ax.imshow(df_np,aspect='auto',cmap='YlGnBu')
         # label block value
         if labelthre:
@@ -1336,13 +1415,14 @@ class DataReader(Reader):
                     colo='dimgrey' if df_np[i,j]<0.3 else 'w'
                     ax.text(j, i, '{:.2f}'.format(real_*100),ha="center", va="center", color=colo)
         ax.set_xticks(np.arange(len(rounds)))
+        ax.set_ylim(-0.5,len(cluster)-0.5)
         ax.set_yticks(np.arange(len(cluster)))
         ax.set_xticklabels(rounds,rotation=45, ha="right",
                  rotation_mode="anchor")
         cluster.reverse()
         top=len(cluster)
         if len(cluster)<=70:
-            ax.set_yticklabels(cluster)
+            ax.set_yticklabels(cluster[::-1])
         else:
             cluster = [i if (i in self.alias.values()) or k%(len(cluster)//20)==0 else '' for k,i in enumerate(cluster)]
             ax.set_yticklabels(cluster)
@@ -1366,19 +1446,19 @@ class DataReader(Reader):
         cax.tick_params(axis='both', which='both', bottom=False, top=False,
                 labelbottom=True, left=True, right=False, labelleft=True)
         # cax.set_axis_off()
-        fig.tight_layout()
+        fig.set_tight_layout(True)
         if save:
-            plt.savefig(_save_)
+            name = self.name+'HEATMAP.svg'
+            tosave=self.saveas(name)
+            plt.savefig(tosave)
             plt.clf()
-        else:
-            plt.show()
         if savedf:
             df['Sequence']=df.index.map(lambda x: self.align[x].rep_seq())
             new= self.df.loc[df.index,:]
             df=pd.concat([df,new],axis=1)
             df.index=df.index.map(self.translate)
             df.to_csv(_savedf_)
-        return df
+        return name,df
 
 ##############################################################################
 

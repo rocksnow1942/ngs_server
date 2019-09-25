@@ -7,7 +7,7 @@ import os
 from flask import current_app
 import json
 from itertools import islice
-from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist
+from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist,lev_distance
 from collections import Counter
 import re
 from app.utils.analysis import DataReader
@@ -286,14 +286,58 @@ def load_rounds(id):
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
     dr.save_json()
+    ch=dr.sequence_count_hist(save=True)
+    lh=dr.sequence_length_hist(save=True)
     analysis.analysis_file=os.path.join(filepath,analysis.name+'.json')
+    analysis.hist = [os.path.join(
+        str(analysis.id), ch), os.path.join(str(analysis.id), lh)]
+    analysis.task_id=''
+    analysis.cluster_para=''
+    analysis.heatmap=''
+    analysis.cluster_table=''   
     analysis.save_data()
     db.session.commit()
     _set_task_progress(100)
 
+def build_cluster(id):
+    analysis = Analysis.query.get(id)
+    dr = analysis.get_datareader
+    d,lb,ub,ct=analysis.cluster_para
+    dr.df_cluster(d,(lb,ub),ct,clusterlimit=1000,findoptimal=True,callback=_set_task_progress)
+    dr.in_cluster_align(callback=_set_task_progress)
+    dr.df_trim(save_df=True)
+    dr.rename_from_ks_server(ks=KnownSequence.query.all())
+    dr.save_json()
+    hname,df=dr.plot_heatmap(save=True)
+    analysis.heatmap = os.path.join(str(analysis.id), hname)
+    roundnamedict = dict(zip(df.columns.tolist(),analysis._rounds))
+    maxrounddict = {k:roundnamedict[i] for k,i in df.idxmax(axis=1).to_dict().items()}
+    topcluster = df.index.tolist()
+    result = []
+    ks = KnownSequence.query.all()
+    similaritythreshold=10
+    for i in topcluster:
+        a = i+bool(dr.alias.get(i, 0))*f" / {dr.alias.get(i,0)}"
+        
+        repseq = dr[i].rep_seq().replace('-', '')
+        seq = Sequence.query.filter_by(aptamer_seq=repseq).first()
+        maxround=maxrounddict[i]
 
+        ksdistance = [lev_distance(
+            repseq, i.rep_seq, similaritythreshold+abs(i.length-len(repseq))) for i in ks]
+        similarity = sorted([(i, j) for i, j in zip(
+            ks, ksdistance)], key=lambda x: x[1])
+        similarity = [(ks, i) for ks, i in similarity if i <= (
+            similaritythreshold+abs(ks.length-len(repseq)))][0:5]
+        similarity = [ ( f"{ks.sequence_name} [{i}]", ks.id) for ks,i in similarity ]
+        result.append((a, i, seq and seq.id_display, seq and seq.id, maxround, similarity))
 
+    analysis.cluster_table=result
 
+    analysis.task_id = ''
+    analysis.save_data()
+    db.session.commit()
+    _set_task_progress(100)
 
 
 if __name__ == '__main__':

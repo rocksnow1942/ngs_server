@@ -6,6 +6,21 @@ a.custom-card:link {
   text-decoration: none;
 }
 
+.narrow_row {
+  padding: 0px;
+  text-align: center;
+  height: 10px;
+  vertical-align: center;
+  margin:0;
+}
+
+.sequence
+{
+     font-size:16px;
+     font-family: monospace;
+     padding: 0px 0px 0px 0px;
+     text-align: center;
+}
 
 .bgimg {
     background-image: url('{{url_for("static", filename="images/404.gif")}}');

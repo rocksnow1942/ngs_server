@@ -1,5 +1,6 @@
 import pickle,copy
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 from itertools import product
 import matplotlib as mpl
@@ -218,7 +219,7 @@ class Alignment():
                         counter=c
         return (seq, count, offset), (seq_, count_, offset_)
 
-    def format(self, id=False, reverseindex=False,maxlength=0,count=False, offset=False, collapse=0,order=False,index=False,link=False):
+    def format(self, id=False, reverseindex=False,maxlength=0,count=False, offset=False, collapse=0,order=False,index=False,link=False,returnraw=False):
         """
         option to show ID or Count number or Offset
         collapse will collapse sequence with a hamming distance < given number.
@@ -279,7 +280,7 @@ class Alignment():
                     newstring.append(j[i*maxlength:(i+1)*maxlength])
                 newstring.append('='*maxlength)
             _string1=newstring[0:-1]
-
+        if returnraw: return _string1
         return ('\n').join(_string1)
 
     def __len__(self):
@@ -719,7 +720,7 @@ class Alignment():
         return df
 
     # alignment plots:
-    def dna_logo(self, save=False, show=True, count=True,ax=None):
+    def dna_logo(self, save=False, show=False, count=True,ax=None):
         freq = np.array(self._freq(count))
         en = 2.88539008/max(sum(self.count),1.5)
         info = (np.log(5)/np.log(2)-en-self.entropy(count=count))
@@ -744,7 +745,8 @@ class Alignment():
             ax = ax
             drawx=False
         else:
-            fig, ax = plt.subplots(figsize=(7, 2))
+            fig = Figure(figsize=(7, 2))
+            ax = fig.subplots()
             drawx=True
         for x, scores in enumerate(height):
             y = 0
@@ -764,6 +766,7 @@ class Alignment():
         ax.set_xlim((0, len(height)+1))
         ax.set_ylim((0, 2.33))
         ax.tick_params(axis='both', which='both', labelsize=6)
+        fig.set_tight_layout(True)
         if save:
             plt.tight_layout()
             save = save if isinstance(
@@ -772,6 +775,7 @@ class Alignment():
         if show:
             plt.tight_layout()
             plt.show()
+        return fig
 
     def plot_correlation(self,save=False,**kwargs):
         """

@@ -1,6 +1,6 @@
 from app import db
 from flask import render_template, flash, redirect,url_for,request
-from app.auth.forms import LoginForm,RegistrationForm, ResetPasswordRequestForm,ResetPassWordForm
+from app.auth.forms import LoginForm, RegistrationForm, ResetPasswordRequestForm, ResetPassWordForm, ProfileForm
 from flask_login import current_user, login_user,logout_user
 from app.models import User
 from werkzeug.urls import url_parse
@@ -12,7 +12,6 @@ from app.auth import bp
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
-
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -26,6 +25,21 @@ def login():
         return redirect(next_page)
 
     return render_template('auth/login.html',title='Sign In', form=form)
+
+
+@bp.route('/profile', methods=['GET', 'POST'])
+def profile():
+    form=ProfileForm(current_user)
+    if request.method=='GET':
+        form.load_obj(current_user)
+    if form.validate_on_submit():
+        current_user.username=form.username.data
+        current_user.email=form.email.data
+        db.session.commit()
+        flash('Your changes were saved.','success')
+        return redirect(url_for('main.index'))
+    return render_template('main/profile.html', user=current_user, title='Profile', form=form)
+
 
 
 @bp.route('/logout')
