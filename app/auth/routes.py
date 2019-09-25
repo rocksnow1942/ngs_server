@@ -38,7 +38,7 @@ def profile():
         db.session.commit()
         flash('Your changes were saved.','success')
         return redirect(url_for('main.index'))
-    return render_template('main/profile.html', user=current_user, title='Profile', form=form)
+    return render_template('auth/profile.html', user=current_user, title='Profile', form=form)
 
 
 
