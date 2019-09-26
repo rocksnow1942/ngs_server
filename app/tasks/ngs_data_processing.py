@@ -269,6 +269,7 @@ def parse_ngs_data(nsg_id):
     # processing file1 and file2 and add to database
     nsg = NGSSampleGroup.query.get(nsg_id)
     nsg.processingresult=result
+    nsg.task_id = None
     db.session.commit()
     _set_task_progress(100)
 

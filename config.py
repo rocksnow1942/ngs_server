@@ -18,7 +18,7 @@ class Config():
     PAGE_LIMIT = int(os.environ.get('PAGE_LIMIT') or 10)
 
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
-
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
     MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'localhost'
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 8025)
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None

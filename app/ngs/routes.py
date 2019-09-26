@@ -9,20 +9,12 @@ from app.models import Analysis,Selection,Rounds,Primers,Sequence,SeqRound,NGSSa
 from app.ngs.forms import ngs_add_form_dictionary,ngs_edit_form_dictionary
 from sqlalchemy.exc import IntegrityError
 from app.models import models_table_name_dictionary
-
+from app.utils.ngs_util import pagination_gaps
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def ngs():
     return render_template('ngs/ngs.html',title='NGS')
-
-
-@bp.route('/upload', methods=['GET', 'POST'])
-@login_required
-def upload():
-
-    return render_template('ngs/upload.html', title='Upload', form={'form': 'upload'})
-
 
 
 @bp.route('/browse', methods=['GET', 'POST'])
@@ -57,20 +49,6 @@ def browse():
         return render_template('ngs/browse.html', title='Browse' + (table or ' '), entries=entries.items,
                             next_url=next_url, prev_url=prev_url, table = table,nextcontent=nextcontent,page_url=page_url,active=page)
     return render_template('ngs/browse.html', title='Browse', entries=[],table='')
-
-
-def pagination_gaps(page, total, pagelimit, gap=9):
-    """return the start, end, of current page.
-    """
-    ttlpg = total//pagelimit + bool(total%pagelimit)
-    if ttlpg<gap:
-        return 1,ttlpg
-    elif page <= gap/2: 
-        return 1,gap
-    elif page >= ttlpg -gap/2:
-        return ttlpg - gap + 1, ttlpg 
-    else:
-        return page - gap//2,page + gap//2
 
 
 @bp.route('/add', methods=['GET', 'POST'])

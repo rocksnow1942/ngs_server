@@ -2,11 +2,23 @@ from itertools import islice
 import os
 
 
+def pagination_gaps(page, total, pagelimit, gap=9):
+    """return the start, end, of current page.
+    """
+    ttlpg = total//pagelimit + bool(total % pagelimit)
+    if ttlpg < gap:
+        return 1, ttlpg
+    elif page <= gap/2:
+        return 1, gap
+    elif page >= ttlpg - gap/2:
+        return ttlpg - gap + 1, ttlpg
+    else:
+        return page - gap//2, page + gap//2
+
 class lazyproperty():
     """
     lazy property descriptor class.
     """
-
     def __init__(self, func):
         self.func = func
 
@@ -17,6 +29,10 @@ class lazyproperty():
             value = self.func(instance)
             setattr(instance, self.func.__name__, value)
             return value
+
+def validate_sequence(sequence):
+    seq = sequence.upper().strip()
+    return (set(seq) <= set('ATCG'))
 
 def reverse_comp(s):
     s=s.upper()

@@ -10,6 +10,7 @@ import logging
 import os
 from redis import Redis
 import rq
+from elasticsearch import Elasticsearch
 
 db = SQLAlchemy()
 migrate=Migrate()
@@ -31,6 +32,8 @@ def create_app(config_class = Config):
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('ngs-server-tasks', connection=app.redis)
 
+    app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
+        if app.config['ELASTICSEARCH_URL'] else None
 
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp,url_prefix='/auth')
@@ -38,14 +41,18 @@ def create_app(config_class = Config):
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
 
-    from app.ngs import bp as ngs_bp
-    app.register_blueprint(ngs_bp,url_prefix='/ngs')
-
     from app.fold import bp as fold_bp
     app.register_blueprint(fold_bp, url_prefix='/fold')
 
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
+
+    from app.admin import bp as admin_bp
+    app.register_blueprint(admin_bp,url_prefix='/admin')
+
+    from app.ngs import bp as ngs_bp
+    app.register_blueprint(ngs_bp, url_prefix='/ngs')
+
 
     from app.upload import bp as upload_bp
     app.register_blueprint(upload_bp,url_prefix='/upload')

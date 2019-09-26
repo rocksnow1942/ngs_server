@@ -1,0 +1,10 @@
+{% extends "admin/index.html" %}
+
+
+{% block app_content %}
+<div class="jumbotron">
+    <h1>Hi, System Admin {{ current_user.username }}!</h1>
+</div>
+<h1>Result:</h1>
+<h1>{{content}}</h1>
+{% endblock %}

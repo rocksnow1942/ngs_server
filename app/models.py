@@ -17,6 +17,7 @@ from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.analysis import DataReader
+from app.utils.search import add_to_index, remove_from_index, query_index
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -43,6 +44,43 @@ class DataStringMixin():
 
     def save_data(self):
         self.data_string = json.dumps(self.data)
+
+class SearchableMixin():
+    @classmethod 
+    def search(cls,expression,page,per_page):
+        ids, total = query_index(cls.__tablename__,expression,page,per_page)
+        if total==0:
+            return cls.query.filter_by(id=0),0
+        when = [ (k,i) for i,k in enumerate(ids) ]
+        return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
+
+    @classmethod 
+    def before_commit(cls,session):
+        session._change = {'add':list(session.new),
+        'update':list(session.dirty),
+        'delete': list(session.deleted)}
+
+    @classmethod 
+    def after_commit(cls,session):
+        for obj in session._changes['add']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['update']:
+            if isinstance(obj, SearchableMixin):
+                add_to_index(obj.__tablename__, obj)
+        for obj in session._changes['delete']:
+            if isinstance(obj, SearchableMixin):
+                remove_from_index(obj.__tablename__, obj)
+        session._changes = None
+    
+    @classmethod 
+    def reindex(cls):
+        for obj in cls.query:
+            add_to_index(cls.__tablename__,obj)
+
+db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
+db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+
 
 
 class User(UserMixin,db.Model,DataStringMixin):
@@ -87,15 +125,21 @@ class User(UserMixin,db.Model,DataStringMixin):
         
     def test_task(self,n):
         job=current_app.task_queue.enqueue("app.tasks.ngs_data_processing.test_worker",n)
-        
+    
+    @property
+    def isadmin(self):
+        return self.privilege=='admin'
+
 class BaseDataModel():
     @property
     def id_display(self):
         return self.id
 
 
-class Analysis(db.Model, DataStringMixin, BaseDataModel):
+class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     __tablename__ = 'analysis'
+    __searchable__ = ['name', 'note']
+    __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(100))
     date = Column(DateTime(), default=datetime.now)
@@ -250,7 +294,6 @@ class SeqRound(db.Model):
         l2=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l3=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         return l1,l2,l3
-    
     @property
     def aka(self):
         ks = self.sequence.knownas or ''
@@ -307,8 +350,10 @@ class SeqRound(db.Model):
         return True
 
 
-class KnownSequence(db.Model,BaseDataModel):
+class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'known_sequence'
+    __searchable__ = ['sequence_name', 'target', 'note']
+    __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
     rep_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True)
@@ -396,8 +441,10 @@ class Sequence(db.Model,BaseDataModel):
         return fs.quick_plot()
 
 
-class Rounds(db.Model,BaseDataModel):
+class Rounds(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'round'
+    __searchable__ = ['round_name', 'target', 'note']
+    __searablemethod__= ['display']
     # __table_args__ = {'extend_existing': True}
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     selection_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('selection.id'))
@@ -510,8 +557,10 @@ class Rounds(db.Model,BaseDataModel):
         return fig
 
 
-class Selection(db.Model,BaseDataModel):
+class Selection(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'selection'
+    __searchable__=['selection_name','target','note']
+    __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     selection_name = Column(String(100),unique=True)
     target = Column(String(50))
@@ -540,8 +589,10 @@ class Selection(db.Model,BaseDataModel):
         l2=("Sequenced",len([i for i in self.rounds if i.totalread]))
         return l1,l2
 
-class Primers(db.Model,BaseDataModel):
+class Primers(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'primer'
+    __searchable__ = ['name', 'role', 'note']
+    __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(20), unique=True)
     sequence = Column(mysql.VARCHAR(200, charset='ascii'), unique=True)
@@ -564,8 +615,10 @@ class Primers(db.Model,BaseDataModel):
     def sequence_rc(self):
         return reverse_comp(self.sequence)
 
-class NGSSampleGroup(db.Model,BaseDataModel):
+class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
     __tablename__ = 'ngs_sample_group'
+    __searchable__ = ['name', 'note']
+    __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(50))
     note = Column(mysql.VARCHAR(500))
@@ -599,7 +652,7 @@ class NGSSampleGroup(db.Model,BaseDataModel):
         if self.task_id:
             return "{:.2f}".format(Task.query.get(self.task_id).progress)
         else:
-            return 0
+            return 100
 
     def display(self):
         l1=f"{self.name}  - Date: {self.date}"
@@ -701,8 +754,6 @@ class NGSSample(db.Model,BaseDataModel):
         rpi = Primers.query.get(self.rp_id )
         return [(rd.round_name, rd.__tablename__, rd.id)] + [(p.name, p.__tablename__,p.id) for p in (fp,rp,fpi,rpi)]
 
-
-
 class Task(db.Model,BaseDataModel):
     __tablename__='task'
     id = db.Column(db.String(36), primary_key=True)
@@ -713,7 +764,6 @@ class Task(db.Model,BaseDataModel):
 
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
-
 
 
 @login.user_loader

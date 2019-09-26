@@ -1,0 +1,43 @@
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+            aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title" id="myModalLabel">Search Inventory</h4>
+</div>
+
+<form action="{{url_for('main.search')}}" method="get" class="form" role="form">
+    <div class="modal-body">
+
+        <div class="row" style="padding: 10px;">
+            <div class="col-md-12">
+                <input class="form-control" id="search_para_id" name="search_para" placeholder="Search Keyword"
+                    required="" type="text" value="">
+            </div>
+        </div>
+        <div class="row" style="padding: 10px;">
+            <div class="col-md-6">
+                <label class="control-label" for="search_field">Search In</label>
+                <select class="form-control" id="search_field" name="table" required="">
+                    <option value="selection">Selection</option>
+                    <option value="round">Rounds</option>
+                    <option value="known_sequence">Aptamers</option>
+                    <option value="analysis">Analysis</option>
+                    <option value="primers">Primers</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="control-label" for="name">Method:</label>
+                <select class="form-control" id="search_method" name="method" required="">
+                    <option value="text">Text</option>
+                    <option value="sequence">DNA/RNA</option>
+                    <option value="distance">Distance (slow)</option>
+                </select>
+            </div>
+        </div>
+
+
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <input class="btn btn-primary" id="submit" name="submit" type="submit" value="Search Inventory">
+    </div>
+</form>

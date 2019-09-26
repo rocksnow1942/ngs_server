@@ -1,4 +1,4 @@
-{% extends "bootstrap/base.html" %}
+{% extends "bootstrap_base.html" %}
 
 {%- block styles %}
 <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"> -->
@@ -65,8 +65,12 @@
                           <li><a href="#">...</a></li>
                           <li role="separator" class="divider"></li>
                           <li><a href="#">...</a></li>
-                          <li role="separator" class="divider"></li>
-                          <li><a href="#">...</a></li>
+                          {% if current_user.isadmin %}
+                              <li role="separator" class="divider"></li>
+                              <li><a href="{{url_for('admin.admin')}}">Admin Page</a></li>
+                          {% endif %}
+                          
+                          
                         </ul>
                       </li>
                       <li><a href="{{ url_for('auth.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></a></li>
@@ -95,20 +99,16 @@
 <div class="modal fade" id="search_dialog" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
-            aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" id="myModalLabel">Search...</h4>
-      </div>
-      <form action="{{url_for('main.search')}}" method="post" class="form" role="form">
-      <div class="modal-body">
-          {% include "search/search_form.html" %}         
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        <input class="btn btn-primary" id="submit" name="submit" type="submit" value="Search">
-      </div>
-      </form>
+      {% block search_form %}
+      {% set formname=g.search_form.__class__.__name__ %}
+      {% if formname=='SearchNGSForm' %}
+          {% include "search/ngs_search_form.html" %}
+      {% elif formname=='SearchInventoryForm' %}
+          {% include "search/inventory_search_form.html" %}
+      {% else %}
+        <h1 align='center'>No Search Available</h1>
+      {% endif %}
+      {% endblock %}
     </div>
   </div>
 </div>
@@ -138,23 +138,22 @@
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
     <script type="text/javascript">
             $(document).ready(function () {
-              var url = window.location;
-              $('ul.nav a[href="'+ url +'"]').parent().addClass('active');
+              var url = window.location.pathname.split('/')[1];
+              $('ul.nav a[href*="'+ url +'"]').parent().addClass('active');
               $('ul.nav a').filter(function() {
                    return this.href == url;
               }).parent().addClass('active');
           });
-    //search related scripts
+    
+
           $(document).ready(function () {
               $(window).resize(function () {
                 var bodyheight = $(this).height();
-                console.log(bodyheight);
+               
                 $("#main_container").css('min-height',bodyheight-150);
               }).resize();
             });
-
     </script>
 {% endblock %}

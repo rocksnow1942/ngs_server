@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {% import 'bootstrap/wtf.html' as wtf %}
 
-
-
-
-
 {% block app_content %}
 
     <div class="jumbotron">
@@ -14,62 +10,13 @@
     <div class="row">
 
           <div class="col-xs-6 col-md-4">
-              <a href="{{url_for('ngs.add',toadd='selection') }}" class="thumbnail custom-card alert-success well-lg" >
-                <h5 class="card-title">Add New Selection</h5>
-                <p class="card-text">Create New Selection.</p>
+              <a href="" class="thumbnail custom-card alert-success well-lg" >
+                <h5 class="card-title">PH</h5>
+                <p class="card-text">PH</p>
             </a>
-        </div>
-          <div class="col-xs-6 col-md-4">
-              <a href="{{url_for('ngs.add',toadd='round')}}" class="thumbnail custom-card alert-success well-lg">
-
-                    <h5 class="card-title">Add New Round</h5>
-                    <p class="card-text-light">Create New round.</p>
-
-              </a>
-        </div>
-          <div class="col-xs-6 col-md-4">
-              <a href="{{url_for('ngs.add',toadd='primer')}}" class="thumbnail custom-card alert-success well-lg">
-
-                    <h5 class="card-title">Add New Primer</h5>
-                    <p class="card-text">Create New primer.</p>
-              </a>
           </div>
+        
     </div>
-
-    <div class="row">
-          <div class="col-xs-6 col-md-4"><a href="{{url_for('ngs.browse',table='selection')}}" class="thumbnail custom-card alert-warning well-lg">
-                <h5 class="card-title">Browse Data</h5>
-                <p class="card-text">Browse saved selections, rounds, sequences and primers/NGS samples.</p>
-          </a>
-          </div>
-          <div class="col-xs-6 col-md-4 ">
-              <a href="{{url_for('ngs.addsample')}}" class="thumbnail custom-card alert-info well-lg">
-                    <h5 >Create NGS sample groups</h5>
-                    <p >Create new NGS sample group. Need to make selection and rounds first.</p>
-              </a>
-          </div>
-          <div class="col-xs-6 col-md-4">
-              <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}" class="thumbnail custom-card alert-danger well-lg">
-                    <h5 class="card-title">Upload NGS Data</h5>
-                    <p class="card-text">Upload FASTA file to created NGS sample group and parse result.</p>
-              </a>
-          </div>
-    </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 {% endblock %}
 

@@ -9,17 +9,10 @@ from app.utils.ngs_util import check_file_reverse_comp,create_folder_if_not_exis
 import os
 import json
 
-@bp.before_app_request
-def before_request():
-    if current_user.is_authenticated:
-        current_user.last_seen = datetime.utcnow()
-        db.session.commit()
-
-
-@bp.route('/', methods=['GET', 'POST'])
-@login_required
-def index():
-    return render_template('upload/upload.html',title='Upload')
+# @bp.route('/', methods=['GET', 'POST'])
+# @login_required
+# def index():
+#     return render_template('upload/upload.html',title='Upload')
 
 def allowed_file(*files,fileextension=[]):
     if isinstance(fileextension,str): fileextension = [fileextension]
@@ -76,11 +69,3 @@ def ngsuploadwidget():
         return redirect(request.referrer)
     return render_template('upload/uploadwidget.html',title='Upload')
 
-
-
-
-
-@bp.route('/error', methods=['GET', 'POST'])
-@login_required
-def details():
-    abort(404)
