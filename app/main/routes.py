@@ -81,7 +81,7 @@ def ngs_serach_handler(form):
 
     elif method == 'distance':
         return render_template('search/search_result.html',content='Not implemented yet.')
-    
+    print("***total", total)
     start, end = pagination_gaps(page, total, pagelimit)
     next_url = url_for('main.search', page=page+1, **
                        kwargs) if total > page*pagelimit else None
@@ -91,5 +91,3 @@ def ngs_serach_handler(form):
                 for i in range(start, end+1)]
     return render_template('ngs/browse.html', title='Search Result', table=table,
                            nextcontent=nextcontent, entries=entries, next_url=next_url, prev_url=prev_url, page_url=page_url, active=page)
-
-
