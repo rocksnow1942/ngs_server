@@ -157,5 +157,23 @@
                 $("#main_container").css('min-height',bodyheight-150);
               }).resize();
             });
+
+      // monitor key board.
+      $(document).ready(function () {
+         $(document).keypress(function (e) {
+          var c = String.fromCharCode(e.which);
+          if (e.target.tagName=='BODY' && c==='f') {
+            $('#search_dialog').modal('show');
+          }
+          
+          /*if (c.toUpperCase() === c && c.toLowerCase() !== c && !e.shiftKey) {
+            alert('test');
+          } else {
+            alert('test2');
+          }*/
+        });
+        });
+        
+      
     </script>
 {% endblock %}
