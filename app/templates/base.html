@@ -159,14 +159,18 @@
             });
 
       // monitor key board.
-      $(document).ready(function () {
-         $(document).keypress(function (e) {
-          var c = String.fromCharCode(e.which);
-          if (e.target.tagName=='BODY' && c==='f') {
-            $('#search_dialog').modal('show');
-          }
-        });
-        });
+      {% if current_user.is_authenticated %}
+          $(document).ready(function () {
+              $(document).keypress(function (e) {
+                var c = String.fromCharCode(e.which);
+                if (e.target.tagName == 'BODY' && c === 'f') {
+                  $('#search_dialog').modal('show');
+                }
+              });
+            });
+      {% endif %}
+      
+      
         
       
     </script>
