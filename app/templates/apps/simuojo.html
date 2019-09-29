@@ -8,6 +8,9 @@
 {% block app_content %}
 <div id="embeded_bokeh">
 {{script|safe}}
+<datalist id='usernamelist'>
+    <option value="{{current_user.username}}"></option>
+</datalist>
 
 </div>
 {% endblock %}
@@ -16,18 +19,50 @@
 {{super()}}
 
 <script type="text/javascript">
-    $(document).ready( setTimeout(function () {
+    // load failed handler
+    $(document).ready(function () {
+        let count=0;
+        let result=false;
+        var interval=setInterval( function() {
+        count+=1;
         $("#embeded_bokeh").children().each(function(){
             let id= $(this).attr('class');
-            console.log(id);
-        if (!id) {
-            $("#embeded_bokeh").html(
-                `<h1>Load Application Failed ! &#128565;</h1>
-                <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
+        if (id || count>=10) {
+            if (id){result=true;console.log('id loaded')};
+            //$("input[placeholder='username']").val("{{current_user.username}}").trigger('change');
+            $("input[placeholder='username']").attr('list','usernamelist');
+            clearInterval(interval);
         }
         })
+        },200
+       );
+
+       setTimeout(function() {if (!result){
+           console.log(result);
+            if (!result) {
+                $("#embeded_bokeh").html(
+                    `<h1>Load Application Failed ! &#128565;</h1>
+                <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
+
+            } };},3000);
        
-    },1000)
+    }
     )
+
+    /*
+    $(document).ready(setTimeout(function () {
+            $("#embeded_bokeh").children().each(function () {
+                let id = $(this).attr('class');
+                if (!id) {
+                    $("#embeded_bokeh").html(
+                        `<h1>Load Application Failed ! &#128565;</h1>
+                <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
+                }
+            })
+
+        }, 1500)
+        )*/
+
+
 </script>
 {% endblock %}
