@@ -41,8 +41,8 @@ def create_app(config_class = Config):
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
 
-    from app.fold import bp as fold_bp
-    app.register_blueprint(fold_bp, url_prefix='/fold')
+    from app.APPS import bp as apps_bp
+    app.register_blueprint(apps_bp, url_prefix='/apps')
 
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)

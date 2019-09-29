@@ -25,3 +25,4 @@ class Config():
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['rocksnow1942@gmail.com']
+    FOLDOJO_FOLDER = os.environ.get('FOLDOJO_FOLDER') or None

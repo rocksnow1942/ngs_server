@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block styles %}
+{{super()}}
+<link href="{{url_for('static',filename='foldojo.css')}}" rel="stylesheet" type="text/css">
+{% endblock %}
+
+
+{% block app_content %}
+<div id="embeded_bokeh">
+{{script|safe}}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+
+<script type="text/javascript">
+    $(document).ready( setTimeout(function () {
+        $("#embeded_bokeh").children().each(function(){
+            let id= $(this).attr('class');
+            console.log(id);
+        if (!id) {
+            $("#embeded_bokeh").html(
+                `<h1>Load Application Failed ! &#128565;</h1>
+                <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
+        }
+        })
+       
+    },1000)
+    )
+</script>
+{% endblock %}

@@ -1,4 +1,3 @@
-import time
 from rq import get_current_job
 from app import db
 from app.models import NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound,Analysis
@@ -241,7 +240,7 @@ class NGS_Sample_Process_Tester(NGS_Sample_Process):
             self.collection['result'] = self.results()
             pickle.dump(self.collection,f)
         return self.collection
-        
+
 def generate_sample_info(nsg_id):
     """
     sample info is a list consist of [ () ()]
@@ -277,7 +276,7 @@ def parse_ngs_data(nsg_id):
 def test_worker(n):
     for i in range(n):
         print("****runging test -", i)
-    
+
 
 def load_rounds(id):
     analysis = Analysis.query.get(id)
@@ -295,7 +294,7 @@ def load_rounds(id):
     analysis.task_id=''
     analysis.cluster_para=''
     analysis.heatmap=''
-    analysis.cluster_table=''   
+    analysis.cluster_table=''
     analysis.save_data()
     db.session.commit()
     _set_task_progress(100)
@@ -319,7 +318,7 @@ def build_cluster(id):
     similaritythreshold=10
     for i in topcluster:
         a = i+bool(dr.alias.get(i, 0))*f" / {dr.alias.get(i,0)}"
-        
+
         repseq = dr[i].rep_seq().replace('-', '')
         seq = Sequence.query.filter_by(aptamer_seq=repseq).first()
         maxround=maxrounddict[i]

@@ -81,8 +81,6 @@ class SearchableMixin():
 db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
 db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 
-
-
 class User(UserMixin,db.Model,DataStringMixin):
     __tablename__='user'
     id = db.Column(db.Integer,primary_key=True)
@@ -134,7 +132,6 @@ class BaseDataModel():
     @property
     def id_display(self):
         return self.id
-
 
 class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     __tablename__ = 'analysis'
@@ -764,6 +761,36 @@ class Task(db.Model,BaseDataModel):
 
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
+
+# class Slide(SearchableMixin,db.Model):
+#     __tablename__='slide'
+#     __searchable__=['title','body']
+    
+
+# class Project(SearchableMixin,db.Model):
+#     __tablename__ = 'project'
+#     __searchable__ = ['name', 'note']
+#     __searablemethod__ = []
+#     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+#     selection_id = Column(mysql.INTEGER(unsigned=True),
+#                           ForeignKey('selection.id'))
+#     round_name = Column(String(50))
+#     sequences = relationship("SeqRound", back_populates="round")
+#     target = Column(String(50))
+#     totalread = Column(mysql.INTEGER(unsigned=True), default=0)
+#     note = Column(String(300))
+#     forward_primer = Column(mysql.INTEGER(unsigned=True),
+#                             ForeignKey('primer.id'))
+#     reverse_primer = Column(mysql.INTEGER(unsigned=True),
+#                             ForeignKey('primer.id'))
+#     samples = relationship('NGSSample', backref='round')
+#     date = Column(DateTime(), default=datetime.now)
+#     parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
+#     children = relationship("Rounds")
+
+
+
+
 
 
 @login.user_loader

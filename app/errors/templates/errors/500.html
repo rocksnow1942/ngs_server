@@ -2,8 +2,14 @@
 
 {% block app_content %}
     <div class="jumbotron">
-        <h1>There is a bug.</h1><h2><span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span></h2>
+        <h1>&#x1F41B&#x1F41B&#x1F41B There is a buuug.</h1>
         <p>The admin has been notified. Sorry about the inconvenience!</p>
         <p><a class="btn btn-info btn-lg" href="{{ url_for('main.index') }}" role="button">Go Home?</a></p>
+        <div class='row'>
+            <div class = 'col-md-6 col-md-offset-3'>
+                <img src="{{url_for('static',filename='images/bug.gif')}}" class="img-responsive text-center" alt="Responsive image">
+            </div>
+        </div>
+        
     </div>
 {% endblock %}

@@ -10,6 +10,8 @@ def make_shell_context():
     return models_table_name_dictionary
 
 
+# to add foldojo and simuojo, bokeh serve bokeh server on localhost then allow websocket access. 
+
 #TODO
 #1. add admin background task control: to update all known sequence.
 #2. add admin deletion on sequence.
@@ -20,8 +22,6 @@ def make_shell_context():
 # add elastic search.
 # add sequence length distribution to round details.
 # ajax to sort order 
-
-# port foldojo to NGS server
 # download data to process.
 # monitor database size and database backup
 

@@ -91,3 +91,8 @@ def ngs_serach_handler(form):
                 for i in range(start, end+1)]
     return render_template('ngs/browse.html', title='Search Result', table=table,
                            nextcontent=nextcontent, entries=entries, next_url=next_url, prev_url=prev_url, page_url=page_url, active=page)
+
+
+@bp.route('/analysis_log', methods=['GET', 'POST'])
+def analysis_profile():
+    return render_template('ngs/analysis_profile.html', user=current_user, title='NGS analysis')

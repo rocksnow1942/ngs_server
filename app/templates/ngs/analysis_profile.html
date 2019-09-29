@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+<div class="row">
+    <div class="col-xs-6 col-md-8 col-md-offset-2">
+        <h1>Your NGS Data Analyis:</h1>
+        <table class="table table-hover">
+            <tr>
+                <th width="50px">ID</th>
+                <th>ANALYSIS</th>
+                <th>Delete</th>
+            </tr>
+            {% for entry in user.analysis %}
+            <tr>
+                <td>{{entry.id}}</td>
+                <td>
+                    {%set display = entry.display()%}
+                    <li><a
+                            href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{display[0]}}</b></a>
+                        @ {{entry.date.strftime('%m/%d/%Y')}}</li>
+                    <li>{{display[1]}}</li>
+                </td>
+                <td><a href="{{url_for('ngs.delete',table=entry.__tablename__,todelete=entry.id)}}"
+                        onclick="return confirm('Sure to delete {{entry.__repr__()}}?')"><span
+                            class="btn glyphicon glyphicon-trash" aria-hidden="true"></span></a></td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </div>
+
+
+</div>
+
+{% endblock %}
