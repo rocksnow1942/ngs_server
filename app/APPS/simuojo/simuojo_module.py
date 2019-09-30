@@ -10,7 +10,9 @@ from simu_utils import file_save_location,file_name
 # from _structurepredict import Structure,plotbackend
 import datetime
 
-
+#TODO
+# change parameters with curve selection. 
+# ability to copy and paste parameters. 
 
 cache_loc=path.join(path.dirname(__file__),'static','cache')
 
@@ -147,7 +149,7 @@ class ic50_simu():
         
             p_1=self.p.line('a_0','rv_per', source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.75,legend='Receptor')
             hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[ ('IC50/nM',"@ic50"),
-                ('Rcpt Conc / Kd', '@kdr'), ('VEGF conc / Aptamer Kd', '@kda')], mode='vline')  # ('Aptamer/nM', '@a_0{0.000}'), ('Rcpt Signal', '@rv_per{0}'),
+                                                                 ('Rcpt Conc / Kd', '@kdr'), ('VEGF conc / Aptamer Kd', '@kda')], )  # ('Aptamer/nM', '@a_0{0.000}'), ('Rcpt Signal', '@rv_per{0}'),mode='vline'
             self.p.add_tools(hover_tool_1)
             
 
@@ -383,7 +385,7 @@ class DR_5PL():
         self.p.title_location='above'
         for curve, color in zip("01234", linecolors):
             temp=self.p.line('a_0','signal', source=self.fit_data[curve],line_color=color,line_width=2)
-            hover_tool_1 = HoverTool(renderers=[temp],tooltips=[('EC50(half max)/nM','@ec50'),( 'EC50(Model)/nM', '@ec50set' ),('Hill','@hill'),('Symmetry','@s')],mode='vline')
+            hover_tool_1 = HoverTool(renderers=[temp],tooltips=[('EC50(half max)/nM','@ec50'),( 'EC50(Model)/nM', '@ec50set' ),('Hill','@hill'),('Symmetry','@s')],)#mode='vline'
             self.p.add_tools(hover_tool_1)
 
         self.p.circle('a_0','signal',source=self.raw_data,color='red',line_width=3)
@@ -547,7 +549,7 @@ class Kd_simu():
         for curve, color in zip("01234", linecolors):
             temp=self.p.line('x','y', source=self.fit_data[curve],line_color=color,line_width=2) #legend='Binding Curve')
             hover_tool_1 = HoverTool(renderers=[temp],
-                tooltips=[('Aptamer/nM', '@x{0.00}'), ('Signal', '@y{0}'), ('S0 / Kd (nM)',"@kd"),('NS',"@ns"),],mode='vline')
+                tooltips=[('Aptamer/nM', '@x{0.00}'), ('Signal', '@y{0}'), ('S0 / Kd (nM)',"@kd"),('NS',"@ns"),],)#mode='vline'
             self.p.add_tools(hover_tool_1)
 
         self.p.circle('x','y',source=self.raw_data,color='red',line_width=3)
@@ -711,7 +713,7 @@ class ric50_simu():
         for curve,color in zip("01234",linecolors):
             temp=self.p.line('a_0','rv_per', source=self.fit_data[curve],line_color=color,line_width=2)
             hover_tool_1 = HoverTool(renderers=[temp],tooltips=[('IC50/nM','@ic50'),
-                ('Rcpt Conc / Kd', '@kdr'),('VEGF conc / Aptamer Kd', '@kda')],mode='vline')
+                ('Rcpt Conc / Kd', '@kdr'),('VEGF conc / Aptamer Kd', '@kda')],) #mode='vline'
             self.p.add_tools(hover_tool_1)
         self.p.circle('a_0','rv_per',source=self.raw_data,color='red',line_width=3)
         self.p.plot_height = 400
@@ -920,8 +922,8 @@ class ri50_coop_simu():
 
         for curve, color in zip("01234", linecolors):
             p_1=self.p.line('a0','signal', source=self.fit_data[curve],line_color=color,line_width=2,legend='Signal_All')
-            hover_tool_1 = HoverTool(renderers=[p_1],tooltips=[('IC50/nM', '@ec50'),( 'Aptamer Kd/nM', '@kda' ),
-            ( 'Receptor Kd/nM', '@kdr' ),( 'RV Signal %', '@receptorsiganl' )],mode='vline')
+            hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[('IC50/nM', '@ec50'), ('VEGF conc/nM', '@v_0'),('Aptamer Kd/nM', '@kda'),
+            ( 'Receptor Kd/nM', '@kdr' ),( 'RV Signal %', '@receptorsiganl' )],)#mode='vline'
             self.p.add_tools(hover_tool_1)
 
         p_2 = self.p.line('a0','signal_v', source=self.fit_data['0'],line_color='deepskyblue',line_width=1,line_dash='dotdash',legend='Signal_V')
@@ -1013,7 +1015,7 @@ class ri50_coop_simu():
             result_ = {'a0':a_0, 'signal':signal,'signal_v':signal_v,'signal_va':signal_va,'signal_va2':signal_va2,'v':v,'va':va,'va2':va2,
                        'ec50': ["{:.2g}".format(ec50)]*len(a_0), 'kda': ["{:.2g}/{:.2g}".format(kwargs['ka1'], kwargs['ka2'])]*len(a_0),
                        'kdr': ["{:.2g}/{:.2g}/{:.2g}".format(kwargs['kr1'], kwargs['kr2'], kwargs['kr3'])]*len(a_0),
-                       'receptorsiganl': ["{:.0%}/{:.0%}".format(kwargs['c1'], kwargs['c2'])]*len(a_0)}
+                       'receptorsiganl': ["{:.0%}/{:.0%}".format(kwargs['c1'], kwargs['c2'])]*len(a_0), 'v_0': ["{:.2g}".format(kwargs['v0'])]*len(a_0)}
         return result_
 
     def fetch_para(self,randomize):
