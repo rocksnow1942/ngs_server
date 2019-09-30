@@ -27,7 +27,13 @@
         <tr>
             {% for col,table,id in sample.info() %}
                     <td width="75px">
-                       <a href="{{url_for('ngs.details',table=table,id=id)}}">{{col}}</a>
+                        {% if col %}
+                            <a href="{{url_for('ngs.details',table=table,id=id)}}">{{col}}</a>
+                        {% else %}
+                            {{col}}
+                        {% endif %}
+                        
+                       
                     </td>
             {% endfor %}
         </tr>

@@ -128,7 +128,7 @@ def edit():
         flash('Your Edit to <{}> was saved.'.format(newitem),'success')
         return redirect(edit_redirect_url)
     
-    return render_template('ngs/add.html', title='Edit', toadd=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
+    return render_template('ngs/add.html', title='Edit', table=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/delete', methods=['POST','GET'])

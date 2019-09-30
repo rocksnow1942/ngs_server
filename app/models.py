@@ -59,9 +59,11 @@ class SearchableMixin():
         session._changes = {'add':list(session.new),
         'update':list(session.dirty),
         'delete': list(session.deleted)}
+
         
     @classmethod 
     def after_commit(cls,session,*args,**kwargs):
+        print('***added',session._changes)
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
                 add_to_index(obj.__tablename__, obj)
@@ -746,11 +748,11 @@ class NGSSample(db.Model,BaseDataModel):
         """ return information in the order of 
         round name, round FP, round RP, index FP, index RP"""
         rd  = self.round
-        fp = Primers.query.get(rd.forward_primer )
-        rp = Primers.query.get(rd.reverse_primer )
+        fp = Primers.query.get(rd.forward_primer or 0)
+        rp = Primers.query.get(rd.reverse_primer or 0)
         fpi = Primers.query.get(self.fp_id )
         rpi = Primers.query.get(self.rp_id )
-        return [(rd.round_name, rd.__tablename__, rd.id)] + [(p.name, p.__tablename__,p.id) for p in (fp,rp,fpi,rpi)]
+        return [(rd.round_name, rd.__tablename__, rd.id)] + [(p.name, p.__tablename__,p.id) if p else (None,None,None)for p in (fp,rp,fpi,rpi)]
 
 class Task(db.Model,BaseDataModel):
     __tablename__='task'
