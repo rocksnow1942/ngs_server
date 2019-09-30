@@ -64,7 +64,7 @@ assay_type_options = ['beads-kd', 'beads-ic_50', 'beads-ric_50','assay-linear','
 search_field_options = [('name','Experiment Name'),('date', 'Experiment Date'), ('tag', 'Experiment Tag'),('flag','Flag'), ('note', 'Note'), ('author', 'Author'),
                         ('fit_method', 'Fit Method')]
 dropdown_opt_menu = [('Mark Outlier','outlier'),None,('Show 95% CI','show'),('Hide 95% CI','hide'),None,('X-axis Linear scale','linear'),('X-axis Log scale','log'),None,('Plot in SVG format','svg'),('Plot in PNG format','canvas')]
-help_button_menu=[('Simuojo','http://localhost:5001/simuojo'),None,('Plojo/Simuojo Help Doc','http://localhost:5006/plojo_help')]
+# help_button_menu=[('Simuojo','http://localhost:5001/simuojo'),None,('Plojo/Simuojo Help Doc','http://localhost:5006/plojo_help')]
 plot_ = figure(plot_width=600, plot_height=400)
 plot_.annulus(x=[1, 2, 3], y=[1, 2, 3], alpha=0.5,color="hotpink",
               inner_radius=0.2, outer_radius=0.5)
@@ -782,9 +782,7 @@ cf_focused_select_data = MultiSelect(
 project_list = MultiSelect(title='Project List',options=project_menu_generator(),size=10,width=300)
 project_name = TextInput(title='Project Name',value='Enter a name',width=90)
 project_dropdown = Dropdown(width=150,label='Edit Project',button_type='success',value='none',menu=[('New Project','create'),('Rename Project','rename'),None,('Delete Project','delete')])
-help_button = Dropdown(label='External Functions / Help Doc',value='none',menu=help_button_menu,width = 260, button_type='success')
-help_callback = CustomJS(args=dict(button=help_button),code="""window.open(button.value);""")
-help_button.callback = help_callback
+
 project_div = Div(text='',width=55)
 project_tab = row(column(project_name,project_dropdown),project_div,project_list)
 data_outlier_tab = Tabs(active=0, width=600, height=230, tabs=[Panel(child=project_tab,title='Project'),Panel(child=cf_select_data, title="Experiment"), Panel(
@@ -797,7 +795,7 @@ vd_refine_search = Button(label='Refine',button_type='success',width=120)
 div1= Div(text='',width=30)
 div2= Div(text='',width=30)
 vd_search_refine = row(vd_new_search,div1,vd_refine_search)
-options=column(widgetbox(cf_assay_type, cf_filter, cf_search_field),vd_search_refine,row(vd_delete_data,div2,vd_save_info),help_button)
+options=column(widgetbox(cf_assay_type, cf_filter, cf_search_field),vd_search_refine,row(vd_delete_data,div2,vd_save_info))
 vd_name = TextInput(title='Experiment Name : ')
 vd_author = TextInput(title='Author :')
 vd_flag = TextInput(title='Flag :')
