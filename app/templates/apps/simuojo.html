@@ -30,7 +30,7 @@
         if (id || count>=10) {
             if (id){result=true;console.log('id loaded')};
             //$("input[placeholder='username']").val("{{current_user.username}}").trigger('change');
-            $("input[placeholder='username']").attr('list','usernamelist');
+            setTimeout($("input[placeholder='username']").attr('list','usernamelist'),300);
             clearInterval(interval);
         }
         })
