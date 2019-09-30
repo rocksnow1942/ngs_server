@@ -26,3 +26,4 @@ class Config():
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['rocksnow1942@gmail.com']
     FOLDOJO_FOLDER = os.environ.get('FOLDOJO_FOLDER') or None
+    BOKEH_WEBSOCKET = os.environ.get('BOKEH_WEBSOCKET') or "http://localhost:5006/"

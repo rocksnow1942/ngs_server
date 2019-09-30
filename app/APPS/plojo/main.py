@@ -1413,8 +1413,7 @@ read_layout = layout([button_mode, info_box,edit_dropdown,plot_dropdown, button_
 curve_fit_layout = layout([button_mode, info_box,edit_dropdown, plot_dropdown,button_load, button_save], [curve_fit_plots, column(
     data_outlier_tab, row(cf_select_data_widgets, column(cf_fit_bound)))])
 
-display_layout = layout([plot_login], [login_info, column(
-    login_text, login_user, )])  # login_pwd,login_btn
+display_layout = layout([plot_login], [login_info, column(login_text, login_user, )],[Div(text="",height=450)])  # login_pwd,login_btn
 
 # run
 # curdoc().add_periodic_callback(refresh_time_cb, 1000)

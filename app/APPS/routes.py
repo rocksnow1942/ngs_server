@@ -22,7 +22,7 @@ def index():
 @bp.route('/simuojo', methods=['GET', 'POST'])
 @login_required
 def simuojo():
-    script = server_document("http://localhost:5006/simuojo")    
+    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"simuojo")    
     return render_template('apps/simuojo.html', script=script)
 
 @bp.route('/simuojo/static/<path:filename>', methods=['GET'])
@@ -33,7 +33,7 @@ def simjojo_static_image(filename):
 @bp.route('/foldojo', methods=['GET', 'POST'])
 @login_required
 def foldojo():
-    script = server_document("http://localhost:5006/foldojo")
+    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"foldojo")
     return render_template('apps/simuojo.html', script=script)
 
 
@@ -45,25 +45,24 @@ def foldojo_images(filename):
 @bp.route('/plojo', methods=['GET', 'POST'])
 @login_required
 def plojo():
-    script = server_document("http://localhost:5006/plojo")
+    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo")
     return render_template('apps/simuojo.html', script=script)
 
 
 @bp.route('/plojo_nior', methods=['GET', 'POST'])
 @login_required
 def plojo_nior():
-    script = server_document("http://localhost:5006/plojo-nior")
+    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo-nior")
     return render_template('apps/simuojo.html', script=script)
 
 
 @bp.route('/plojo_help', methods=['GET', 'POST'])
 @login_required
 def plojo_help():
-    script = server_document("http://localhost:5006/plojo_help")
+    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo_help")
     return render_template('apps/simuojo.html', script=script)
 
 
 @bp.route('/plojo_help/static/<path:filename>', methods=['GET'])
 def plojo_help_static_image(filename):
     return redirect(url_for("static", filename="plojo_help/"+filename))
-
