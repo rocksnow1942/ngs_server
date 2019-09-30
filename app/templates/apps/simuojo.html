@@ -29,13 +29,28 @@
             let id= $(this).attr('class');
         if (id || count>=10) {
             if (id){result=true;console.log('id loaded')};
-            //$("input[placeholder='username']").val("{{current_user.username}}").trigger('change');
-            setTimeout(function(){$("input[placeholder='username']").attr('list','usernamelist') },300);
+
+            let count2 = 0;
+            var interval2 = setInterval(function () {
+                count2 += 1;
+                
+                if ($("input[placeholder='username']").attr('list')=='usernamelist' || count2 >= 20) {
+                    console.log('namelist attached.')
+                    clearInterval(interval2);
+                }
+                $("input[placeholder='username']").attr('list', 'usernamelist');
+            
+            }, 200
+            );
+            
             clearInterval(interval);
         }
         })
         },200
        );
+
+       
+
 
        setTimeout(function() {if (!result){
            console.log(result);
@@ -43,9 +58,7 @@
                 $("#embeded_bokeh").html(
                     `<h1>Load Application Failed ! &#128565;</h1>
                 <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
-
             } };},3000);
-       
     }
     )
 
