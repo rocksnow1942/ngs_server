@@ -55,13 +55,13 @@ class SearchableMixin():
         return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
 
     @classmethod 
-    def before_commit(cls,session):
-        session._change = {'add':list(session.new),
+    def before_commit(cls,session,*args,**kwargs):
+        session._changes = {'add':list(session.new),
         'update':list(session.dirty),
         'delete': list(session.deleted)}
-
+        
     @classmethod 
-    def after_commit(cls,session):
+    def after_commit(cls,session,*args,**kwargs):
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
                 add_to_index(obj.__tablename__, obj)
@@ -72,14 +72,16 @@ class SearchableMixin():
             if isinstance(obj, SearchableMixin):
                 remove_from_index(obj.__tablename__, obj)
         session._changes = None
+        
     
     @classmethod 
     def reindex(cls):
         for obj in cls.query:
             add_to_index(cls.__tablename__,obj)
 
-db.event.listen(db.session, 'before_commit', SearchableMixin.before_commit)
-db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
+db.event.listen(db.session, 'before_flush', SearchableMixin.before_commit)
+db.event.listen(db.session, 'after_flush', SearchableMixin.after_commit)
+
 
 class User(UserMixin,db.Model,DataStringMixin):
     __tablename__='user'
@@ -173,12 +175,11 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         l2 = f"Total Rounds : {len(self.rounds)}, Total Read : {rd}"
         l3 = f"User : {self.user.username}, Date : {self.date}"
         l4 = f"Note : {self.note}"
-        return l1, l2, l3,l4
+        return l1, l2, l3, l4
     
     @lazyproperty
     def get_datareader(self):
         if self.analysis_file:
-            print('***reading... ',self.analysis_file)
             return DataReader.load_json(self.analysis_file)
             
     def load_rounds(self):

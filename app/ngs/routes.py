@@ -71,8 +71,7 @@ def add():
         db.session.commit()
         flash('New {} added.'.format(toadd), 'success')
         # return redirect(url_for('ngs.add', toadd=toadd))
-    return render_template('ngs/add.html', title='Add', toadd=toadd,form=form,datalist=datalist)
-
+    return render_template('ngs/add.html', title='Add', table=toadd,form=form,datalist=datalist)
 
 def load_datalist(toadd):
     if toadd=='round':
@@ -163,7 +162,7 @@ def addsample():
         edit_redirect_url = request.args.get('edit_redirect_url','/')
     else:
         edit_redirect_url = request.form.get('edit_redirect_url', '/')
-        print(edit_redirect_url)
+       
 
     datalist={}
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
