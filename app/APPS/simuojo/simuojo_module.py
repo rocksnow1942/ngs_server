@@ -11,8 +11,8 @@ from simu_utils import file_save_location,file_name
 import datetime
 
 #TODO
-# change parameters with curve selection. 
-# ability to copy and paste parameters. 
+# change parameters with curve selection.
+# ability to copy and paste parameters.
 
 cache_loc=path.join(path.dirname(__file__),'static','cache')
 
@@ -79,23 +79,23 @@ def plojo_data_init():
 
 
 def find_ec_50(a,signal):
-    
+
     med = (np.max(signal)+np.min(signal))/2
     closest = (np.abs(signal - med)).argmin()
     cosest =max(1,min(closest, len(a)-1))
     left,cv,right = signal[closest-1],signal[closest],signal[closest+1]
-    
-    if (left<cv)^(cv<med): 
+
+    if (left<cv)^(cv<med):
         cor = left
         cori = closest-1
     else:
         cor = right
         cori = closest+1
-    
+
     if cor==cv:
         return a[closest]
     else:
-       
+
         return a[closest] + (med-cv)*(a[cori]-a[closest])/(cor-cv)
 
 
@@ -120,13 +120,15 @@ class ic50_simu():
         self.input_r_0 = TextInput(value="1", title="Receptor Conc. (nM):")
         self.input_v_0 = TextInput(value="1", title="VEGF Conc. (nM):")
         self.input_ic50 = TextInput(value='2',title='Caculated IC50 (nM):')
-        linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
         self.curve = Select(title='Curve Selection', value='0', options=[(str(
-            i), 'Curve {}: {}'.format(i+1, linecolors[i].capitalize())) for i in range(5)])
+            i), 'Curve {}: {}'.format(i+1, self.linecolors[i].capitalize())) for i in range(5)])
+
+        self.copy = Button(label='Copy Curve',button_type='success')
 
         refresh_button = Button(label='Refresh Random',button_type='success')
         add_button = Button(label='Add data to plojo',button_type='success')
-        para_slider = widgetbox(para_text,self.slider_kd_1,self.slider_r_0,self.slider_kd_2,self.slider_v_0,self.slider_Fminmax,self.curve,self.name_input)
+        para_slider = widgetbox(para_text,self.slider_kd_1,self.slider_r_0,self.slider_kd_2,self.slider_v_0,self.slider_Fminmax,self.curve,self.copy,self.name_input)
         para_input = widgetbox(para_text_,self.input_kd_1,self.input_r_0,self.input_kd_2,self.input_v_0,self.input_ic50)
         rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,refresh_button,add_button)
         self.raw_data = ColumnDataSource(data=self.generate_plotdata(**self.fetch_para(True)))
@@ -136,24 +138,24 @@ class ic50_simu():
         self.fit_data.update({i: ColumnDataSource(
             data=self.generate_plotdata(empty=True)) for i in "1234"})
 
-       
+
         self.p = figure(x_axis_label='Aptamer Concentration (nM)', y_axis_label='Receptor and Aptamer Signal A.U.', x_axis_type='log')
         self.pn = figure(x_axis_label='Aptamer Concentration (nM)', y_axis_label='Normalized Receptor Aptamer Signal', x_axis_type='log',x_range=self.p.x_range)
-
+        self.curve_para = {"0": self.fetch_para(False)}
         self.p.title.text = 'Receptor-VEGF complex / Receptor percentage'
         self.p.title_location='above'
         self.pn.title.text = 'Normalized Signal'
         self.pn.title_location = 'above'
 
-        for curve, color in zip("01234", linecolors):
-        
+        for curve, color in zip("01234", self.linecolors):
+
             p_1=self.p.line('a_0','rv_per', source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.75,legend='Receptor')
             hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[ ('IC50/nM',"@ic50"),
                                                                  ('Rcpt Conc / Kd', '@kdr'), ('VEGF conc / Aptamer Kd', '@kda')], )  # ('Aptamer/nM', '@a_0{0.000}'), ('Rcpt Signal', '@rv_per{0}'),mode='vline'
             self.p.add_tools(hover_tool_1)
-            
 
-        for curve, color in zip("01234", linecolors):
+
+        for curve, color in zip("01234", self.linecolors):
             p_2 = self.p.line(
                 'a_0', 'av_per', source=self.fit_data[curve], line_color=color, line_width=2, line_dash='dotdash', alpha=0.5, legend='Aptamer')
             hover_tool_2 = HoverTool(renderers=[p_2],tooltips=[('Kd_app/nM',"@kdapp"),('Aptamer/nM', '@a_0{0.000}'),( 'Aptamer Signal', '@av_per{0}' )])
@@ -167,8 +169,8 @@ class ic50_simu():
                 'a_0', 'av_norm', source=self.fit_data[curve], line_color=color, line_width=2, line_dash='dotdash', alpha=0.5, legend='Aptamer')
             hover_tool_2n = HoverTool(renderers=[pn_2],tooltips=[('Aptamer/nM', '@a_0{0.00}'),( 'AV signal', '@av_norm{0.00}' )],)
             self.pn.add_tools(hover_tool_2n)
-        
-        
+
+
         self.p.circle('a_0','rv_per',source=self.raw_data,color='red',line_width=3,alpha=0.75,legend='Receptor')
         self.p.circle('a_0','av_per',source=self.raw_data,color='green',line_width=3,alpha=0.5,legend='Aptamer')
         self.p.legend.click_policy = 'hide'
@@ -177,8 +179,8 @@ class ic50_simu():
         self.p.legend.background_fill_alpha = 0.1
         self.p.plot_height = 400
         self.p.plot_width = 600
-        
-        
+
+
         self.pn.circle('a_0','rv_norm',source=self.raw_data,color='red',line_width=3,alpha=0.75,legend='Receptor')
         self.pn.circle('a_0','av_norm',source=self.raw_data,color='green',line_width=3,alpha=0.5,legend='Aptamer')
         self.pn.legend.click_policy = 'hide'
@@ -197,10 +199,34 @@ class ic50_simu():
         self.slider_linear.on_change('value',self.callback)
         self.slider_proportional.on_change('value',self.callback)
         self.slider_sets.on_change('value',self.callback)
+        self.curve.on_change('value',self.curve_cb)
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
-        
+        self.copy.on_click(self.copy_cb)
         self.layout =([self.p,self.pn],[para_input,para_slider,rand_opt])
+
+    def copy_cb(self):
+        curve = self.curve.value
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied. Click to Paste'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = str(int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
+
+    def curve_cb(self,attr,old,new):
+        if self.curve_para.get(new,None):
+            para = self.curve_para[new]
+            self.slider_kd_1.value = np.log10(para['kd_1'])
+            self.slider_kd_2.value = np.log10(para['kd_2'])
+            self.slider_r_0.value = np.log10(para['r_0'])
+            self.slider_v_0.value = np.log10(para['v_0'])
+            self.slider_Fminmax.value = (para['Fmin'],para['Fmax'])
+        else:
+            self.curve_para[new]=self.curve_para[old]
+
 
     def rv_solver(self,a_0, r_0, v_0, kd_r, kd_a):
         a=kd_a-kd_r
@@ -303,7 +329,7 @@ class ic50_simu():
         self.input_v_0.value = str(v_0)
         self.input_ic50.value = str(kd_2*(1+r_0/kd_1))
         curve = self.curve.value
-
+        self.curve_para[curve] = self.fetch_para(False)
         self.fit_data[curve].data = self.generate_plotdata(**self.fetch_para(False))
         self.raw_data.data = self.generate_plotdata(**self.fetch_para(True))
         self.p.title.text = self.title_generator(self.fetch_para(False))
@@ -367,12 +393,14 @@ class DR_5PL():
         self.input_s = TextInput(value="1", title="Symmetry Factor S:")
         refresh_button = Button(label='Refresh Random',button_type='success')
         add_button = Button(label='Add data to plojo',button_type='success')
-
-        linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        self.copy = Button(label='Copy Curve', button_type='success')
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
         self.curve = Select(title='Curve Selection', value='0', options=[(str(
-            i), 'Curve {}: {}'.format(i+1, linecolors[i].capitalize())) for i in range(5)])
+            i), 'Curve {}: {}'.format(i+1, self.linecolors[i].capitalize())) for i in range(5)])
 
-        para_slider = widgetbox(para_text,self.slider_ec_50,self.slider_hill,self.slider_s,self.slider_Fmax,self.slider_Fmin,self.curve,self.name_input)
+        self.curve_para = {"0": self.fetch_para(False)}
+        self.curve.on_change('value', self.curve_cb)
+        para_slider = widgetbox(para_text,self.slider_ec_50,self.slider_hill,self.slider_s,self.slider_Fmax,self.slider_Fmin,self.curve,self.copy,self.name_input)
         para_input = widgetbox(para_text_,self.input_ec_50,self.input_hill,self.input_s)
         rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,refresh_button,add_button)
         self.fit_data = {"0": ColumnDataSource(data=self.generate_plotdata(**self.fetch_para(False)))}
@@ -380,10 +408,10 @@ class DR_5PL():
             data=self.generate_plotdata(empty=True,**self.fetch_para(False))) for i in "1234"})
         self.raw_data = ColumnDataSource(data=self.generate_plotdata(**self.fetch_para(True)))
         self.p = figure(x_axis_label='Aptamer (nM)', y_axis_label='Signal / A.U.', x_axis_type='log')
-        
+
         self.p.title.text = 'Dose Response 5 Parameter Logistic Model'
         self.p.title_location='above'
-        for curve, color in zip("01234", linecolors):
+        for curve, color in zip("01234", self.linecolors):
             temp=self.p.line('a_0','signal', source=self.fit_data[curve],line_color=color,line_width=2)
             hover_tool_1 = HoverTool(renderers=[temp],tooltips=[('EC50(half max)/nM','@ec50'),( 'EC50(Model)/nM', '@ec50set' ),('Hill','@hill'),('Symmetry','@s')],)#mode='vline'
             self.p.add_tools(hover_tool_1)
@@ -403,9 +431,19 @@ class DR_5PL():
         self.slider_sets.on_change('value',self.callback)
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
-        
+        self.copy.on_click(self.copy_cb)
         self.layout =([self.p],[para_input,para_slider,rand_opt])
 
+    def copy_cb(self):
+        curve = self.curve.value
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied. Click to Paste'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = str(int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
 
     def randomizer(self,signal,linear=0.001, proportional=0.001,seed=42):
         np.random.seed(seed)
@@ -464,12 +502,23 @@ class DR_5PL():
             result = dict(ec_50=ec_50,hill=hill,s=s,Fmax=Fmax,Fmin=Fmin,)
         return result
 
+    def curve_cb(self, attr, old, new):
+        if self.curve_para.get(new, None):
+            para = self.curve_para[new]
+            self.slider_ec_50.value = np.log10(para['ec_50'])
+            self.slider_hill.value = np.log10(para['hill'])
+            self.slider_s.value = np.log10(para['s'])
+            self.slider_Fmax.value = (para['Fmax'])
+            self.slider_Fmin.value = (para['Fmin'])
+        else:
+            self.curve_para[new] = self.curve_para[old]
 
     def callback(self,attr,old,new):
         ec_50 = 10 ** self.slider_ec_50.value
         hill = 10 ** self.slider_hill.value
         s = 10 ** self.slider_s.value
         curve=self.curve.value
+        self.curve_para[curve] = self.fetch_para(False)
         self.input_ec_50.value = str(ec_50)
         self.input_hill.value = str(hill)
         self.input_s.value = str(s)
@@ -530,23 +579,24 @@ class Kd_simu():
         self.add_button = Button(label='Add data to plojo',button_type='success')
         self.name_input = TextInput(title='Create Name for the data',value='Simu_Kd')
         initial_para = self.fetch_para(False)
-        linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
-        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,linecolors[i].capitalize())) for i in range(5)  ])
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)  ])
         self.raw_data = ColumnDataSource(
             data=self.generate_data(**self.fetch_para(True)))
         self.fit_data = {"0": ColumnDataSource(
             data=self.generate_data(**self.fetch_para(False)))}
         self.fit_data.update({i: ColumnDataSource(
             data=self.generate_data(empty=True, **self.fetch_para(False))) for i in "1234"})
-        
+        self.copy = Button(label='Copy Curve',button_type='success')
         tools_list = "pan,ywheel_zoom,xwheel_zoom,save,reset"
-
+        self.curve_para = {"0": self.fetch_para(False)}
+        self.curve.on_change('value', self.curve_cb)
 
         self.p = figure(x_axis_label='Concentration (nM)', y_axis_label='Signal A.U.', x_axis_type='log',tools=tools_list)
         self.p.title.text = 'Binding Kd = {:.3g} nM; Fixed S_0 = {:.3g} nM'.format(initial_para['kd'],initial_para['s_0'])
         self.p.title_location='above'
-        
-        for curve, color in zip("01234", linecolors):
+
+        for curve, color in zip("01234", self.linecolors):
             temp=self.p.line('x','y', source=self.fit_data[curve],line_color=color,line_width=2) #legend='Binding Curve')
             hover_tool_1 = HoverTool(renderers=[temp],
                 tooltips=[('Aptamer/nM', '@x{0.00}'), ('Signal', '@y{0}'), ('S0 / Kd (nM)',"@kd"),('NS',"@ns"),],)#mode='vline'
@@ -557,7 +607,7 @@ class Kd_simu():
         self.p.plot_width = 700
         opt_input = widgetbox(para_text_,self.input_kd,self.input_conc,self.input_ns)
         options = widgetbox(para_text, self.slider_kd, self.slider_conc,
-                            self.slider_ns, self.slider_Fminmax, self.curve, self.name_input)
+                            self.slider_ns, self.slider_Fminmax, self.curve,self.copy, self.name_input)
         rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,self.refresh_button,self.add_button)
         self.slider_kd.on_change('value',self.callback)
         self.slider_conc.on_change('value',self.callback)
@@ -570,11 +620,23 @@ class Kd_simu():
         self.slider_sets.on_change('value',self.callback)
         self.refresh_button.on_click(self.refresh_button_cb)
         self.add_button.on_click(self.add_button_cb)
-       
+        self.copy.on_click(self.copy_cb)
         self.layout = ([self.p],[opt_input,options,rand_opt])
+
+    def copy_cb(self):
+        curve = self.curve.value
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied. Click to Paste'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = str(int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
 
     def callback(self,attr,old,new):
         curve = self.curve.value
+        self.curve_para[curve] = self.fetch_para(False)
         self.fit_data[curve].data = self.generate_data(**self.fetch_para(False))
         self.raw_data.data = self.generate_data(**self.fetch_para(True))
         para = self.fetch_para(True)
@@ -616,6 +678,18 @@ class Kd_simu():
         else:
             result = dict(kd=kd,s_0=s_0,ns=ns,Fmax=Fmax,Fmin=Fmin)
         return result
+
+    def curve_cb(self,attr,old,new):
+        if self.curve_para.get(new,None):
+            para = self.curve_para[new]
+            self.slider_kd.value = np.log10(para['kd'])
+            self.slider_conc.value = np.log10(para['s_0'])
+            self.slider_ns.value = para['ns']*para['kd']*5000/para['Fmax']
+            self.slider_Fminmax.value = (para['Fmin'],para['Fmax'])
+        else:
+            self.curve_para[new]=self.curve_para[old]
+
+
 
     def solve_binding(self,i_0, kd_func, s_0func,ns=0,Fmax=10000,Fmin=1000): # i_0 is np array,
         s_free =((s_0func-kd_func-i_0)+np.sqrt((kd_func+i_0)**2+s_0func**2+2*kd_func*s_0func-2*i_0*s_0func))*0.5
@@ -674,7 +748,7 @@ class ric50_simu():
     r,v,a,rv,av = input_value
     """
     def __init__(self):
-        
+
         para_text = PreText(text='Binding Parameters')
         para_text_ = PreText(text='Binding Parameters')
         self.slider_kd_1 = Slider(title='log(Receptor-VEGF Kdr) (nM)', start=-3, end=3, step=0.01, value=0)
@@ -695,22 +769,25 @@ class ric50_simu():
         self.input_v_0 = TextInput(value="1", title="VEGF Conc. (nM):")
         refresh_button = Button(label='Refresh Random',button_type='success')
         add_button = Button(label='Add data to plojo',button_type='success')
-        linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
-        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,linecolors[i].capitalize())) for i in range(5)  ])
-        para_slider = widgetbox(para_text,self.slider_kd_1,self.slider_r_0,self.slider_kd_2,self.slider_v_0,self.slider_Fminmax,self.curve,self.name_input)
+        self.copy = Button(label='Copy Curve',button_type='success')
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)  ])
+        para_slider = widgetbox(para_text,self.slider_kd_1,self.slider_r_0,self.slider_kd_2,self.slider_v_0,self.slider_Fminmax,self.curve,self.copy,self.name_input)
         para_input = widgetbox(para_text_,self.input_kd_1,self.input_r_0,self.input_kd_2,self.input_v_0)
         rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,refresh_button,add_button)
-       
+
+        self.curve_para = {"0": self.fetch_para(False)}
+        self.curve.on_change('value', self.curve_cb)
         self.fit_data = {"0": ColumnDataSource(data=self.generate_plotdata(**self.fetch_para(False)))}
         self.fit_data.update({i: ColumnDataSource(
             data=self.generate_plotdata(empty=True,**self.fetch_para(False))) for i in "1234"})
-        
+
         self.raw_data = ColumnDataSource(data=self.generate_plotdata(**self.fetch_para(True)))
         self.p = figure(x_axis_label='Aptamer (nM)', y_axis_label='Receptor-VEGF %Signal/A.U.', x_axis_type='log')
-        
+
         self.p.title.text = 'Receptor-VEGF complex / Receptor percentage'
         self.p.title_location='above'
-        for curve,color in zip("01234",linecolors):
+        for curve,color in zip("01234",self.linecolors):
             temp=self.p.line('a_0','rv_per', source=self.fit_data[curve],line_color=color,line_width=2)
             hover_tool_1 = HoverTool(renderers=[temp],tooltips=[('IC50/nM','@ic50'),
                 ('Rcpt Conc / Kd', '@kdr'),('VEGF conc / Aptamer Kd', '@kda')],) #mode='vline'
@@ -731,7 +808,7 @@ class ric50_simu():
         self.slider_sets.on_change('value',self.callback)
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
-       
+        self.copy.on_click(self.copy_cb)
         self.layout =([self.p],[para_input,para_slider,rand_opt])
 
     def rv_solver(self,a_0, r_0, v_0, kd_r, kd_a):
@@ -766,6 +843,17 @@ class ric50_simu():
                 real_root=0
             result=np.append(result,real_root)
         return result
+
+    def copy_cb(self):
+        curve = self.curve.value
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied. Click to Paste'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = str(int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
 
     def randomizer(self,signal,linear=0.001, proportional=0.001,seed=42):
         np.random.seed(seed)
@@ -812,6 +900,18 @@ class ric50_simu():
                           r_0=r_0, v_0=v_0, Fmax=Fmax, Fmin=Fmin)
         return result
 
+    def curve_cb(self, attr, old, new):
+        if self.curve_para.get(new, None):
+            para = self.curve_para[new]
+            self.slider_kd_1.value = np.log10(para['kd_1'])
+            self.slider_kd_2.value = np.log10(para['kd_2'])
+            self.slider_r_0.value = np.log10(para['r_0'])
+            self.slider_v_0.value = np.log10(para['v_0'])
+            self.slider_Fminmax.value = (para['Fmin'], para['Fmax'])
+        else:
+            self.curve_para[new] = self.curve_para[old]
+
+
     def callback(self,attr,old,new):
         kd_1 = 10 ** self.slider_kd_1.value
         kd_2 = 10 ** self.slider_kd_2.value
@@ -822,6 +922,7 @@ class ric50_simu():
         self.input_r_0.value = str(r_0)
         self.input_v_0.value = str(v_0)
         curve = self.curve.value
+        self.curve_para[curve] = self.fetch_para(False)
         self.fit_data[curve].data = self.generate_plotdata(
             **self.fetch_para(False))
         self.raw_data.data = self.generate_plotdata(**self.fetch_para(True))
@@ -900,14 +1001,17 @@ class ri50_coop_simu():
         self.slidername = ['v0','ka1','ka2','kr1','kr2','kr3','c1','c2','points','sets','linear','proportional']
         self.sliders =[self.v0,self.ka1,self.ka2,self.kr1,self.kr2,self.kr3,self.c1,self.c2,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional]
         self.slidersdict = dict(zip(self.slidername,self.sliders))
-        linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
-        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,linecolors[i].capitalize())) for i in range(5)  ])
-   
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)  ])
+        self.copy = Button(label='Copy Curve',button_type='success')
+
+        self.curve_para = {"0": self.fetch_para(False)}
+        self.curve.on_change('value', self.curve_cb)
         refresh_button = Button(label='Refresh Random',button_type='success')
         add_button = Button(label='Add data to plojo',button_type='success')
         para_slider = widgetbox(para_text,self.v0,self.ka1,self.ka2,self.kr1,self.kr2,self.kr3,self.c1 ,self.c2, self.FminFmax)
         para_input = widgetbox(para_text_,self.input_v0,self.input_ka1,self.input_ka2,self.input_kr1,self.input_kr2,self.input_kr3)
-        rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,self.curve,self.name_input,refresh_button,add_button)
+        rand_opt = widgetbox(rand_text,self.slider_conc_range,self.slider_points,self.slider_sets,self.slider_linear,self.slider_proportional,self.curve,self.copy,self.name_input,refresh_button,add_button)
 
         self.fit_data = {"0": ColumnDataSource(
             data=self.generate_plotdata(**self.fetch_para(False)))}
@@ -920,7 +1024,7 @@ class ri50_coop_simu():
         self.p.title.text = 'Receptor-VEGF RIC50 with Cooperativity'
         self.p.title_location='above'
 
-        for curve, color in zip("01234", linecolors):
+        for curve, color in zip("01234", self.linecolors):
             p_1=self.p.line('a0','signal', source=self.fit_data[curve],line_color=color,line_width=2,legend='Signal_All')
             hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[('IC50/nM', '@ec50'), ('VEGF conc/nM', '@v_0'),('Aptamer Kd/nM', '@kda'),
             ( 'Receptor Kd/nM', '@kdr' ),( 'RV Signal %', '@receptorsiganl' )],)#mode='vline'
@@ -973,9 +1077,19 @@ class ri50_coop_simu():
         self.slider_conc_range.on_change('value',self.callback)
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
+        self.copy.on_click(self.copy_cb)
         self.layout =([self.p,self.pn],[para_input,para_slider,rand_opt])
 
-
+    def copy_cb(self):
+        curve = self.curve.value
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied. Click to Paste'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = str(int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
 
     def signal_solver(self,a0,v0,ka1,ka2,kr1,kr2,kr3,c1,c2,Fmin,Fmax,**kwargs):
         def root(a0):
@@ -1032,14 +1146,27 @@ class ri50_coop_simu():
         if randomize:
             result.update(start = 10**self.slider_conc_range.value[0])
             result.update(end = 10**self.slider_conc_range.value[1],randomize=True)
-
         return result
+
+    def curve_cb(self, attr, old, new):
+        if self.curve_para.get(new, None):
+            para = self.curve_para[new]
+            for k,i in self.slidersdict.items():
+                if k.startswith(('v','k')):
+                    i.value=np.log10(para[k])
+                elif k.startswith('c'):
+                    i.value=para[k]
+            self.FminFmax.value = (para['Fmin'], para['Fmax'])
+        else:
+            self.curve_para[new] = self.curve_para[old]
+
 
     def callback(self,attr,old,new):
         for k,i in self.input.items():
             i.value=str(10**self.slidersdict[k].value)
         curve=self.curve.value
         self.p.title.text='Receptor-VEGF RIC50 with Cooperativity'
+        self.curve_para[curve] = self.fetch_para(False)
         self.fit_data[curve].data = self.generate_plotdata(**self.fetch_para(False))
         self.raw_data.data = self.generate_plotdata(**self.fetch_para(True))
 
