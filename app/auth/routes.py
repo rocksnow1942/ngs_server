@@ -83,8 +83,12 @@ def create_newuser():
         return redirect(url_for('main.index'))
     form = InviteNewUser()
     if form.validate_on_submit():
-        user = User(email=form.email.data,username=form.username.data)
-        db.session.add(user)
+        user = User.query.filter_by(email=form.email.data).first()
+        if user is not None:
+            user.username=form.username.data
+        else:
+            user = User(email=form.email.data,username=form.username.data)
+            db.session.add(user)
         db.session.commit()
         send_invitation_email(user)
         flash('New user added.', 'info')

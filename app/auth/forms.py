@@ -83,5 +83,6 @@ class InviteNewUser(FlaskForm):
     def validate_email(self,email):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
-            raise ValidationError('This email is already registered.')
+            if user.password_hash:
+                raise ValidationError('This email is already registered.')
 
