@@ -12,6 +12,9 @@ from app.models import models_table_name_dictionary
 from bokeh.embed import server_document,server_session
 from bokeh.client import pull_session
 
+from bokeh.util.session_id import generate_session_id
+from urllib.parse import urlparse
+
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -22,18 +25,20 @@ def index():
 @bp.route('/simuojo', methods=['GET', 'POST'])
 @login_required
 def simuojo():
-    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"simuojo")    
-    return render_template('apps/simuojo.html', script=script)
+    root = urlparse(request.base_url).hostname
+    script = server_session(url='http://'+root+':5006/simuojo',session_id=generate_session_id())
+    return render_template('apps/simuojo.html', script=script,)
 
 @bp.route('/simuojo/static/<path:filename>', methods=['GET'])
 def simjojo_static_image(filename):
     return redirect(url_for("static",filename="simuojo/"+filename))
-   
-
+    
 @bp.route('/foldojo', methods=['GET', 'POST'])
 @login_required
 def foldojo():
-    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"foldojo")
+    root = urlparse(request.base_url).hostname
+    script = server_session(url='http://'+root+':5006/foldojo',
+                            session_id=generate_session_id())
     return render_template('apps/simuojo.html', script=script)
 
 
@@ -45,21 +50,26 @@ def foldojo_images(filename):
 @bp.route('/plojo', methods=['GET', 'POST'])
 @login_required
 def plojo():
-    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo")
+    root = urlparse(request.base_url).hostname
+    script = server_session(url='http://'+root+':5006/plojo',session_id=generate_session_id())
     return render_template('apps/simuojo.html', script=script)
 
 
 @bp.route('/plojo_nior', methods=['GET', 'POST'])
 @login_required
 def plojo_nior():
-    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo-nior")
+    root = urlparse(request.base_url).hostname
+    script = server_session(url='http://'+root+':5006/plojo-nior',
+                            session_id=generate_session_id())
     return render_template('apps/simuojo.html', script=script)
 
 
 @bp.route('/plojo_help', methods=['GET', 'POST'])
 @login_required
 def plojo_help():
-    script = server_document(current_app.config['BOKEH_WEBSOCKET']+"plojo_help")
+    root = urlparse(request.base_url).hostname
+    script = server_session(url='http://'+root+':5006/plojo_help',
+                            session_id=generate_session_id())
     return render_template('apps/simuojo.html', script=script)
 
 

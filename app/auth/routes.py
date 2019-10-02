@@ -7,7 +7,6 @@ from werkzeug.urls import url_parse
 from app.auth.email import send_password_reset_email
 from app.auth import bp
 
-
 @bp.route('/login', methods=['GET','POST'])
 def login():
     if current_user.is_authenticated:
