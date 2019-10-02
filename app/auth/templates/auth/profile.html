@@ -3,7 +3,10 @@
 
 {% block app_content %}
 <div class="row">
-    <div class="col-xs-6 col-md-4 col-md-offset-4">
+    <div class="col-xs-6 col-md-3 col-md-offset-1">
+        <img  class="img-responsive" alt="Responsive image" src="{{ user.avatar(256) }}">
+    </div>
+    <div class="col-xs-6 col-md-4">
     <h1>{{ current_user.username }} Profile</h1>
     {{ wtf.quick_form(form) }}
     </div>

@@ -1,0 +1,11 @@
+<p>Dear {{user.username}}</p>
+<p>
+    Welcome to join Aptitude Data Server.
+    <a href="{{url_for('auth.register',token=token,_external=True)}}"> <b> Click Here </b></a> to set your password and log in.
+</p>
+<p>Alternatively, you can paste the following link in your browser.</p>
+<p>{{url_for('auth.register',token=token,_external=True)}}</p>
+<p>This invitation is valid for 12 hours.</p>
+<p>If you did not request an invitation, please disregard this message.</p>
+<p>Sincerely,</p>
+<p>Hui</p>

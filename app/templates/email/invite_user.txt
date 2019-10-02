@@ -1,0 +1,13 @@
+Dear {{user.username}}
+
+    Welcome to join Aptitude Data Server.
+    
+Alternatively, you can paste the following link in your browser to set your password.
+
+{{url_for('auth.register',token=token,_external=True)}}
+
+This invitation is valid for 12 hours.
+
+If you did not request an invitation, please disregard this message.
+Sincerely,
+Hui

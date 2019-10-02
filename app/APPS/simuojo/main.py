@@ -13,7 +13,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 #BOKEH_SECRET_KEY=jpwLZikCcKlokJtvjMjmSwhe06po51SGpeCcbNbbKEJj
 # BOKEH_SIGN_SESSIONS = yes
-# bokeh serve app.py - -session-ids external-signed
+# bokeh serve  --session-ids external-signed
 
 simu_sele = Select(title='Select a simulation model',value='Select a model',options=['Select a model','kd simulation','ic_50 simulation','ric_50 simulation','ric_50_coop simulation','Dose-Response 5 Para Logistic'])
 

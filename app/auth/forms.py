@@ -20,15 +20,22 @@ class RegistrationForm(FlaskForm):
                          EqualTo('password')])
     submit = SubmitField('Register')
 
-    def validate_username(self,username):
-        user = User.query.filter_by(username=username.data).first()
-        if user is not None:
-            raise ValidationError('Please use a different user name.')
+    def __init__(self, old_obj=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_name = old_obj and old_obj.username
+        self.old_email = old_obj and old_obj.email
 
-    def validate_email(self,email):
-        user = User.query.filter_by(email=email.data).first()
-        if user is not None:
-            raise ValidationError('Please use a different email address.')
+    def validate_username(self, username):
+        if self.old_name != username.data:
+            user = User.query.filter_by(username=username.data).first()
+            if user is not None:
+                raise ValidationError('Please use a different user name.')
+
+    def validate_email(self, email):
+        if self.old_email != email.data:
+            user = User.query.filter_by(email=email.data).first()
+            if user is not None:
+                raise ValidationError('Please use a different email address.')
 
 
 class ProfileForm(FlaskForm):
@@ -66,3 +73,15 @@ class ResetPassWordForm(FlaskForm):
     password = PasswordField('Password',validators=[DataRequired()])
     password2 = PasswordField('Repeat password', validators=[DataRequired(),EqualTo('password')])
     submit = SubmitField('Request Password Reset')
+
+
+class InviteNewUser(FlaskForm):
+    username = StringField('New User Name', validators=[DataRequired()])
+    email = StringField('New User Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Send Invitation')
+
+    def validate_email(self,email):
+        user = User.query.filter_by(email=email.data).first()
+        if user is not None:
+            raise ValidationError('This email is already registered.')
+
