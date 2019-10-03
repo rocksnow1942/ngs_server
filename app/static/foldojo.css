@@ -1,4 +1,12 @@
-html {
+
+.bk .custom1
+{
+    font-size:14px;
+    margin: 0px 0px 0px 0px;
+    font-family: monospace;
+}
+
+/* html {
     width: 100%;
 }
 body {
@@ -54,9 +62,10 @@ pre {
 
 .custom1
 {
-    margin: 0px 0px 0px 0px; 
-    width: 1000px;
-    height: 170px;
+    font-size:14px;
+    font-family: monospace;
+    height: 100%;
+    width: 100%;
 }
 
 
@@ -112,4 +121,4 @@ td
      font-family: monospace;
      padding: 0px 0px 0px 0px;
      text-align: center;
-}
+} */

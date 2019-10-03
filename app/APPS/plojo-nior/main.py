@@ -117,7 +117,7 @@ class Data():
                     raw_data.experiment[i] = hd.get(i,{})
                     raw_data.experiment_raw[i] = hd.get(i+'raw',{})
                     self.experiment_load_hist.append(i)
-
+print(os.path.join(file_path,file_name))
 with shelve.open(os.path.join(file_path,file_name),writeback=False) as hd:
     data_index = hd['index']
     raw_data = Data(data_index)
