@@ -6,6 +6,12 @@
     font-family: monospace;
 }
 
+select
+{
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
 /* html {
     width: 100%;
 }

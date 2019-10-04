@@ -780,7 +780,7 @@ cf_parameter_viewer =DataTable(width=600, height=160,columns=columns, source=par
 cf_focused_select_data = MultiSelect(
     title='Data of interest', options=[], size=10, width=600)
 project_list = MultiSelect(title='Project List',options=project_menu_generator(),size=10,width=300)
-project_name = TextInput(title='Project Name',value='Enter a name',width=90)
+project_name = TextInput(title='Project Name',value='Enter a name',width=150)
 project_dropdown = Dropdown(width=150,label='Edit Project',button_type='success',value='none',menu=[('New Project','create'),('Rename Project','rename'),None,('Delete Project','delete')])
 
 project_div = Div(text='',width=55)

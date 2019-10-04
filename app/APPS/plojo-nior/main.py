@@ -117,7 +117,7 @@ class Data():
                     raw_data.experiment[i] = hd.get(i,{})
                     raw_data.experiment_raw[i] = hd.get(i+'raw',{})
                     self.experiment_load_hist.append(i)
-print(os.path.join(file_path,file_name))
+
 with shelve.open(os.path.join(file_path,file_name),writeback=False) as hd:
     data_index = hd['index']
     raw_data = Data(data_index)
@@ -337,8 +337,8 @@ def experiment_menu_generator(items):
     dates = []
     for i in items:
         name = raw_data.index[i].get('name', 'No_Name')
-        name = (name[:25]+'...') if len(name)>30 else name
-        menu.append(' '.join([raw_data.index[i].get('date', '000000')[-4:],name]))
+        # name = (name[:25]+'...') if len(name)>50 else name
+        menu.append(' '.join([i,raw_data.index[i].get('date', '000000')[-4:],name]))
         dates.append(int(raw_data.index[i].get('date', '00000000')))
     result = list(zip(items, menu))
     result = [i for _,i in sorted(zip(dates,result),reverse=True)]
@@ -353,7 +353,7 @@ def runs_menu_generator(items):
             curve = list(raw_data.experiment[i][j].keys())
             curve = [i for i in curve if i in curve_type_options]
             name = raw_data.experiment[i][j].get('name','No_name')
-            name = (name[:35]+'...') if len(name)>35 else name
+            # name = (name[:35]+'...') if len(name)>35 else name
             menu.append(' '.join([j,raw_data.experiment[i][j].get('date','No_date')[-4:],name,str(curve)]))
     result = list(zip(value_list, menu))
     result = sorted(result, key=lambda x: (int(x[0].split('-')[0][3:]),int(x[0].split('-')[1][3:])), reverse=True)
@@ -1292,7 +1292,7 @@ sd_run_speed = TextInput(title='Run Speed ml/min',value='0.5')
 sd_ext_coef = TextInput(title='Extinction Coefficient ug/ml/OD',value='33')
 sd_create_new_exp = Button(label='Create New Experiment', button_type='success')
 sd_experiment_list = MultiSelect(title='List of Experiments',options=experiment_menu_generator(raw_data.index.keys()),size=15,width=300)
-sd_run_list = MultiSelect(title='List of runs',options=runs_menu_generator([]),size=15,width=400)
+sd_run_list = MultiSelect(title='List of runs',options=runs_menu_generator([]),size=15,width=490,)
 sd_save_data = Button(label='Save Input Data', button_type='danger')
 sd_row_1 = row(column(sd_author,sd_run_speed),column(sd_date,sd_ext_coef),column(sd_experiment,sd_create_new_exp))
 sd_bottom_row = row(sd_file_upload,sd_folder_upload,sd_save_data)
