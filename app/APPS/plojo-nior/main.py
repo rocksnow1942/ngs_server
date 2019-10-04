@@ -8,6 +8,8 @@ from bokeh.palettes import Category10
 from bokeh.events import Tap
 import shelve,os,glob,base64,copy,datetime,time
 from io import BytesIO
+
+import io
 import pandas as pd
 import numpy as np
 from utils import file_name,file_path,upload_data_folder,temp_position
@@ -598,8 +600,7 @@ def load_analysis_para(index,run_index,curve):
     it_ext_coef.value =str(raw_data.experiment[index][run_index].get(curve,{}).get('extcoef','None'))
     it_run_speed.value = str(raw_data.experiment[index][run_index].get('speed','None'))
 
-import pandas as pd
-import io
+
 def sd_data_generator():
     """
     parse data from upload_file_source
@@ -635,11 +636,12 @@ def sd_data_generator():
 
 
             elif "data:application/octet-stream" in prefix:
-                toread = io.BytesIO()
-                toread.write(file_contents)
-                toread.seek(0)
+                toread = BytesIO(file_contents)
+                # toread.write(file_contents)
+                # toread.seek(0)
                 df = pd.read_excel(toread)
                 print(df)
+                print('test')
                 result_dict = 'none'
         except:
             info_box.text = info_deque('Wrong uploaded.')
