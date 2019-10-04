@@ -2,14 +2,12 @@ from bokeh.plotting import figure, ColumnDataSource
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, Plot,CustomJS,LinearAxis, Range1d,LabelSet,Arrow,VeeHead,BoxSelectTool,Rect
 from bokeh.models.glyphs import Text
-from bokeh.models.widgets import Panel, Tabs, Button, TextInput, Select, MultiSelect, RadioButtonGroup, PasswordInput, PreText, TextAreaInput,Dropdown,Div,Toggle
+from bokeh.models.widgets import Panel, Tabs, Button, TextInput, Select, MultiSelect, RadioButtonGroup, PreText, TextAreaInput,Dropdown,Div,Toggle
 from bokeh.layouts import widgetbox, row, column, layout
 from bokeh.palettes import Category10
 from bokeh.events import Tap
 import shelve,os,glob,base64,copy,datetime,time
 from io import BytesIO
-
-import io
 import pandas as pd
 import numpy as np
 from utils import file_name,file_path,upload_data_folder,temp_position
