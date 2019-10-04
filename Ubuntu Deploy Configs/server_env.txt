@@ -1,0 +1,15 @@
+SECRET_KEY=998e01010b0247b68b0dbf3fe39752b4
+DATABASE_URL=mysql+pymysql://ngs_server:ngs_server_password@localhost:3306/ngs_server
+MAIL_SERVER=smtp.googlemail.com
+MAIL_PORT=587
+MAIL_USE_TLS=1
+MAIL_USERNAME=rocksnow1942@gmail.com
+MAIL_PASSWORD=kanghui06
+UPLOAD_FOLDER=/home/hui/ngs_server/app/cache/ngs_data_upload
+ALLOWED_EXTENSIONS={'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','csv','sql'}
+PAGE_LIMIT=10
+ANALYSIS_FOLDER=/home/hui/ngs_server/app/cache/analysis_data
+ELASTICSEARCH_URL=http://localhost:9200
+FOLDOJO_FOLDER=/home/hui/Documents/plojo/foldojo/static/cache
+BOKEH_SECRET_KEY=m8mwcQWXR5bdHIGq3IqeTpMOVje541HieXKWkwhpEHgr
+BOKEH_SIGN_SESSIONS=1

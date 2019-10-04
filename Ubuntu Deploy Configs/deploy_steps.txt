@@ -23,7 +23,7 @@
     $ pip install gunicorn pymysql 
 
 5. create .env file user project folder:
-    (check razer.env for details)
+    (check server_env.txt for details)
 
 6. edit .profile file: (or use nano editor)
     $ echo "export FLASK_APP=microblog.py" >> ~/.profile
@@ -126,4 +126,3 @@
         
         add hosts file to a separate file, at the path in addn-hosts field from dnsmasq.conf file.
         (custom_hosts)
-
