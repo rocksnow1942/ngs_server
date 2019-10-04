@@ -631,9 +631,6 @@ def sd_data_generator():
                     meta[data_key].update(extcoef=ext_coef)
                 raw = {data_key:{'time':data_range,'signal':data_signal}}
                 result_dict = {'meta':meta,'raw':raw}
-                print(result_dict)
-
-
             elif "data:application/octet-stream" in prefix:
                 toread = io.BytesIO()
                 toread.write(file_contents)
@@ -1501,4 +1498,4 @@ display_layout = layout([plot_login], [login_info, column(
 curdoc().add_root(display_layout)#display_layout
 
 
-mode_selection.active = 0
+# mode_selection.active = 0
