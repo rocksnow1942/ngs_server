@@ -203,6 +203,10 @@ class ic50_simu():
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
         self.copy.on_click(self.copy_cb)
+        self.input_kd_1.on_change('value',self.input_callback)
+        self.input_kd_2.on_change('value',self.input_callback)
+        self.input_r_0.on_change('value',self.input_callback)
+        self.input_v_0.on_change('value',self.input_callback)
         self.layout =([self.p,self.pn],[para_input,para_slider,rand_opt])
 
     def copy_cb(self):
@@ -316,6 +320,17 @@ class ic50_simu():
         else:
             result = dict(kd_1=kd_1,kd_2=kd_2,r_0=r_0,v_0=v_0,Fmax=Fmax,Fmin=Fmin)
         return result
+
+    def input_callback(self,attr,old,new):
+        kd_1 = float(self.input_kd_1.value)
+        kd_2 = float(self.input_kd_2.value)
+        r_0 = float(self.input_r_0.value )
+        v_0 = float(self.input_v_0.value )
+        self.slider_kd_1.value = np.log10(kd_1)
+        self.slider_kd_2.value =np.log10(kd_2)
+        self.slider_r_0.value  =np.log10(r_0)
+        self.slider_v_0.value  =np.log10(v_0)
+
 
 
     def callback(self,attr,old,new):
@@ -432,6 +447,10 @@ class DR_5PL():
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
         self.copy.on_click(self.copy_cb)
+        self.input_ec_50.on_change('value',self.input_callback)
+        self.input_hill.on_change('value',self.input_callback)
+        self.input_s.on_change('value',self.input_callback)
+
         self.layout =([self.p],[para_input,para_slider,rand_opt])
 
     def copy_cb(self):
@@ -512,6 +531,15 @@ class DR_5PL():
             self.slider_Fmin.value = (para['Fmin'])
         else:
             self.curve_para[new] = self.curve_para[old]
+
+    def input_callback(self,attr,old,new):
+        ec_50=float(self.input_ec_50.value )
+        hill=float(self.input_hill.value  )
+        s=float(self.input_s.value     )
+        self.slider_ec_50.value=np.log10(ec_50)
+        self.slider_hill.value = np.log10(hill)
+        self.slider_s.value    = np.log10(s)
+
 
     def callback(self,attr,old,new):
         ec_50 = 10 ** self.slider_ec_50.value
@@ -621,6 +649,9 @@ class Kd_simu():
         self.refresh_button.on_click(self.refresh_button_cb)
         self.add_button.on_click(self.add_button_cb)
         self.copy.on_click(self.copy_cb)
+        self.input_conc.on_change('value',self.input_callback)
+        self.input_kd.on_change('value',self.input_callback)
+        self.input_ns.on_change('value',self.input_callback)
         self.layout = ([self.p],[opt_input,options,rand_opt])
 
     def copy_cb(self):
@@ -633,6 +664,13 @@ class Kd_simu():
             copyed = str(int(self.copy.label[6])-1)
             self.copy.label="Copy Curve"
             self.curve_cb(1,1,copyed)
+
+    def input_callback(self,attr,old,new):
+        self.slider_conc.value = np.log10(float(self.input_conc.value))
+        self.slider_kd.value = np.log10(float(self.input_kd.value))
+        Fmax = self.slider_Fminmax.value[1]
+        kd = 10 ** self.slider_kd.value
+        self.slider_ns.value = kd*5000*float(self.input_ns.value)/Fmax
 
     def callback(self,attr,old,new):
         curve = self.curve.value
@@ -809,6 +847,10 @@ class ric50_simu():
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
         self.copy.on_click(self.copy_cb)
+        self.input_kd_1.on_change('value',self.input_callback)
+        self.input_kd_2.on_change('value',self.input_callback)
+        self.input_r_0.on_change('value',self.input_callback)
+        self.input_v_0.on_change('value',self.input_callback)
         self.layout =([self.p],[para_input,para_slider,rand_opt])
 
     def rv_solver(self,a_0, r_0, v_0, kd_r, kd_a):
@@ -910,6 +952,16 @@ class ric50_simu():
             self.slider_Fminmax.value = (para['Fmin'], para['Fmax'])
         else:
             self.curve_para[new] = self.curve_para[old]
+
+    def input_callback(self,attr,old,new):
+        kd1=np.log10(float(self.input_kd_1.value ))
+        kd2=np.log10(float(self.input_kd_2.value))
+        r0=np.log10(float(self.input_r_0.value ))
+        v0=np.log10(float(self.input_v_0.value))
+        self.slider_kd_1.value=kd1
+        self.slider_kd_2.value=kd2
+        self.slider_r_0.value=r0
+        self.slider_v_0.value=v0
 
 
     def callback(self,attr,old,new):
@@ -1070,6 +1122,8 @@ class ri50_coop_simu():
         # add callbacks
         for i in self.sliders:
             i.on_change('value',self.callback)
+        for k,i in self.input.items():
+            i.on_change('value',self.input_callback)
 
         self.FminFmax.on_change('value',self.callback)
         # self.FminFmax.on_change('value',self.test_cb)
@@ -1078,6 +1132,7 @@ class ri50_coop_simu():
         refresh_button.on_click(self.refresh_button_cb)
         add_button.on_click(self.add_button_cb)
         self.copy.on_click(self.copy_cb)
+
         self.layout =([self.p,self.pn],[para_input,para_slider,rand_opt])
 
     def copy_cb(self):
@@ -1160,6 +1215,9 @@ class ri50_coop_simu():
         else:
             self.curve_para[new] = self.curve_para[old]
 
+    def input_callback(self,attr,old,new):
+        for k,i in self.input.items():
+            self.slidersdict[k].value=np.log10(float(i.value))
 
     def callback(self,attr,old,new):
         for k,i in self.input.items():
