@@ -1,1 +1,129 @@
-1. install firewall 
+1. install firewall ufw 
+    $ sudo apt-get install -y ufw
+    $ sudo ufw allow ssh
+    $ sudo ufw allow http
+    $ sudo ufw allow 443/tcp
+    $ sudo ufw --force enable
+    $ sudo ufw status
+    to delete a rule: sudo ufw delete ssh
+
+2. install required services: [redis], [msql-server], [supervisor], [nginx], [git]
+    $ sudo apt-get -y update
+    $ sudo apt-get -y install python3 python3-venv python3-dev
+    $ sudo apt-get -y install mysql-server postfix supervisor nginx git
+    $ sudo apt-get install redis-server
+
+3. pull project from git:
+    $ git clone https:url
+
+4. create venv and install required python packages:
+    $ python -m venv venv
+    $ pip install -r requirements.txt
+    $ source venv/bin/activate 
+    $ pip install gunicorn pymysql 
+
+5. create .env file user project folder:
+    (check razer.env for details)
+
+6. edit .profile file: (or use nano editor)
+    $ echo "export FLASK_APP=microblog.py" >> ~/.profile
+
+7. create mysql database:
+    mysql> create database DATABASE character set utf8 collate utf8_bin;
+    If app not using existing user, create new user and grant privilege:
+    mysql> create user 'app-user'@'localhost' identified by '<db-password>';
+    mysql> grant all privileges on DATABASE.* to 'app-user'@'localhost';
+    mysql> flush privileges;
+    mysql> quit;
+
+    Then in activated project virtual environment,
+    flask db init
+    Flask db migrate
+    Flask db upgrade
+
+8. Setup gunicorn under supervisor control:
+    Install supervisor globally: if not already done so.
+    Then edit supervisor configures (supervisor_setup folder for details.)
+    $ cd /etc/supevisor
+    Edit default supervisord.conf: 
+    at line 22: to config own server.
+    [inet_http_server]         ; inet (TCP) server disabled by default
+    port=139.162.46.17:9001    ; ip_address:port specifier, *:port for all iface
+    username=user              ; default is no username (open server)
+    password=123               ; default is no password (open server)
+    At end:
+    [include]
+    files = /etc/supervisor/conf.d/*.conf
+
+    In /etc/supervisor/conf.d sub folder’s directory; 
+    configure tasks want to be controlled.
+    check supervisor folder for details.
+
+    run
+    $ sudo supervisorctl reload
+    To start or reload the process.
+  
+    To check status
+    $ sudo supervisorctl status all 
+    Or go to 127.0.0.1:9001 to check. (with password and user name above.)
+
+9. create ssl certificate if need to use https://
+    $ mkdir certs
+    $ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -keyout certs/key.pem -out certs/cert.pem
+
+10. setup nginx server configuration:
+    add sites configurations at /etc/nginx/sites-enabled
+    (check Nginx folder for details)
+    To start the nginx server with new configurations:
+    $ sudo service nginx reload 
+
+11. setup elastic search server:
+    install elastic search (https://tecadmin.net/setup-elasticsearch-on-ubuntu/)
+    first install java: (https://linuxize.com/post/install-java-on-ubuntu-18-04/)
+    $ sudo apt install default-jdk
+    $ java -version
+    then install elasticsearch through repo:
+    $ sudo apt-get install apt-transport-https
+    $ wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    $ sudo apt-get update
+    $ sudo apt-get install elasticsearch
+    To configure elasticsearch:
+    $ sudo nano /etc/elasticsearch/elasticsearch.yml
+    To launch elasticsearch as a auto service:
+    $ sudo /bin/systemctl enable elasticsearch.service
+    To lauch elasticsearch manually:
+    $ sudo systemctl start elasticsearch.service
+    $ sudo systemctl stop elasticsearch.service
+    To check elaticsearch status: goto localhost:9200 or:
+    $ curl -X GET "http://localhost:9200/?pretty"
+    On ubuntu tomake elastic search a service and auto restart after sytem reboot:
+    $ sudo systemctl enable elaticsearch.service
+    (https://www.elastic.co/guide/en/elasticsearch/reference/2.1/setup-service.html)
+
+13. to automatically update from git: 
+    run (ngs_shell_script)
+
+
+14. to setup dnsmasq: (https://www.computers.wtf/posts/dns-in-the-house-with-dnsmasq/)
+    1. Ubuntu 18.04 comes with systemd-resolve which you need to disable since it binds to port 53 which will conflict with Dnsmasq port.
+        $ sudo systemctl disable systemd-resolved
+        $ sudo systemctl stop systemd-resolved
+        remove symlinked resolv.conf file.
+        $ ls -lh /etc/resolv.conf 
+        lrwxrwxrwx 1 root root 39 Aug  8 15:52 /etc/resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
+        $ sudo rm /etc/resolv.conf
+
+        to disable auto generated resolv.conf by NetworkManager:
+        sudo vim /etc/NetworkManager/NetworkManager.conf
+        then change dns=none
+        this will prevent is from doing weird updates to resolv.conf 
+        (/etc/NetworkManager/NetworkManager.conf)
+
+        configure dnsmasq to listent to its ip address for dns request:
+        (/etc/dnsmasq.conf)
+        then start dnsmasq:
+        $ sudo systemctl restart dnsmasq.service
+        
+        add hosts file to a separate file, at the path in addn-hosts field from dnsmasq.conf file.
+        (custom_hosts)
+
