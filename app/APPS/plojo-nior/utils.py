@@ -2,12 +2,12 @@ from os import path
 import platform
 
 
-localmode=False
+localmode=True
 
 
 systemname = platform.node()
 if localmode:
-    _file_path = path.dirname(__file__)
+    _file_path = path.dirname(__file__)+ '/cache'
     file_path = _file_path
     upload_data_folder = _file_path
     temp_position = _file_path

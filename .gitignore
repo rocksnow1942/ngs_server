@@ -5,6 +5,9 @@ __pycache__
 .env
 .flaskenv
 # Packages
+*.bak
+*.dat
+*.dir
 *.egg
 *.egg-info
 dump.rdb
