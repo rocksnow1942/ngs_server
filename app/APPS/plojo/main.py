@@ -2,7 +2,7 @@ from bokeh.plotting import figure, ColumnDataSource
 from bokeh.io import curdoc
 from bokeh.models import HoverTool, Plot,CustomJS,Band
 from bokeh.models.glyphs import Text
-from bokeh.models.widgets import Div,Panel, Tabs, Button, TextInput, Select, MultiSelect, RadioButtonGroup, PasswordInput, PreText, DataTable, TableColumn, TextAreaInput,Dropdown
+from bokeh.models.widgets import Div,Panel, Tabs, Button, TextInput, Select, MultiSelect, RadioButtonGroup, PreText, DataTable, TableColumn, TextAreaInput,Dropdown
 from bokeh.layouts import widgetbox, row, column, layout
 from bokeh.palettes import Category10
 import numpy as np
@@ -29,13 +29,12 @@ load_dotenv(os.path.join(basedir, '.env'))
 #bokeh serve --allow-websocket-origin 192.168.86.29:5006 "C:\Users\aptitude\CloudStation\R&D\Projects\Hui Kang\Scripts\plojo\plojo.py"
 
 # common variables:
-global bounds_temp_saver,copyed_items,info_change_keep, raw_data, file_save_location, file_name, current_time, info_deque_holder,user_pwd,plot_scale,plot_format,temp_data_to_save
+global bounds_temp_saver,copyed_items,info_change_keep, raw_data, file_save_location, file_name, current_time, info_deque_holder,plot_scale,plot_format,temp_data_to_save
 plot_scale = 'log'
-plot_CI = 'show'
+plot_CI = 'hide'
 copyed_items = {}
 bounds_temp_saver = {}
 plot_format = 'canvas'
-user_pwd = {'hui':'h'}
 info_deque_holder = ['Welcome!']*3
 info_change_keep = dict.fromkeys(
     ['name','author', 'date','tag', 'note', 'fit_method', 'assay_type','flag'], False)
@@ -506,14 +505,18 @@ def save_data():
         else:
             last_save = 0.0
         cur = time.time()
+
         if cur-last_save> 10800:
             source_1 = os.path.join(file_save_location,file_name)
             dest = os.path.join(temp_position,file_name+'_'+datetime.datetime.now().strftime('%Y%m%d%H%M'))
             with shelve.open(source_1) as old:
                 with shelve.open(dest) as new:
                     for key,item in old.items():
+
                         new[key] = old[key]
+
         with shelve.open(os.path.join(file_save_location,file_name),writeback=False) as hd:
+            # print(raw_data.index)
             hd['index'] = raw_data.index
             for key,item in raw_data.experiment_to_save.items():
                 if key == 'index':
@@ -1188,7 +1191,6 @@ def sd_save_data_cb():
     upload_file_source.data={'file_contents':[],'file_name':[]}
 
 def login_btn_callback():
-    global user_pwd
     user = login_user.value
     # password = login_pwd.value
     # if password in user_pwd.get(user, ['aptitude','ams']):

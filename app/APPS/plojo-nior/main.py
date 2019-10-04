@@ -598,6 +598,8 @@ def load_analysis_para(index,run_index,curve):
     it_ext_coef.value =str(raw_data.experiment[index][run_index].get(curve,{}).get('extcoef','None'))
     it_run_speed.value = str(raw_data.experiment[index][run_index].get('speed','None'))
 
+import pandas as pd
+import io
 def sd_data_generator():
     """
     parse data from upload_file_source
@@ -608,34 +610,73 @@ def sd_data_generator():
         try:
             raw_contents = upload_file_source.data['file_contents'][0]
             prefix, b64_contents = raw_contents.split(",", 1)
-            print(prefix,b64_contents)
             file_contents = base64.b64decode(b64_contents)
-            data = file_contents.decode("utf-16")
-            file_name = upload_file_source.data['file_name'][0].split('.')[0].split('_')
-            print('file name',file_name)
-            data = data.strip('\n')
-            data = [list(map(float,i.strip('\r').split('\t'))) for i in data.split('\n')]
-            data = list(map(list, zip(*data)))
-            data_range = (data[0][0],data[0][-1],len(data[0]))
-            data_signal = data[1]
-            data_date=file_name[0]
-            data_name=file_name[1]
-            data_key = file_name[2].upper()
-            run_speed = float(sd_run_speed.value)
-            ext_coef = float(sd_ext_coef.value)
-            if data_key not in curve_type_options:
-                raise ValueError('not correct curve type')
-            meta = {'speed':run_speed,'date':data_date,'name':data_name,data_key:{'y_label':axis_label_dict.get(data_key[0],'default')}}
-            if data_key[0]=='A':
-                meta[data_key].update(extcoef=ext_coef)
-            raw = {data_key:{'time':data_range,'signal':data_signal}}
-            result_dict = {'meta':meta,'raw':raw}
-            assert False, ('Assert false')
-        except Exception as e:
-            raise e
+            if "data:text/csv" in prefix:
+                data = file_contents.decode("utf-16")
+                file_name = upload_file_source.data['file_name'][0].split('.')[0].split('_')
+                data = data.strip('\n')
+                data = [list(map(float,i.strip('\r').split('\t'))) for i in data.split('\n')]
+                data = list(map(list, zip(*data)))
+                data_range = (data[0][0],data[0][-1],len(data[0]))
+                data_signal = data[1]
+                data_date=file_name[0]
+                data_name=file_name[1]
+                data_key = file_name[2].upper()
+                run_speed = float(sd_run_speed.value)
+                ext_coef = float(sd_ext_coef.value)
+                if data_key not in curve_type_options:
+                    raise ValueError('not correct curve type')
+                meta = {'speed':run_speed,'date':data_date,'name':data_name,data_key:{'y_label':axis_label_dict.get(data_key[0],'default')}}
+                if data_key[0]=='A':
+                    meta[data_key].update(extcoef=ext_coef)
+                raw = {data_key:{'time':data_range,'signal':data_signal}}
+                result_dict = {'meta':meta,'raw':raw}
+                print(result_dict)
+
+
+            elif "data:application/octet-stream" in prefix:
+                toread = io.BytesIO()
+                toread.write(file_contents)
+                toread.seek(0)
+                df = pd.read_excel(toread)
+                print(df)
+                result_dict = 'none'
+        except:
             info_box.text = info_deque('Wrong uploaded.')
             result_dict = 'none'
     return result_dict
+
+#
+# {
+#     "meta": {
+#         "speed": 0.5,
+#         "date": "20190928",
+#         "name": "testrun",
+#         "A": {
+#             "y_label": "DAD signal / mA.U.",
+#             "extcoef": 33.0
+#         }
+#     },
+#     "raw": {
+#         "A": {
+#             "time": [
+#                 1.0,
+#                 7.0,
+#                 7
+#             ],
+#             "signal": [
+#                 2.0,
+#                 3.0,
+#                 2.0,
+#                 23.0,
+#                 3.0,
+#                 2.0,
+#                 3.0
+#             ]
+#         }
+#     }
+# }
+
 
 def data_dict_to_exp(data,index,run_index):
     if run_index == 'new':
@@ -1460,4 +1501,4 @@ display_layout = layout([plot_login], [login_info, column(
 curdoc().add_root(display_layout)#display_layout
 
 
-# mode_selection.active = 0
+mode_selection.active = 0
