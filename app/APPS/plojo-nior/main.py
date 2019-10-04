@@ -610,7 +610,9 @@ def sd_data_generator():
             raw_contents = upload_file_source.data['file_contents'][0]
             prefix, b64_contents = raw_contents.split(",", 1)
             file_contents = base64.b64decode(b64_contents)
-            if "data:text/csv" in prefix:
+            extension =  upload_file_source.data['file_name'][0].split('.')[1]
+            
+            if extension.lower()=='csv':
                 data = file_contents.decode("utf-16")
                 file_name = upload_file_source.data['file_name'][0].split('.')[0].split('_')
                 data = data.strip('\n')
@@ -630,7 +632,7 @@ def sd_data_generator():
                     meta[data_key].update(extcoef=ext_coef)
                 raw = {data_key:{'time':data_range,'signal':data_signal}}
                 result_dict = {'meta':meta,'raw':raw}
-            elif "data:application/octet-stream" in prefix:
+            elif extension.lower()=='xls':
                 toread = BytesIO(file_contents)
                 # toread.write(file_contents)
                 # toread.seek(0)
@@ -638,6 +640,8 @@ def sd_data_generator():
                 print(df)
                 print('test')
                 result_dict = 'none'
+            else:
+                info_box.text = info_deque('Extension {} not supported.'.format(extension))
         except:
             info_box.text = info_deque('Wrong uploaded.')
             result_dict = 'none'
