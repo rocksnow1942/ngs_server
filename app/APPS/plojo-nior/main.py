@@ -599,15 +599,20 @@ def load_analysis_para(index,run_index,curve):
     it_run_speed.value = str(raw_data.experiment[index][run_index].get('speed','None'))
 
 def sd_data_generator():
+    """
+    parse data from upload_file_source
+    """
     if upload_file_source.data['file_name'][0] == 'nofile':
         result_dict = 'none'
     else:
         try:
             raw_contents = upload_file_source.data['file_contents'][0]
             prefix, b64_contents = raw_contents.split(",", 1)
+            print(prefix,b64_contents)
             file_contents = base64.b64decode(b64_contents)
             data = file_contents.decode("utf-16")
             file_name = upload_file_source.data['file_name'][0].split('.')[0].split('_')
+            print('file name',file_name)
             data = data.strip('\n')
             data = [list(map(float,i.strip('\r').split('\t'))) for i in data.split('\n')]
             data = list(map(list, zip(*data)))
@@ -625,7 +630,9 @@ def sd_data_generator():
                 meta[data_key].update(extcoef=ext_coef)
             raw = {data_key:{'time':data_range,'signal':data_signal}}
             result_dict = {'meta':meta,'raw':raw}
-        except:
+            assert False, ('Assert false')
+        except Exception as e:
+            raise e
             info_box.text = info_deque('Wrong uploaded.')
             result_dict = 'none'
     return result_dict
@@ -1120,7 +1127,6 @@ def load_button_cb():
     sd_experiment_list.value = []
 
 def login_btn_callback():
-    global user_pwd
     user = login_user.value
     # password = login_pwd.value
     # if password in user_pwd.get(user, ['aptitude','ams']):
@@ -1276,11 +1282,9 @@ tools_menu = [('Copy Analysis','copy'),('Paste Analysis','paste'),None,('Integra
 mode_selection = RadioButtonGroup(labels=['Upload', 'View', 'Analyze'], button_type='success', width=250)
 edit_dropdown = Dropdown(label='Tool Kit', button_type='success',value='integrate',menu = tools_menu,width=150)
 info_box = PreText(text='Welcome!',width=400)
-top_div_2 = Div(text='',width=30)
-top_div_4 = Div(text='',width=30)
 load_button = Button (label = 'Load Data',button_type='success',width = 150)
 save_button = Button(label = 'Save Data',button_type='danger',width = 150)
-top_row_= row(mode_selection,edit_dropdown,top_div_2,info_box,load_button,top_div_4,save_button)
+top_row_= row(mode_selection,edit_dropdown,info_box,load_button,save_button)
 # upload widgets
 sd_file_upload = Button(label='Upload Data from File', button_type='success')
 sd_folder_upload = Button(label='Upload Data from folder', button_type='success')
@@ -1291,8 +1295,8 @@ sd_date = TextInput(title='Experiment Date',
 sd_run_speed = TextInput(title='Run Speed ml/min',value='0.5')
 sd_ext_coef = TextInput(title='Extinction Coefficient ug/ml/OD',value='33')
 sd_create_new_exp = Button(label='Create New Experiment', button_type='success')
-sd_experiment_list = MultiSelect(title='List of Experiments',options=experiment_menu_generator(raw_data.index.keys()),size=15,width=300)
-sd_run_list = MultiSelect(title='List of runs',options=runs_menu_generator([]),size=15,width=490,)
+sd_experiment_list = MultiSelect(title='List of Experiments',options=experiment_menu_generator(raw_data.index.keys()),size=25,width=300)
+sd_run_list = MultiSelect(title='List of runs',options=runs_menu_generator([]),size=25,width=490,)
 sd_save_data = Button(label='Save Input Data', button_type='danger')
 sd_row_1 = row(column(sd_author,sd_run_speed),column(sd_date,sd_ext_coef),column(sd_experiment,sd_create_new_exp))
 sd_bottom_row = row(sd_file_upload,sd_folder_upload,sd_save_data)
@@ -1306,7 +1310,7 @@ vd_secondary_axis_option = Select(title='Secondary Axis',value='B',options=vd_ax
 vd_anotation_option = MultiSelect(title='Primary',value=['integrate-area'],options=[('none','None'),('integrate-line','Integrate Line'),('integrate-area','Integrate Area'),('integrate-percent','Integrate Percent'),('integrate-mass','Integrate Mass'),('integrate-label','Integrate Label'),('annotate','Annotation')],size=7,width=150)
 vd_anotation_option_s = MultiSelect(title='Secondary',value=['none'],options=[('none','None'),('integrate-line','Integrate Line'),('integrate-area','Integrate Area'),('integrate-percent','Integrate Percent'),('integrate-mass','Integrate Mass'),('integrate-label','Integrate Label'),('annotate','Annotation')],size=7,width=150)
 vd_secondary_axis_range = TextInput(title = 'Secondary Axis Range',value='0-100',width=150)
-vd_div_0 = Div(text='',width=50)
+# vd_div_0 = Div(text='',width=50)
 vd_plot_backend = Select(title='Plot Format', value='PNG',options = ['PNG','SVG'],width = 170)
 vd_offset_option = TextInput(title = 'Secondary Axis Offset',value='0',width=150)
 vd_curve_selection = Select(title='Curve to adjust',value=None,options=[],width=200)
@@ -1314,8 +1318,8 @@ vd_curve_offset = TextInput(title='X_Offset, Y_offset, Scale:',value='0',width=2
 vd_auto_align = Button(label = 'Auto Align',button_type='success',width=200)
 vd_align_mode = Toggle(label="Align Mode", button_type="success",width=200)
 vd_align_widgets = widgetbox(vd_align_mode,vd_curve_selection,vd_curve_offset,vd_auto_align)
-vd_plot_options = row(widgetbox(vd_primary_axis_option,vd_secondary_axis_option,vd_secondary_axis_range,vd_offset_option,width=200),column(row(vd_anotation_option,vd_anotation_option_s,vd_div_0),vd_plot_backend),column(vd_align_widgets))
-vd_selection_tab = Tabs(active=0, width=800, height=280, tabs=[Panel(child=row(sd_experiment_list,sd_run_list), title="Experiment"),Panel(child=vd_plot_options,title='Plot Options')])
+vd_plot_options = row(widgetbox(vd_primary_axis_option,vd_secondary_axis_option,vd_secondary_axis_range,vd_offset_option,width=200),column(row(vd_anotation_option,vd_anotation_option_s),vd_plot_backend),column(vd_align_widgets))
+vd_selection_tab = Tabs(active=0, width=800, height=470, tabs=[Panel(child=row(sd_experiment_list,sd_run_list), title="Experiment"),Panel(child=vd_plot_options,title='Plot Options')])
 vd_div_1 = Div(text='',width=50)
 vd_exp_name = TextInput(title='Experiment Name : ')
 vd_exp_tag = TextAreaInput(title='Experiment Note :', rows=5, cols=35, max_length=50000)
@@ -1332,38 +1336,32 @@ vd_delete_data_button = Button(label='Delete Selected Data', button_type='succes
 vd_search_keyword = TextInput(title='Keyword filter',width=300)
 vd_search_botton = Button(label = 'Search Experiment',button_type='success',width=300)
 vd_div_2 = Div(text='',width=105)
-vd_div_3 = Div(text='',width=25)
-vd_div_4 = Div(text='',width=50)
-vd_div_5 = Div(text='',width=150,height=50)
+vd_div_5 = Div(text='Search HPLC Data',width=150,)
 vd_button_widgets = widgetbox(vd_search_botton,vd_save_info_button,vd_delete_data_button)
-vd_search_box = row(vd_div_4,column(vd_search_keyword,vd_search_field),vd_div_3,column(vd_div_2,vd_button_widgets))
+vd_search_box = row(column(vd_search_keyword,vd_search_field),column(vd_div_2,vd_button_widgets))
 #analyze layout widgets
 # integrate tools
-it_start_x = TextInput(title='Integration Start X',width=70,value='none')
-it_start_y = TextInput(title='Integration Start Y',width=70,value='0')
-it_end_x = TextInput(title='Integration End X',width=70,value='none')
-it_end_y = TextInput(title='Integration End Y',width=70,value='0')
+it_start_x = TextInput(title='Integration Start X',width=190,value='none')
+it_start_y = TextInput(title='Integration Start Y',width=190,value='0')
+it_end_x = TextInput(title='Integration End X',width=190,value='none')
+it_end_y = TextInput(title='Integration End Y',width=190,value='0')
 it_integration_list = MultiSelect(title='Integration List',value=[],options=[],size=15,width=350)
 it_add_button = Button(label='New Integration', button_type='success',width=190)
 it_delete_button = Button(label='Delete Integration', button_type='success',width=190)
 it_update_button = Button(label='Update Integration', button_type='success',width=190)
-it_integration_name = TextInput(title='Integration Name',width=150,value='none')
-it_ext_coef= TextInput(title='Extinction Coef. (DO)',width=150,value='none')
-it_run_speed = TextInput(title='Run Speed ml/min (DO)',width=150,value='none')
-it_div_1 = Div(text='',width=150)
-it_div_2=Div(text='',width=150)
-it_div_3 = Div(text='',width=100)
-it_div_4 = Div(text='',width=70)
-it_div_5 = Div(text='',width=30)
-it_tool_box = row(it_integration_list,it_div_4,column(row(it_start_x,it_div_1,it_end_x),row(it_start_y,it_div_2,it_end_y),row(it_add_button,it_div_5,it_update_button),it_delete_button),it_div_3,column(it_integration_name,it_ext_coef,it_run_speed))
+it_integration_name = TextInput(title='Integration Name',width=190,value='none')
+it_ext_coef= TextInput(title='Extinction Coef. (DO)',width=190,value='none',disabled=True)
+it_run_speed = TextInput(title='Run Speed ml/min (DO)',width=190,value='none',disabled=True)
+
+it_tool_box = row(it_integration_list,column(row(it_start_x,it_end_x),row(it_start_y,it_end_y),row(it_add_button,it_update_button),it_delete_button),column(it_integration_name,it_ext_coef,it_run_speed))
 # annotate tools
 an_label = TextInput(title='New Annotation Label',value='none')
 an_x = TextInput(title='Annotation Position',value='none')
 an_height = TextInput(title='Annotation Height',value='none')
 an_list = MultiSelect(title='Annotation List',value=[],options=[],size=15,width=350)
-an_div_4 = Div(text='',width=70)
-an_div_1 = Div(text='',width=60)
-an_div_0 = Div(text='',width=70)
+an_div_4 = Div(text='',width=20)
+an_div_1 = Div(text='',width=20)
+an_div_0 = Div(text='',width=20)
 an_add_button = Button(label='New Annotation', button_type='success')
 an_delete_button = Button(label='Delete Annotation', button_type='success')
 an_update_button = Button(label='Update Annotation', button_type='success')
@@ -1455,8 +1453,11 @@ analyze_layout = layout([top_row_],[plot_row],[it_tool_box], )#[analysis_too_box
 vd_layout = layout([top_row_],[plot_row],[column(vd_selection_tab,vd_div_5,vd_search_box),vd_div_1,vd_info_widgets],)
 upload_layout = layout([top_row_],[sd_row_1],[sd_experiment_list,sd_run_list],[sd_bottom_row])
 display_layout = layout([plot_login], [login_info, column(
-    login_text, login_user, )],[Div(text="",height=600)])  # login_pwd login_btn
+    login_text, login_user, )])  # login_pwd login_btn
 
 
 # curdoc().add_periodic_callback(refresh_time_cb, 1000)
-curdoc().add_root(display_layout)
+curdoc().add_root(display_layout)#display_layout
+
+
+# mode_selection.active = 0

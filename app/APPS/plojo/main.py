@@ -725,77 +725,49 @@ def active_selected_item():
     else:
         info_box.text = info_deque('Go to Experiment/To Plot tab.')
         raise ValueError(' go to experiment/To Plot tab')
-        to_delete = []
+        # to_delete = []
     return to_delete
 
 # widgets
 button_mode = RadioButtonGroup(labels=[
                                'Upload', 'Browse', 'Fitting'], active=0, button_type='warning',width=230)
 # button_mode = Dropdown(label='Plojo', value='none', menu=[('View Data','view'),('Curve Fitting','fit'),('Upload Data','upload')],button_type='success', width=120)
-info_box = PreText(text='Welcome!',width=500)
+info_box = PreText(text='Welcome!',width=300)
 edit_dropdown_menu = [('Copy Fit Para','copy_para'),('Paste Fit Para','paste_para'),None,('Alias/Merge Data','alias'),None,('Cut Data','cut'),('Copy Data','copy'),('Paste Data','paste'),None,('Check Consistency','check'),('Align Index','align')]
-edit_dropdown = Dropdown(label='Edit', button_type='success',value='none',menu = edit_dropdown_menu,width=100)
-button_load = Button(label='Load', button_type='success',width =100)
-button_save = Button(label='Save', button_type='danger',width =100)
-# botton_spacer_text="""
-# <embed src="https://www.zeitverschiebung.net/clock-widget-iframe-v2?language=en&size=small&timezone=America%2FLos_Angeles"
-# width="50%" height="35%" > """
-# botton_spacer = Div(text='', width=400, height=100)
-# ams_logo_text="""
-# <div style="text-align:right;">
-# <figure>
-#   <img src="plojo_app/static/ams_logo.jpg" alt="ams logo" height='50' width="120" onclick="alert('Why you click me???')">
-# </figure>
-# <p><a href="http://www.aptitudemedical.com/index.html">Aptitude Medical Systems, Inc.</a> </p>
-# </div>
-# """
-#
-# <a href="https://www.w3schools.com">
-# <img border="0" alt="W3Schools" src="logo_w3s.gif" width="100" height="100">
-# </a>
-# <a href="https://tinyurl.com/y2nbhlu9">
-# ams_logo_text="""
-# <div style="text-align:right;">
-#   <img src="plojo/static/ams_logo.jpg" alt="ams logo" height='50' width="120" onclick="alert('Nothing in here...')">
-# <p><a href="http://www.aptitudemedical.com/index.html">Aptitude Medical Systems, Inc.</a> </p>
-# </div>
-# """
+edit_dropdown = Dropdown(label='Edit', button_type='success',value='none',menu = edit_dropdown_menu,width=130)
+button_load = Button(label='Load', button_type='success',width =130)
+button_save = Button(label='Save', button_type='danger',width =130)
 
-# """<embed src="plojo_app/static/ams_logo.jpg" height='50' width="120" onclick="alert('???')">"""
-
-# ams_logo = Div(text=ams_logo_text,width=700,height=100)
 cf_assay_type = MultiSelect(
     title='Assay Type', value=assay_type_options, options=assay_type_options, size=5)
 cf_filter = TextInput(title='Key:AND/OR/NOT/ANY | Enter Alias')
 cf_search_field = MultiSelect(title='Search field:', value=[
                               'tag', 'note', 'fit_method'], options=search_field_options, size=7)
 cf_select_data = MultiSelect(title='Select Experiment Data To View',
-                             options=menu_generator([]), size=10, width=600)
+                             options=menu_generator([]), size=30, width=600)
 cf_outlier = MultiSelect(
-    title='Mark Data Points As Outlier', options=[], size=10, width=600)
+    title='Mark Data Points As Outlier', options=[], size=30, width=600)
 # cf_parameter_viewer = PreText(text='Fitting Result:\n', width=600, height=160)
 para_source = ColumnDataSource({'name':[1]})
 columns=[TableColumn(field='name', title='n', width=90)]
 cf_parameter_viewer =DataTable(width=600, height=160,columns=columns, source=para_source,fit_columns=False,reorderable=True,editable=True,header_row=True,index_position=None)
 cf_focused_select_data = MultiSelect(
-    title='Data of interest', options=[], size=10, width=600)
-project_list = MultiSelect(title='Project List',options=project_menu_generator(),size=10,width=300)
+    title='Data of interest', options=[], size=30, width=600)
+project_list = MultiSelect(title='Project List',options=project_menu_generator(),size=25,width=370)
 project_name = TextInput(title='Project Name',value='Enter a name',width=150)
 project_dropdown = Dropdown(width=150,label='Edit Project',button_type='success',value='none',menu=[('New Project','create'),('Rename Project','rename'),None,('Delete Project','delete')])
 
-project_div = Div(text='',width=55)
-project_tab = row(column(project_name,project_dropdown),project_div,project_list)
-data_outlier_tab = Tabs(active=0, width=600, height=230, tabs=[Panel(child=project_tab,title='Project'),Panel(child=cf_select_data, title="Experiment"), Panel(
+project_tab = row(project_list, column(project_name, project_dropdown),)
+data_outlier_tab = Tabs(active=0, width=600, height=550, tabs=[Panel(child=project_tab,title='Project'),Panel(child=cf_select_data, title="Experiment"), Panel(
     child=cf_focused_select_data, title='To Plot'), Panel(child=cf_outlier, title="Raw Data"), Panel(child=cf_parameter_viewer, title='Fitting Result')])
-vd_save_info = Button(label='Save Info', button_type='danger',width=120)
-vd_delete_data = Button(label='Delete Data', button_type='warning',width=120)
-plot_dropdown = Dropdown(label='Plot', button_type='success',menu = dropdown_opt_menu,width=100)
-vd_new_search = Button(label='Search',button_type='success',width=120)
-vd_refine_search = Button(label='Refine',button_type='success',width=120)
-div1= Div(text='',width=30)
-div2= Div(text='',width=30)
-vd_search_refine = row(vd_new_search,div1,vd_refine_search)
-options=column(widgetbox(cf_assay_type, cf_filter, cf_search_field),vd_search_refine,row(vd_delete_data,div2,vd_save_info))
+vd_save_info = Button(label='Save Info', button_type='danger',width=140)
+vd_delete_data = Button(label='Delete Data', button_type='warning',width=140)
+plot_dropdown = Dropdown(label='Plot', button_type='success',menu = dropdown_opt_menu,width=130)
+vd_new_search = Button(label='Search',button_type='success',width=140)
+vd_refine_search = Button(label='Refine',button_type='success',width=140)
+
+vd_search_refine = row(vd_new_search,vd_refine_search)
+options=column(vd_search_refine,row(vd_delete_data,vd_save_info),widgetbox(cf_assay_type, cf_filter, cf_search_field),)
 vd_name = TextInput(title='Experiment Name : ')
 vd_author = TextInput(title='Author :')
 vd_flag = TextInput(title='Flag :')
@@ -833,10 +805,10 @@ cf_slope_bound = TextInput(title='Linear fit slope:', value='default')
 cf_b_bound = TextInput(title='Y intercept:', value='default')
 cf_fit_bound = widgetbox(cf_fit_method, cf_kd_bound,
                          cf_Fmax_bound, cf_Fmin_bound)
-cf_fit_plot_data = Button(label='Fit and Plot', button_type='success',width=120)
-cf_restore = Button(label='Reset Para', button_type='warning',width=120)
-div3= Div(text='',width=30)
-cf_select_data_widgets = column(widgetbox(cf_assay_type, cf_filter, cf_search_field),vd_search_refine,row(cf_fit_plot_data,div3,cf_restore))
+cf_fit_plot_data = Button(label='Fit and Plot', button_type='success',width=140)
+cf_restore = Button(label='Reset Para', button_type='warning',width=140)
+
+cf_select_data_widgets = column(vd_search_refine, row(cf_fit_plot_data, cf_restore),widgetbox(cf_assay_type, cf_filter, cf_search_field),)
 curve_fit_plots =column(plot_, norm_plot)
 
 #########save layout
@@ -846,7 +818,7 @@ sd_date = TextInput(title='Experiment Date',
 sd_assay_type = Select(title='Assay Type', value='beads-kd', options=assay_type_options)
 sd_row_1 = row(sd_author, sd_date, sd_assay_type)
 sd_data = TextAreaInput(title='Experiment Data:',
-                        rows=22, cols=70,width=600, max_length=5000000)
+                        rows=27, cols=70,width=600, max_length=5000000)
 # sd_text = PreText(text='Select a Project')
 sd_type_check = Button(label='Read Input Data', button_type='success')
 sd_upload_opt_menu=[('Upload plojo template data','plojo'),('Not Available','hplc')]
@@ -1404,14 +1376,14 @@ edit_dropdown.on_change('value',edit_dropdown_cb)
 
 # layouts
 save_layout = layout([button_mode, info_box,edit_dropdown,plot_dropdown, button_load, button_save], [sd_row_1], [
-                     sd_data, column(project_list, project_name, project_dropdown)], [sd_data_table, column(sd_type_check, sd_upload_opt, sd_save_data)], )  # [ams_logo,botton_spacer]
+                     sd_data, column(project_name, project_dropdown,project_list)], [sd_data_table, column(sd_type_check, sd_upload_opt, sd_save_data)], )  # [ams_logo,botton_spacer]
 
 read_layout = layout([button_mode, info_box,edit_dropdown,plot_dropdown, button_load, button_save], [read_layout_plots,column(data_outlier_tab, row(options, vd_data_info))],)
 
 curve_fit_layout = layout([button_mode, info_box,edit_dropdown, plot_dropdown,button_load, button_save], [curve_fit_plots, column(
     data_outlier_tab, row(cf_select_data_widgets, column(cf_fit_bound)))])
 
-display_layout = layout([plot_login], [login_info, column(login_text, login_user, )],[Div(text="",height=450)])  # login_pwd,login_btn
+display_layout = layout([plot_login], [login_info, column(login_text, login_user, )])  # login_pwd,login_btn
 
 # run
 # curdoc().add_periodic_callback(refresh_time_cb, 1000)

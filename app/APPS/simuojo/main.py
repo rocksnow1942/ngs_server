@@ -21,7 +21,7 @@ def simu_sele_cb(attr,old,new):
         kd_layout = Kd_simu().layout
         temp = layout([model_display,simu_sele],*kd_layout)
         select_layout.children = temp.children
-        model_display.text = """ 
+        model_display.text = """
         <img src="simuojo/static/kd_formula.png" height='50' width="530" ">"""
     elif new=='ic_50 simulation':
         ic_50_layout = ic50_simu().layout
@@ -53,6 +53,6 @@ select_layout = layout([row(model_display, simu_sele)], [Div(
     text="""
     <div class="jumbotron col-md-12">
       <h1>Select a model to start</h1>
-    </div>""",width=900, height=875)])
+    </div>""",width=900, height=575)])
 
 curdoc().add_root(select_layout)

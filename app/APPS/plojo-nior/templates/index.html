@@ -1,0 +1,17 @@
+{% extends base %}
+
+
+
+{% block postamble %}
+  <style>
+    {% include 'styles.css' %}
+  </style>
+{% endblock %}
+<div class="container">
+{% block contents %}
+
+    {{ super() }}
+
+
+{% endblock %}
+</div>

@@ -15,14 +15,15 @@ def make_shell_context():
 #TODO
 #1. add admin background task control: to update all known sequence.
 #2. add admin deletion on sequence.
-#3. Edit known as for sequence.
 #4. 
 # add user favorites option.
 # 1. add a favirites url to database and its description / name.
 # add elastic search.
-# add sequence length distribution to round details.
+
 # ajax to sort order 
-# download data to process.
 # monitor database size and database backup
 
 # kudo project management system.
+
+# URGENT
+# add a folder for all setups on linux 
