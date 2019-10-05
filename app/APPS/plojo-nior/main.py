@@ -17,8 +17,6 @@ basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 load_dotenv(os.path.join(basedir, '.env'))
 
 
-
-
 # declare globals
 global info_change_keep,data_index,info_deque_holder,current_time,temp_data_to_save,raw_data,axis_label_dict,user_pwd,copyed_runs,analysis_temp_keep
 box_select_source = ColumnDataSource(data=dict(x=[], y=[], width=[], height=[]))
@@ -151,7 +149,15 @@ def generate_cds(run_index,**kwargs):
         curve_dict = run.get(curve,{})
         extinction_coeff = curve_dict.get('extcoef',0)
         curve_dict_raw = run_raw.get(curve,{})
-        curve_time = np.linspace(*curve_dict_raw.get('time',(0,0,1)))+offset*int(curve==offset_curve)
+
+
+        time_space = curve_dict_raw.get('time',None) or curve_dict_raw.get('volume',None)
+        x_unit = 'time' if 'time' in curve_dict_raw.keys() else 'volume'
+        if time_space:
+            time_space=np.linspace(*time_space)
+        else:
+            time_space = np.linspace(0,0,1)
+        curve_time = time_space +offset*int(curve==offset_curve)
         curve_signal =  curve_dict_raw.get('signal',[0])
         curve_integrate = curve_dict.get('integrate',{})
         integrate_gap_x=curve_integrate.get('integrate_gap_x',[])
@@ -162,7 +168,10 @@ def generate_cds(run_index,**kwargs):
         label = curve_integrate.get('label',[])
         label_area = ['{:.4g}'.format(i) for i in label_]
         integrate_percent = ['{:.2f}%'.format(i*100/(sum(label_))) for i in label_]
-        label_mass = ['{:.4g}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
+        if x_unit == 'time':
+            label_mass = ['{:.4g}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
+        else:
+            label_mass = ['{:.4g}ug'.format(i*extinction_coeff/1000) for i in label_]
         temp_cds = ColumnDataSource( {'time':curve_time,'signal':curve_signal})
         integration_cds = ColumnDataSource({'integrate_percent':integrate_percent,'integrate_gap_x':integrate_gap_x,'integrate_gap_y':integrate_gap_y,'label_cordinate_x':label_cordinate_x,'label_cordinate_y':label_cordinate_y,'label_area':label_area,'label_mass':label_mass,'label':label})
 
@@ -188,6 +197,7 @@ def generate_cds(run_index,**kwargs):
         run_dict.update({curve:temp_cds})
         integration_dict.update({curve:integration_cds})
         annotate.update({curve:{'label':label_data_source,'arrow':arrow_position}})
+
     return {'run':run_dict,'integrate':integration_dict,'annotate':annotate}
 
 def plot_generator(plot_list=[],**kwargs):
@@ -198,20 +208,37 @@ def plot_generator(plot_list=[],**kwargs):
     secondary_axis_range = kwargs.get('secondary_axis_range',(0,100))
     color_={'A':'magenta','B':'green','P':'royalblue','A1':'teal','A2':'deepskyblue','A3':'red','none':'red'}
     tools_list = "pan,ywheel_zoom,xwheel_zoom,box_zoom,save,crosshair,reset"
+    primary_axis_labelset = set()
+    secondary_axis_labelset =set()
     if len(plot_list) > 1:
         alpha = 0.75
         use_colorp = True
+        for run_index in plot_list:
+            primary_axis_labelset.update(raw_data.experiment[run_index.split('-')[0]][run_index].get(primary_axis,{}).get('y_label','AU'))
+            secondary_axis_labelset.update(raw_data.experiment[run_index.split('-')[0]][run_index].get(secondary_axis).get('y_label','AU'))
+        if len(primary_axis_labelset)==1:
+            primary_yaxis_label = list(primary_axis_labelset)[0]
+        else:
+            primary_yaxis_label = axis_label_dict.get(primary_axis[0],'AU')
+        if len(secondary_axis_labelset)==1:
+            secondary_yaxis_label = list(secondary_axis_labelset)[0]
+        else:
+            secondary_yaxis_label =  axis_label_dict.get(secondary_axis[0],'AU')
     else:
         use_colorp = False
         alpha = 0.9
+        run_index=plot_list[0]
+        primary_yaxis_label = raw_data.experiment[run_index.split('-')[0]][run_index].get(primary_axis,{}).get('y_label','AU')
+        secondary_yaxis_label = raw_data.experiment[run_index.split('-')[0]][run_index].get(secondary_axis,{}).get('y_label','AU')
+
     p=figure(plot_width=1200,plot_height=450,tools=tools_list,toolbar_location='above')
 
     p.toolbar.active_inspect = None
     p.output_backend=plot_backend
-    p.xaxis.axis_label = 'Run Time /min'
-    p.yaxis.axis_label = axis_label_dict.get(primary_axis[0],'AU')
+
+    p.yaxis.axis_label = primary_yaxis_label
     p.extra_y_ranges = {'secondary':Range1d(*secondary_axis_range)}
-    p.add_layout(LinearAxis(y_range_name='secondary',axis_label=axis_label_dict.get(secondary_axis[0],'AU')),'right')
+    p.add_layout(LinearAxis(y_range_name='secondary',axis_label=secondary_yaxis_label),'right')
     analysis = kwargs.get('analysis',[])
     analysis_s = kwargs.get('analysis_s',[])
     analysis = set([ k for j in [i.split('-') for i in analysis] for k in j])
@@ -220,9 +247,17 @@ def plot_generator(plot_list=[],**kwargs):
     x_offset = -10
     integrate_offset_s = 15
     integrate_offset_p = 15
+
+    x_axis_label = set()
     for i,run_index in enumerate(plot_list):
         cds_dict = generate_cds(run_index,**kwargs)
         tag = raw_data.experiment[run_index.split('-')[0]][run_index].get('note','')
+
+        if 'time' in raw_data.experiment_raw[run_index.split('-')[0]][run_index].get(primary_axis,{}).keys():
+            x_axis_label.update(['time'])
+        else:
+            x_axis_label.update(['volume'])
+
         if use_colorp:
             p_color_touse = Category10[10][i % 10]
             s_color_touse = Category10[10][(i+3) % 10]
@@ -293,6 +328,14 @@ def plot_generator(plot_list=[],**kwargs):
                     p.add_layout(Arrow(end=VeeHead(size=8), line_color=p_color_touse,x_start=j[0], y_start=j[1]+j[2], x_end=j[0], y_end=j[1]))
                 anno_label = LabelSet(x='label_x',y='label_y',angle=angle, text='label', level='glyph',text_font_size='9pt', x_offset=0, y_offset=5, source=cds_dict['annotate'][primary_axis]['label'], render_mode='canvas')
                 p.add_layout(anno_label)
+    if len(x_axis_label)==1:
+        if 'time' in x_axis_label:
+            p.xaxis.axis_label = 'Run Time /min'
+        else:
+            p.xaxis.axis_label = 'Run Volume / mL'
+    else:
+        p.xaxis.axis_label = 'Run Time ? Volume Mixture'
+
     p.legend.click_policy = 'hide'
     p.legend.border_line_alpha = 0
     p.legend.background_fill_alpha = 0.1
@@ -401,7 +444,11 @@ def check_run_analysis(run_index):
     repair=False
     for k,i in target.items():
         if k in curve_type_options:
-            time_max = raw_data.experiment_raw[index][run_index][k]['time'][1]
+            time_space = raw_data.experiment_raw[index][run_index][k].get('time',None) or raw_data.experiment_raw[index][run_index][k].get('volume',None)
+            if time_space:
+                time_max = time_space[1]
+            else:
+                time_max=0
             for key,item in i.items():
                 if key == 'integrate':
                     to_keep= [i for i in zip(item['inte_para'],item['label']) if i[0][1]<=time_max]
@@ -514,7 +561,7 @@ def it_para_check(xe,run_index,curve,xs=0):
     check if the x value of integration interval is within the time of current run.
     """
     index= run_index.split('-')[0]
-    time_ = raw_data.experiment_raw[index][run_index][curve]['time']
+    time_ = raw_data.experiment_raw[index][run_index][curve].get('time',None) or raw_data.experiment_raw[index][run_index][curve].get('volume',None)
     if xs>=xe or xe>time_[1]:
         info_box.text = info_deque('Time parameter error, action aborted.')
         raise ValueError('time para error.')
@@ -522,15 +569,18 @@ def it_para_check(xe,run_index,curve,xs=0):
 def generate_integration_from_para(run_index,curve):
     index= run_index.split('-')[0]
     target = raw_data.experiment[index][run_index][curve]['integrate']
-    time_ = raw_data.experiment_raw[index][run_index][curve]['time']
+    time_ = raw_data.experiment_raw[index][run_index][curve].get('time',None) or \
+        raw_data.experiment_raw[index][run_index][curve].get('volume',None)
+
     delta_t = (time_[1]-time_[0])/(time_[2]-1)
+
     signal=raw_data.experiment_raw[index][run_index][curve]['signal']
     update_start = len(target['integrate_gap_x'])
     for xs,xe,ys,ye in target['inte_para'][update_start:]:
         xs_i = int(round((xs-time_[0])/delta_t))
         xe_i = int(round((xe-time_[0])/delta_t))
         ym = signal[int((xs_i+xe_i)/2)]
-        area = sum(signal[xs_i:xe_i])*(delta_t)-(ys+ye)*(xe-xs)/2
+        area = np.sum(signal[xs_i:xe_i])*(delta_t)-(ys+ye)*(xe-xs)/2
         target['integrate_gap_x'].append([ xs,xs ,xe ,xe ])
         target['integrate_gap_y'].append([ signal[xs_i],ys ,ye ,signal[xe_i] ])
         target['label_cordinate_x'].append((xs+xe)/2)
@@ -567,7 +617,7 @@ def annotate_generator(run_index,curve):
     index= run_index.split('-')[0]
     target =  raw_data.experiment[index][run_index][curve]['annotate']
     signal=raw_data.experiment_raw[index][run_index][curve]['signal']
-    time_ = raw_data.experiment_raw[index][run_index][curve]['time']
+    time_ = raw_data.experiment_raw[index][run_index][curve].get('time',None) or raw_data.experiment_raw[index][run_index][curve].get('volume',None)
     delta_t = (time_[1]-time_[0])/(time_[2]-1)
     x_position = target['x']
     update_start = len(target['y'])
@@ -611,7 +661,7 @@ def sd_data_generator():
             prefix, b64_contents = raw_contents.split(",", 1)
             file_contents = base64.b64decode(b64_contents)
             extension =  upload_file_source.data['file_name'][0].split('.')[1]
-            
+
             if extension.lower()=='csv':
                 data = file_contents.decode("utf-16")
                 file_name = upload_file_source.data['file_name'][0].split('.')[0].split('_')
@@ -634,52 +684,96 @@ def sd_data_generator():
                 result_dict = {'meta':meta,'raw':raw}
             elif extension.lower()=='xls':
                 toread = BytesIO(file_contents)
-                # toread.write(file_contents)
-                # toread.seek(0)
                 df = pd.read_excel(toread)
-                print(df)
-                print('test')
-                result_dict = 'none'
+                result_dict=process_df_upload(df)
+
             else:
                 info_box.text = info_deque('Extension {} not supported.'.format(extension))
         except:
+            # raise e
             info_box.text = info_deque('Wrong uploaded.')
             result_dict = 'none'
     return result_dict
 
-#
-# {
-#     "meta": {
-#         "speed": 0.5,
-#         "date": "20190928",
-#         "name": "testrun",
-#         "A": {
-#             "y_label": "DAD signal / mA.U.",
-#             "extcoef": 33.0
-#         }
-#     },
-#     "raw": {
-#         "A": {
-#             "time": [
-#                 1.0,
-#                 7.0,
-#                 7
-#             ],
-#             "signal": [
-#                 2.0,
-#                 3.0,
-#                 2.0,
-#                 23.0,
-#                 3.0,
-#                 2.0,
-#                 3.0
-#             ]
-#         }
-#     }
-# }
+def process_df_upload(df):
+    run_speed = float(sd_run_speed.value)
+    ext_coef = float(sd_ext_coef.value)
 
+    meta={}
+    raw={}
+    name=df.iloc[0,0].split(':')[0]
+    date=name[0:8]
+    if date.isnumeric():
+        meta['date']=date
+        meta['name']=name[8:].strip()
+    else:
+        meta['date']=sd_date.value
+    meta.update(speed=run_speed)
+    unit=df.iloc[1,0]
+    unit = 'time' if unit=='min' else 'volume'
+    integrate={}
+    for _i,_d in zip(df.columns[::2],df.columns[1::2]):
+        data=df[_d].dropna().tolist()
+        time=df[_i].dropna().tolist()
+        tag=time[0].split(':')[1].strip()
+        y_label=None
+        if "UV" in tag:
+            if "UV1" in tag:
+                curve = 'A'
+            elif 'UV2' in tag:
+                curve = 'A1'
+            elif "UV3" in tag:
+                curve = 'A2'
+            y_label=tag[tag.index('UV'):] + ' / mA.U.'
+        elif 'Cond' in tag and ('%' not in tag):
+            curve='A3'
+            y_label='Conductivity (mS/cm)'
+        elif 'Conc' in tag:
+            curve='B'
+            y_label='Solvent B Gradient %'
+        elif 'Pressure' in tag:
+            curve = 'P'
+            y_label = 'Pressure MPa'
+        elif 'Fractions' in tag:
+            integrate.update(inte_para=[],label=[])
+            puretime=time[2:]
+            labels=data[1:-1]
+            for i,(t,l) in enumerate(zip(puretime,labels)):
+                if t>0:
+                    integrate['inte_para'].append((t,puretime[i+1],0,0))
+                    integrate['label'].append(l)
+
+        if y_label:
+            meta.update({curve:{'y_label':y_label,'extcoef':ext_coef}})
+            _time,_data=condense_time_points(time[2:],data[1:])
+
+            raw.update({curve:{unit: _time,'signal': _data }})
+
+    for k in list(meta.keys()):
+        newint=dict(inte_para=integrate['inte_para'],label=integrate['label'],area=[],integrate_gap_x=[],integrate_gap_y=[],label_cordinate_x=[],label_cordinate_y=[])
+        if k.startswith('A'):
+            meta[k].update(integrate=newint)
+
+    return {'meta':meta,'raw':raw}
+
+def condense_time_points(t,sig):
+    gaps = (t[0],t[-1],len(t))
+    if check_arithmetic(t):
+        return gaps,sig
+    newsig=[]
+    for _t in np.linspace(*gaps):
+        newsig.append(sig[np.abs(t-_t).argmin()])
+    return gaps,newsig
+
+def check_arithmetic(t):
+    diff = np.diff(t)
+    mi =np.min(diff)
+    mx =np.max(diff)
+    avg = np.mean(diff)
+    return (mx-mi)/avg < 0.001
 
 def data_dict_to_exp(data,index,run_index):
+
     if run_index == 'new':
         run_index = raw_data.next_run(index,1)[0]
     else:
@@ -693,6 +787,12 @@ def data_dict_to_exp(data,index,run_index):
     else:
         raw_data.experiment[index][run_index].update(data['meta'])
         raw_data.experiment_raw[index][run_index].update(data['raw'])
+
+    for curve in raw_data.experiment[index][run_index]:
+        if curve.startswith('A'):
+            if raw_data.experiment[index][run_index][curve].get('integrate',None):
+                generate_integration_from_para(run_index,curve)
+
     raw_data.experiment_to_save.update({index:'upload'})
     info_box.text = info_deque('Curve {} uploaded to run {}.'.format(curve[0],run_index))
     sd_run_list.options = runs_menu_generator(sd_experiment_list.value)
@@ -783,9 +883,6 @@ def it_add_button_cb():
     plot_para.update(analysis=['integrate-area','integrate-mass','integrate-label','integrate-percent'])
     sync_plot([run_index],**plot_para)
 
-
-
-
 def _it_add_button_cb(run_index):
     """
     add integration
@@ -849,7 +946,7 @@ def an_add_button_cb():
         height = float(an_height.value)
         label = an_label.value
         signal=raw_data.experiment_raw[index][run_index][curve]['signal']
-        time_ = raw_data.experiment_raw[index][run_index][curve]['time']
+        time_ = raw_data.experiment_raw[index][run_index][curve].get('volume',None)  or raw_data.experiment_raw[index][run_index][curve].get('time',None)
         delta_t = (time_[1]-time_[0])/(time_[2]-1)
         y_position = signal[int(round((x_position-time_[0])/delta_t))]
     except:
@@ -1049,8 +1146,9 @@ def upload_file_source_cb(attr,old,new):
             run_index = sd_run_list.value[0]
         except:
             run_index = 'new'
-        data_dict_to_exp(data,index,run_index)
         upload_file_source.data={'file_contents':['none'],'file_name':['nofile']}
+        data_dict_to_exp(data,index,run_index)
+
 
 def sd_save_data_cb():
     cur = time.time()
@@ -1233,7 +1331,7 @@ def vd_auto_align_cb():
         return None
     raw_data.experiment_to_save.update([(i.split('-')[0],'sync') for i in runindexlist])
     toalign_run = toalign.split('-')[0]
-    time=raw_data.experiment_raw[toalign_run][toalign][curve]['time']
+    time=raw_data.experiment_raw[toalign_run][toalign][curve].get('time',None) or raw_data.experiment_raw[toalign_run][toalign][curve].get('volume',None)
     signal=raw_data.experiment_raw[toalign_run][toalign][curve]['signal']
     raw_data.experiment[toalign_run][toalign][curve].update(align_offset=[0,0,1])
     timesignal=sorted([i for i in zip(np.linspace(*time),signal) if x1<i[0]<x2],key=lambda x:x[1])
@@ -1245,7 +1343,7 @@ def vd_auto_align_cb():
     indexlist = [i.split('-')[0] for i in runindexlist]
     for index,runindex in zip(indexlist,runindexlist):
         current_xoffset=raw_data.experiment[index][runindex][curve].get('align_offset',(0,0,1))[0] if vd_align_mode.active else 0
-        time=raw_data.experiment_raw[index][runindex][curve]['time']
+        time=raw_data.experiment_raw[index][runindex][curve].get('time',None) or raw_data.experiment_raw[index][runindex][curve].get('volume',None)
         signal=raw_data.experiment_raw[index][runindex][curve]['signal']
         timesignal= sorted([i for i in zip(np.linspace(*time),signal) if (x1-current_xoffset)<i[0]<(x2-current_xoffset)],key=lambda x:x[1])
         _min,_max=timesignal[0][1],timesignal[-1][1]

@@ -4,3 +4,8 @@ select
     overflow-x: auto;
     overflow-y: auto;
 }
+/*
+select[multiple]:focus option:checked
+{
+    overflow-x: auto;
+} */
