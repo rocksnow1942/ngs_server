@@ -1278,10 +1278,6 @@ def login_btn_callback():
 def login_user_cb(attr,old,new):
     login_btn_callback()
 
-# def refresh_time_cb():
-#     ltime = datetime.datetime.now()
-#     botton_spacer.text = ('\n'*2+' '*83+'Today is : '+ltime.strftime('%Y-%m-%d, %a')+','
-#                           + '\tCurrent time: '+ltime.strftime('%I:%M:%S %p')+"\n\n"+' '*107+'Aptitude Medical Systems, Inc.')
 
 def vd_align_mode_cb(status):
     on = 'ON' if status else 'OFF'
