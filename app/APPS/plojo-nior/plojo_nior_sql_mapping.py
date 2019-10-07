@@ -24,18 +24,20 @@ def load_shelve_to_sql(filepath):
         for key, item in hd.items():
             if key!='index' and (not key.endswith('raw')):
                 for er,er_item in item.items():
-                    exp = er.split('-')[0]
-                    index = er.split('-')[1]
-                    if Plojonior_Data.query.get((exp,index)):
-                        u = Plojonior_Data.query.get((exp, index))
-                        u.meta = er_item 
-                        u.raw = hd[exp+'raw'][er]
-                    else:
-                        new = Plojonior_Data(exp_id=exp, run=index, _meta=json.dumps(
-                            er_item), _data=json.dumps(hd[exp+'raw'][er]))
-                        print("added new {}-{}".format(exp,index))
-                        db.session.add(new)
-                    db.session.commit()
+                    exp,index = er.split('-')
+                    try:
+                        if Plojonior_Data.query.get((exp,index)):
+                            u = Plojonior_Data.query.get((exp, index))
+                            u.meta = er_item 
+                            u.raw = hd[exp+'raw'][er]
+                        else:
+                            new = Plojonior_Data(exp_id=exp, run=index, _meta=json.dumps(
+                                er_item), _data=json.dumps(hd[exp+'raw'][er]))
+                            print("added new {}-{}".format(exp,index))
+                            db.session.add(new)
+                        db.session.commit()
+                    except:
+                        print("*** failed {}".format(er))
 
 # define raw data class and load rawdata.
 class Data():
