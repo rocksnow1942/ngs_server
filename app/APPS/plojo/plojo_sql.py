@@ -1,4 +1,3 @@
-import json
 import sys,pathlib
 filepath = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.append(str(filepath))
