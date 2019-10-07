@@ -1,10 +1,10 @@
-SECRET_KEY=998e01010b0247b68b0dbf3fe39752b4
+SECRET_KEY=******** generated from >>> python -c "import uuid; print(uuid.uuid4().hex)"
 DATABASE_URL=mysql+pymysql://ngs_server:ngs_server_password@localhost:3306/ngs_server
 MAIL_SERVER=smtp.googlemail.com
 MAIL_PORT=587
 MAIL_USE_TLS=1
-MAIL_USERNAME=rocksnow1942@gmail.com
-MAIL_PASSWORD=kanghui06
+MAIL_USERNAME=********************** (email allow low security application)
+MAIL_PASSWORD=**********************
 UPLOAD_FOLDER=/home/hui/ngs_server/app/cache/ngs_data_upload
 ALLOWED_EXTENSIONS={'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','csv','sql'}
 PAGE_LIMIT=10
