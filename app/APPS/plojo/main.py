@@ -587,7 +587,7 @@ def sd_load_data_to_table(data):
 
 def check_consistency():
     index = Data().index
-    data_index = Data.all_experiment_index()
+    data_index = set(Data.all_experiment_index())
     index_ = set()
     index_.update([i for j in index.values() for i in j])
     index_x = index_ - data_index
@@ -601,7 +601,7 @@ def check_consistency():
 
 def clean_redundancy():
     index = Data().index
-    data_index = Data.all_experiment_index()
+    data_index = set(Data.all_experiment_index())
     index_ = set()
     index_.update([i for j in index.values() for i in j])
     index_x = index_ - data_index
@@ -1090,6 +1090,7 @@ def sd_save_data_cb():
     cf_select_data.options = menu_generator(save_entry_list)
     cf_select_data.title='Select Experiment Data To View ( ' + str(len(cf_select_data.options)) + ' items)'
     raw_data.index[project].update(save_entry_list)
+    raw_data.index_to_save.update({project:'sync'})
     save_data()
     temp_data_to_save = 'None'
     upload_file_source.data={'file_contents':[],'file_name':[]}
