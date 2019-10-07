@@ -1,8 +1,8 @@
 import json
 import sys,pathlib
-# filepath = os.path.dirname(__file__)
 filepath = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.append(str(filepath))
+
 from app import db
 from app.plojo_models import Plojonior_Data, Plojonior_Index
 from app import create_app
@@ -37,8 +37,59 @@ def load_shelve_to_sql(filepath):
                         db.session.add(new)
                     db.session.commit()
 
-# define raw data class and load rawdata.
+
 class Data():
+    def __init__(self, data_index):
+        self.index = data_index  # {0-vegf:set(), 1-Ang2:set()}
+        self.experiment = {}  # {ams0:{},ams1:{}}
+        self.experiment_to_save = {}
+        self.experiment_load_hist = []
+        self.exp_selection = set()
+        self.max_load = 2000
+
+    def new_index(self, name):
+        entry = list(self.index.keys())
+        if not entry:
+            entry = ['0']
+        entry = sorted(entry, key=lambda x: int(
+            x.split('-')[0]), reverse=True)[0]
+        entry_start = int(entry.split('-')[0])+1
+        new_entry_list = str(entry_start)+'-'+name
+        self.index.update({new_entry_list: set()})
+        return new_entry_list
+
+    def next_exp(self, n):
+        entry = set()
+        for key, item in self.index.items():
+            entry.update(item)
+        entry = list(entry)
+        if not entry:
+            entry_start = 0
+        else:
+            entry = sorted(entry, key=lambda x: int(x.split('-')[0][3:]))[-1]
+            entry_start = int(entry.split('-')[0][3:])+1
+        new_entry_list = ['ams'+str(i)
+                          for i in range(entry_start, entry_start+n)]
+        return new_entry_list
+
+    def load_experiment(self, new):
+        if self.max_load < len(self.experiment.keys()):
+            to_delete = []
+            for i in self.experiment_load_hist[:-int(self.max_load*0.7)]:
+                if i not in self.experiment_to_save.keys():
+                    del self.experiment[i]
+                    to_delete.append(i)
+            self.experiment_load_hist = [
+                i for i in self.experiment_load_hist if i not in to_delete]
+        new_load = list(set(new)-raw_data.experiment.keys())
+        if new_load:
+            with shelve.open(os.path.join(file_save_location, file_name)) as hd:
+                for i in new_load:
+                    raw_data.experiment[i] = hd[i]
+                    self.experiment_load_hist.append(i)
+
+# define raw data class and load rawdata.
+class Plojo_nior_Data():
     """
     class to interact with shelve data storage.
     data stored in shelvs as follows:

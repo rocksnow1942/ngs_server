@@ -42,22 +42,6 @@ current_time = datetime.datetime.now()
 upload_file_source = ColumnDataSource({'file_contents':[],'file_name':[]})
 
 
-# file_save_location = path.join(path.dirname(__file__),'data')
-
-
-
-
-# # load file write to shelve file.
-# import json
-# with open(path.join(file_save_location, file_name+'.json'), 'rt') as f:
-#     raw_data = json.load(f)
-# with shelve.open(path.join(file_save_location,'plojo_data'),writeback=True) as f:
-#     for key in f.keys():
-#         del f[key]
-#     f['index'] = {'0-temporary':set(raw_data.keys())}
-#     for i,j in raw_data.items():
-#         f[i]=j
-#     f.sync()
 
 assay_type_options = ['beads-kd', 'beads-ic_50', 'beads-ric_50','assay-linear','N/A']
 search_field_options = [('name','Experiment Name'),('date', 'Experiment Date'), ('tag', 'Experiment Tag'),('flag','Flag'), ('note', 'Note'), ('author', 'Author'),
