@@ -13,13 +13,12 @@ import os,copy
 import glob
 import base64
 import shelve
-from _utils import file_save_location,temp_position,file_name
 from dotenv import load_dotenv
+from plojo_sql import Data
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 load_dotenv(os.path.join(basedir, '.env'))
-
 
 # to start server:
 #
@@ -29,7 +28,7 @@ load_dotenv(os.path.join(basedir, '.env'))
 #bokeh serve --allow-websocket-origin 192.168.86.29:5006 "C:\Users\aptitude\CloudStation\R&D\Projects\Hui Kang\Scripts\plojo\plojo.py"
 
 # common variables:
-global bounds_temp_saver,copyed_items,info_change_keep, raw_data, file_save_location, file_name, current_time, info_deque_holder,plot_scale,plot_format,temp_data_to_save
+global bounds_temp_saver,copyed_items,info_change_keep, raw_data, current_time, info_deque_holder,plot_scale,plot_format,temp_data_to_save
 plot_scale = 'log'
 plot_CI = 'hide'
 copyed_items = {}
@@ -41,6 +40,7 @@ info_change_keep = dict.fromkeys(
 current_time = datetime.datetime.now()
 upload_file_source = ColumnDataSource({'file_contents':[],'file_name':[]})
 
+raw_data=Data()
 
 
 assay_type_options = ['beads-kd', 'beads-ic_50', 'beads-ric_50','assay-linear','N/A']
@@ -58,55 +58,6 @@ plot_.add_glyph(updatenote,update_)
 norm_plot = figure(plot_width=600, plot_height=400)
 norm_plot.annulus(x=[1, 2, 3], y=[1, 2, 3], color="orangered",
               inner_radius=0.2, outer_radius=0.5)
-
-# Class definition
-
-class Data():
-    def __init__(self,data_index):
-        self.index = data_index #{0-vegf:set(), 1-Ang2:set()}
-        self.experiment = {} # {ams0:{},ams1:{}}
-        self.experiment_to_save = {}
-        self.experiment_load_hist = []
-        self.exp_selection = set()
-        self.max_load = 2000
-    def new_index(self,name):
-        entry = list(self.index.keys())
-        if not entry:
-            entry = ['0']
-        entry = sorted(entry, key=lambda x: int(x.split('-')[0]), reverse=True)[0]
-        entry_start = int(entry.split('-')[0])+1
-        new_entry_list=str(entry_start)+'-'+name
-        self.index.update({new_entry_list:set()})
-        return new_entry_list
-    def next_exp(self,n):
-        entry = set()
-        for key,item in self.index.items():
-            entry.update(item)
-        entry = list(entry)
-        if not entry:
-            entry_start = 0
-        else:
-            entry = sorted(entry, key=lambda x: int(x.split('-')[0][3:]))[-1]
-            entry_start = int(entry.split('-')[0][3:])+1
-        new_entry_list=['ams'+str(i) for i in range(entry_start, entry_start+n)]
-        return new_entry_list
-    def load_experiment(self,new):
-        if self.max_load < len(self.experiment.keys()):
-            to_delete =[]
-            for i in self.experiment_load_hist[:-int(self.max_load*0.7)]:
-                if i not in self.experiment_to_save.keys():
-                    del self.experiment[i]
-                    to_delete.append(i)
-            self.experiment_load_hist = [i for i in self.experiment_load_hist if i not in to_delete ]
-        new_load = list(set(new)-raw_data.experiment.keys())
-        if new_load:
-            with shelve.open(os.path.join(file_save_location,file_name)) as hd:
-                for i in new_load:
-                    raw_data.experiment[i] = hd[i]
-                    self.experiment_load_hist.append(i)
-
-with shelve.open(path.join(file_save_location,file_name)) as f:
-    raw_data = Data(f['index'])
 
 # functions
 def project_menu_generator():
@@ -475,53 +426,19 @@ def menu_generator(items):
 # utility functions
 def save_data():
     global raw_data
-    if len(raw_data.experiment_to_save.keys())==0:
-        info_box.text = info_deque('No change was made.')
-        pass
-    else:
-        file_list = sorted(glob.glob(path.join(temp_position,file_name+'*')))
-        if len(file_list)>90:
-            os.remove(file_list[0])
-            os.remove(file_list[1])
-            os.remove(file_list[2])
-        if len(file_list)>9:
-            last_save = path.getmtime(file_list[-1])
-        else:
-            last_save = 0.0
-        cur = time.time()
-
-        if cur-last_save> 10800:
-            source_1 = os.path.join(file_save_location,file_name)
-            dest = os.path.join(temp_position,file_name+'_'+datetime.datetime.now().strftime('%Y%m%d%H%M'))
-            with shelve.open(source_1) as old:
-                with shelve.open(dest) as new:
-                    for key,item in old.items():
-
-                        new[key] = old[key]
-
-        with shelve.open(os.path.join(file_save_location,file_name),writeback=False) as hd:
-            # print(raw_data.index)
-            hd['index'] = raw_data.index
-            for key,item in raw_data.experiment_to_save.items():
-                if key == 'index':
-                    pass
-                elif item == 'sync':
-                    hd[key]=raw_data.experiment[key]
-                elif item == 'del':
-                    del hd[key]
-                else:
-                    info_box.text = info_deque('Saving error occured!.!')
-        info_box.text = info_deque('{} changes have been saved'.format(len(raw_data.experiment_to_save.keys())))
-        raw_data.experiment_to_save = {}
+    saves = len(raw_data.experiment_to_save.keys()) + len(raw_data.index_to_save.keys())
+    raw_data.save_data()
+    info_box.text = info_deque('{} changes have been saved'.format(saves))
+   
 
 def load_data(reload_menu=True,reload_data=True):
     info_box.text = info_deque('Start Loading data...')
     global raw_data
-    with shelve.open(path.join(file_save_location,file_name)) as f:
-        if reload_data:
-            raw_data = Data(f['index'])
-        else:
-            raw_data.index = f['index']
+   
+    if reload_data:
+        raw_data = Data()
+    else:
+        raw_data.index = Data().index
     if reload_menu:
         project_list.options = project_menu_generator()
         project_list.value = []
@@ -669,9 +586,8 @@ def sd_load_data_to_table(data):
         pass
 
 def check_consistency():
-    with shelve.open(os.path.join(file_save_location,file_name)) as hd:
-        index = hd['index']
-        data_index = hd.keys()-set(['index'])
+    index = Data().index
+    data_index = Data.all_experiment_index()
     index_ = set()
     index_.update([i for j in index.values() for i in j])
     index_x = index_ - data_index
@@ -684,22 +600,23 @@ def check_consistency():
         info_box.text = info_deque('No mismatch found.')
 
 def clean_redundancy():
-    with shelve.open(os.path.join(file_save_location,file_name)) as hd:
-        index = hd['index']
-        data_index = hd.keys()-set(['index'])
+    index = Data().index
+    data_index = Data.all_experiment_index()
     index_ = set()
     index_.update([i for j in index.values() for i in j])
     index_x = index_ - data_index
     data_x = data_index -index_
     if index_x:
         for i in raw_data.index.keys():
-            raw_data.index[i] -= index_x
+            if index_x & raw_data.index[i]:
+                raw_data.index[i] -= index_x
+                raw_data.index_to_save.update({i:'sync'})
         info_box.text = info_deque('Index removed: {}'.format(index_x))
-        raw_data.experiment_to_save.update(index='sync')
+        
     elif data_x:
         raw_data.index['0-temporary'].update(data_x)
         info_box.text = info_deque('Added to temporary: {}'.format(data_x))
-        raw_data.experiment_to_save.update(index='sync')
+        raw_data.index_to_save.update({'0-temporary':'sync'})
     else:
         info_box.text = info_deque('No mismatch found.')
     save_data()
@@ -989,8 +906,11 @@ def vd_delete_data_cb():
     for i in to_delete:
         del raw_data.experiment[i]
         for j,k in raw_data.index.items():
-            k.discard(i)
+            if i in k:
+                k.discard(i)
+                raw_data.index_to_save.update({j:'sync'})
         raw_data.experiment_to_save.update({i:'del'})
+        
     info_box.text = info_deque('Selected data was deleted.')
     cf_select_data_menu = cf_select_data.options
     selected_data = cf_select_data.value
@@ -1271,12 +1191,14 @@ def edit_dropdown_cb(attr,old,new):
             for key,item in copyed_items.items():
                 if key == 'cut':
                     for i in raw_data.index.keys():
-                        raw_data.index[i] -= item
+                        if item & raw_data.index[i]:
+                            raw_data.index[i] -= item
+                            raw_data.index_to_save.update({i:"sync"})
                     raw_data.index[id] |= item
                 elif key == 'copy':
                     raw_data.index[id] |= item
                 info_box.text = info_deque('{} data pasted.'.format(len(item)))
-            raw_data.experiment_to_save.update(index='sync')
+            raw_data.index_to_save.update({id:"sync",})
             copyed_items = {}
             project_list.options = project_menu_generator()
             project_list.value = []
@@ -1298,7 +1220,7 @@ def project_dropdown_cb(attr,old,new):
             else:
                 for i in old_:
                     raw_data.index['0-temporary'].update(raw_data.index.pop(i))
-                    raw_data.experiment_to_save.update(index='sync')
+                    raw_data.index_to_save.update({'0-temporary':'sync',i:'del'})
                     project_list.options = project_menu_generator()
                     project_list.value = []
         else:
@@ -1309,7 +1231,7 @@ def project_dropdown_cb(attr,old,new):
                 if new == 'create':
                     new_index = raw_data.new_index(new_name)
                     project_list.options = project_menu_generator()
-                    raw_data.experiment_to_save.update(index='sync')
+                    raw_data.index_to_save.update({new_index:'sync'})
                     project_list.value = [new_index]
                     save_data()
                 elif new == 'rename':
@@ -1318,7 +1240,7 @@ def project_dropdown_cb(attr,old,new):
                     else:
                         index_ = old_[0].split('-')[0]+'-'+new_name
                         raw_data.index[index_]=raw_data.index.pop(old_[0])
-                        raw_data.experiment_to_save.update(index='sync')
+                        raw_data.index_to_save.update({old_[0]: index_})
                         project_list.options = project_menu_generator()
                         project_list.value = [index_]
                         save_data()

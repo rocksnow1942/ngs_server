@@ -1,10 +1,6 @@
-
 from app import db
-
 from flask_login import UserMixin, current_user
-
 from flask import current_app
-
 import json
 from sqlalchemy import Column, String, ForeignKey, DateTime, func, ForeignKey
 from sqlalchemy.dialects import mysql
@@ -35,38 +31,27 @@ class Plojonior_Data(db.Model):
         return f"{self.exp_id}-{self.run}"
 
     @property
-    def meta_json(self):
-        return json.loads(self._meta)
-
-    @property
-    def raw_json(self):
-        return json.loads(self._data)
-
-    @property
     def index(self):
         return self.__repr__()
 
     @staticmethod
-    def sync_obj(key,newkey=None,meta={},raw={}):
+    def sync_obj(key,newkey=None,meta=None,raw=None):
         exp_id,run = key.split('-')
         u = Plojonior_Data.query.get((exp_id, run))
         try:
             if not u:
                 u = Plojonior_Data(exp_id=exp_id,run=run)
                 db.session.add(u)
-            if newkey:
+            if newkey!=None:
                 u.exp_id,u.run = newkey.split('-')
-            if meta:
+            if meta!=None:
                 u.meta=meta
-            if raw: 
+            if raw!=None: 
                 u.raw=raw
             db.session.commit()
         except Exception as e:
             print(e)
                   
-
-
-
 class Plojonior_Index(db.Model):
     __tablename__ = 'plojo_nior_index'
     exp = Column(String(20), primary_key=True)
@@ -89,3 +74,51 @@ class Plojonior_Index(db.Model):
         for k,i in value.items():
             setattr(u,k,i)
         db.session.commit()
+
+class Plojo_Data(db.Model):
+    __tablename__ = 'plojo_data'
+    index = Column(String(300), primary_key=True)
+    _data = Column(mysql.TEXT)
+    data = JSON_descriptor('_data')
+
+    def __repr__(self):
+        return f"{self.index}"
+
+    @staticmethod
+    def sync_obj(key, data=None):
+        u = Plojo_Data.query.get(key)
+        try:
+            if not u:
+                u = Plojo_Data(index=key)
+                db.session.add(u)
+            if data!=None:
+                u.data = data
+            db.session.commit()
+        except Exception as e:
+            print(e)
+
+
+class Plojo_Project(db.Model):
+    __tablename__ = 'plojo_project'
+    index = Column(String(300), primary_key=True)
+    _data = Column(mysql.LONGTEXT)
+    data = JSON_descriptor('_data')
+
+    def __repr__(self):
+        return f"Project {self.index}"
+    
+    @staticmethod
+    def sync_obj(key,newkey=None, data=None):
+        u = Plojo_Project.query.get(key)
+        # try:
+       
+        if not u:
+            u = Plojo_Project(index=key)
+            db.session.add(u)
+        if data!= None:
+            u.data = data
+        if newkey!=None:
+            u.index=newkey
+        db.session.commit()
+        # except Exception as e:
+        #     print(e)
