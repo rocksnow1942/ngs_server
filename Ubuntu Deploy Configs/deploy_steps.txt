@@ -126,3 +126,8 @@
         
         add hosts file to a separate file, at the path in addn-hosts field from dnsmasq.conf file.
         (custom_hosts)
+
+
+15. setup PLOJO app .env files 
+    in ngs_server/app/APPS/.env
+    BOKEH_ALLOW_WS_ORIGIN=www.ams.com,localhost:5006,ams.com,h-kang.com,www.h-kang.com,ams.c,www.ams.c,ams
