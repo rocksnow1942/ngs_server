@@ -53,6 +53,8 @@ def create_app(config_class = Config,keeplog=True):
     from app.ngs import bp as ngs_bp
     app.register_blueprint(ngs_bp, url_prefix='/ngs')
 
+    from app.ppt import bp as ppt_bp
+    app.register_blueprint(ppt_bp, url_prefix='/ppt')
 
     from app.upload import bp as upload_bp
     app.register_blueprint(upload_bp,url_prefix='/upload')
