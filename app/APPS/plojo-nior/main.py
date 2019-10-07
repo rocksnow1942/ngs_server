@@ -16,7 +16,7 @@ basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 load_dotenv(os.path.join(basedir, '.env'))
 
-from sql_mapping import Data
+from plojo_nior_sql_mapping import Data
 
 # declare globals
 global info_change_keep,data_index,info_deque_holder,current_time,temp_data_to_save,raw_data,axis_label_dict,user_pwd,copyed_runs,analysis_temp_keep
