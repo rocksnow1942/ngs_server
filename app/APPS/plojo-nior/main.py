@@ -81,7 +81,7 @@ class Data():
         self.experiment_raw = {}
         self.experiment_load_hist = []
         self.max_load = 200
-        self.cds = {}
+        
     def next_index(self,n):
         entry = list(self.index.keys())
         if not entry:
@@ -202,6 +202,7 @@ def generate_cds(run_index,**kwargs):
 
 def plot_generator(plot_list=[],**kwargs):
     # box_select_source.data=dict(x=[], y=[], width=[], height=[]) # empty the data.
+
     plot_backend = kwargs.get('plot_backend','canvas')
     primary_axis = kwargs.get('primary_axis','A')
     secondary_axis=kwargs.get('secondary_axis','B')
@@ -215,7 +216,7 @@ def plot_generator(plot_list=[],**kwargs):
         use_colorp = True
         for run_index in plot_list:
             primary_axis_labelset.update(raw_data.experiment[run_index.split('-')[0]][run_index].get(primary_axis,{}).get('y_label','AU'))
-            secondary_axis_labelset.update(raw_data.experiment[run_index.split('-')[0]][run_index].get(secondary_axis).get('y_label','AU'))
+            secondary_axis_labelset.update(raw_data.experiment[run_index.split('-')[0]][run_index].get(secondary_axis,{}).get('y_label','AU'))
         if len(primary_axis_labelset)==1:
             primary_yaxis_label = list(primary_axis_labelset)[0]
         else:
@@ -230,7 +231,6 @@ def plot_generator(plot_list=[],**kwargs):
         run_index=plot_list[0]
         primary_yaxis_label = raw_data.experiment[run_index.split('-')[0]][run_index].get(primary_axis,{}).get('y_label','AU')
         secondary_yaxis_label = raw_data.experiment[run_index.split('-')[0]][run_index].get(secondary_axis,{}).get('y_label','AU')
-
     p=figure(plot_width=1200,plot_height=450,tools=tools_list,toolbar_location='above')
 
     p.toolbar.active_inspect = None
@@ -250,7 +250,9 @@ def plot_generator(plot_list=[],**kwargs):
 
     x_axis_label = set()
     for i,run_index in enumerate(plot_list):
+
         cds_dict = generate_cds(run_index,**kwargs)
+
         tag = raw_data.experiment[run_index.split('-')[0]][run_index].get('note','')
 
         if 'time' in raw_data.experiment_raw[run_index.split('-')[0]][run_index].get(primary_axis,{}).keys():
