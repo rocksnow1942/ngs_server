@@ -91,12 +91,12 @@ def generate_cds(run_index,**kwargs):
         label_cordinate_y = curve_integrate.get('label_cordinate_y',[])
         label_ = curve_integrate.get('area',[])
         label = curve_integrate.get('label',[])
-        label_area = ['{:.4g}'.format(i) for i in label_]
-        integrate_percent = ['{:.2f}%'.format(i*100/(sum(label_))) for i in label_]
+        label_area = ['{:.1f}'.format(i) for i in label_]
+        integrate_percent = ['{:.1f}%'.format(i*100/(sum(label_))) for i in label_]
         if x_unit == 'time':
-            label_mass = ['{:.4g}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
+            label_mass = ['{:.1f}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
         else:
-            label_mass = ['{:.4g}ug'.format(i*extinction_coeff/1000) for i in label_]
+            label_mass = ['{:.1f}ug'.format(i*extinction_coeff/1000) for i in label_]
         temp_cds = ColumnDataSource( {'time':curve_time,'signal':curve_signal})
         integration_cds = ColumnDataSource({'integrate_percent':integrate_percent,'integrate_gap_x':integrate_gap_x,'integrate_gap_y':integrate_gap_y,'label_cordinate_x':label_cordinate_x,'label_cordinate_y':label_cordinate_y,'label_area':label_area,'label_mass':label_mass,'label':label})
 
