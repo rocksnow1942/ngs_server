@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib.figure import Figure
+
 from app import db,login
+
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, current_user
@@ -63,7 +65,6 @@ class SearchableMixin():
         
     @classmethod 
     def after_commit(cls,session,*args,**kwargs):
-        print('***added',session._changes)
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
                 add_to_index(obj.__tablename__, obj)
@@ -791,9 +792,6 @@ class Task(db.Model,BaseDataModel):
 #     date = Column(DateTime(), default=datetime.now)
 #     parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
 #     children = relationship("Rounds")
-
-
-
 
 
 

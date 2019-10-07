@@ -13,7 +13,7 @@ from app.utils.analysis import DataReader
 
 
 
-app = create_app()
+app = create_app(keeplog=False)
 app.app_context().push()
 
 def _set_task_progress(progress):
