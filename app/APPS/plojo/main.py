@@ -754,7 +754,7 @@ vd_new_search = Button(label='Search',button_type='success',width=140)
 vd_refine_search = Button(label='Refine',button_type='success',width=140)
 
 vd_search_refine = row(vd_new_search,vd_refine_search)
-options=column(vd_search_refine,row(vd_delete_data,vd_save_info),widgetbox(cf_assay_type, cf_filter, cf_search_field),)
+options=column(vd_search_refine,row(vd_delete_data,vd_save_info),widgetbox(cf_filter,cf_assay_type, cf_search_field),)
 vd_name = TextInput(title='Experiment Name : ')
 vd_author = TextInput(title='Author :')
 vd_flag = TextInput(title='Flag :')
