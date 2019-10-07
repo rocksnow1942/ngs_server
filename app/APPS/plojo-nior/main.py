@@ -1150,18 +1150,20 @@ def upload_file_source_cb(attr,old,new):
         data_dict_to_exp(data,index,run_index)
 
 
+
 def sd_save_data_cb():
     cur = time.time()
     file_list = sorted(glob.glob(os.path.join(temp_position,file_name+'*')))
-    if len(file_list)>90:
+
+    if len(file_list)>30:
         os.remove(file_list[0])
         os.remove(file_list[1])
         os.remove(file_list[2])
-    if len(file_list)>9:
+    if len(file_list)>1:
         last_save = os.path.getmtime(file_list[-1])
     else:
         last_save = 0.0
-    if cur-last_save> 10800:
+    if cur-last_save> 3600*24:
         source_1 = os.path.join(file_path,file_name)
         dest = os.path.join(temp_position,file_name+'_'+datetime.datetime.now().strftime('%Y%m%d%H%M'))
         with shelve.open(source_1) as old:
@@ -1278,10 +1280,6 @@ def login_btn_callback():
 def login_user_cb(attr,old,new):
     login_btn_callback()
 
-# def refresh_time_cb():
-#     ltime = datetime.datetime.now()
-#     botton_spacer.text = ('\n'*2+' '*83+'Today is : '+ltime.strftime('%Y-%m-%d, %a')+','
-#                           + '\tCurrent time: '+ltime.strftime('%I:%M:%S %p')+"\n\n"+' '*107+'Aptitude Medical Systems, Inc.')
 
 def vd_align_mode_cb(status):
     on = 'ON' if status else 'OFF'

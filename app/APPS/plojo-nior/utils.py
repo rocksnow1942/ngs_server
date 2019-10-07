@@ -2,7 +2,7 @@ from os import path
 import platform
 
 
-localmode=False
+localmode=True
 
 
 systemname = platform.node()
