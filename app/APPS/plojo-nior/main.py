@@ -636,7 +636,7 @@ def process_df_upload(df):
     meta.update(speed=run_speed)
     unit=df.iloc[1,0]
     unit = 'time' if unit=='min' else 'volume'
-    integrate={}
+    integrate=dict(inte_para=[],label=[])
     for _i,_d in zip(df.columns[::2],df.columns[1::2]):
         data=df[_d].dropna().tolist()
         time=df[_i].dropna().tolist()
@@ -660,7 +660,6 @@ def process_df_upload(df):
             curve = 'P'
             y_label = 'Pressure MPa'
         elif 'Fractions' in tag:
-            integrate.update(inte_para=[],label=[])
             puretime=time[2:]
             labels=data[1:-1]
             for i,(t,l) in enumerate(zip(puretime,labels)):
