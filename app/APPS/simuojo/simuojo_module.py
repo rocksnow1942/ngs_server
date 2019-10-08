@@ -265,6 +265,20 @@ class ic50_simu():
             result=np.append(result,real_root)
         return result
 
+        # a = [a]*len(a_0)
+        # d = [d]* len(a_0)
+        #
+        # for arg in zip(a,b,c,d):
+        #     root = np.roots(arg)
+        #     real_root = [i.real for i in root if 0<i.real<min_rv]
+        #     if real_root:
+        #         real_root = min(real_root)
+        #     else:
+        #         real_root=0
+        #     result=np.append(result,real_root)
+        # return result
+
+
 
     def randomizer(self,signal,linear=0.001, proportional=0.001,seed=42):
         np.random.seed(seed)

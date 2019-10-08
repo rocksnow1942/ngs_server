@@ -36,6 +36,8 @@ json.dumps(data['ams999'])
 a=set('abc')
 a
 
-b=set('bcd')
+b=set('d')
 
-a & b
+bool(a & b)
+
+[]==None
