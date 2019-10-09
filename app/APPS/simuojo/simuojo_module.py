@@ -1438,6 +1438,7 @@ class general_equilibrium_simu():
             self.save_formula()
             self.load_menu.options = [('new','Create New Formula')  ] + [(i,i) for i in self.formulas.keys()]
             self.load_menu.value = name
+            self.name.value = name
             self.display.text = self.info(f"\"{name}\" saved.")
 
     @display_errors
