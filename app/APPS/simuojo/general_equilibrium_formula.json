@@ -1,18 +1,83 @@
 {
-    "active": {
-        "Kd Two curves Demo": [
-            "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
-            "A0 , B0, Kd1",
-            "A,B,AB,",
-            "",
-            "",
-            "AB/B0,B/B0",
-            "A0",
-            "1",
-            "Kd1/100,Kd1*100"
-        ]
-    },
-    "deleted": {
-        "new": null
-    }
+  "active": {
+    "Kd Two curves Demo": [
+      "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd1",
+      "A,B,AB,",
+      "",
+      "",
+      "AB/B0,B/B0",
+      "A0",
+      "1",
+      "Kd1/100,Kd1*100"
+    ],
+    "kd against aptamer": [
+      "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd1",
+      "A,B,AB,",
+      "",
+      "",
+      "AB/B0,B/B0",
+      "B0",
+      "1",
+      "Kd1/100,Kd1*100"
+    ],
+    "Kd B0 change": [
+      "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd1",
+      "A,B,AB,",
+      "",
+      "",
+      "AB/A0,A/A0",
+      "B0",
+      "1",
+      "Kd1/1000,Kd1*1000"
+    ],
+    "Kd narrow boundary": [
+      "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd1",
+      "A,B,AB,",
+      "0,0,0",
+      "A0,B0,min(A0,B0)",
+      "AB/B0,B/B0",
+      "A0",
+      "1",
+      "Kd1/100,Kd1*100"
+    ],
+    "RIC50 Coop": [
+      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
+      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
+      "V, A, VA, VAA, R, RV, RVA, RVAA",
+      "0,0,0,0,0,0,0,0",
+      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
+      "RV",
+      "A0",
+      "1",
+      ""
+    ],
+    "RIC50 Coop Compare VEGF on Receptor": [
+      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
+      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
+      "V, A, VA, VAA, R, RV, RVA, RVAA",
+      "0,0,0,0,0,0,0,0",
+      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
+      "RV+RVA+RVAA,RV,RVA,RVAA,",
+      "A0",
+      "",
+      "Kd1/1000,Kd1*1000"
+    ]
+  },
+  "deleted": {
+    "RIC50 Coop all VEGF on Receptor": [
+      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
+      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
+      "V, A, VA, VAA, R, RV, RVA, RVAA",
+      "0,0,0,0,0,0,0,0",
+      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
+      "RV+RVA+RVAA",
+      "A0",
+      "1",
+      ""
+    ]
+  }
 }

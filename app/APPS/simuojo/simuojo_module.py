@@ -5,7 +5,7 @@ import shelve
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models.glyphs import Text
 from bokeh.models import HoverTool,Slider,RangeSlider
-from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,MultiSelect
+from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,MultiSelect,RadioGroup
 from bokeh.layouts import widgetbox,column,row
 import numpy as np
 from simu_utils import file_save_location,file_name
@@ -1302,7 +1302,9 @@ class general_equilibrium_simu():
         self.infobox=Div(text='<h3>E.S.S. Parameters</h3>',width=200,height=30)
         self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
         # self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)  ])
-        self.curve = MultiSelect(title='Curve Selection',value=["0"],options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)],size=5,)
+        # self.curve = MultiSelect(title='Curve Selection',value=["0"],options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)],size=5,)
+        self.curve_labels=['Curve {}: {}'.format(i+1,self.linecolors[i].capitalize()) for i in range(5)]
+        self.curve = RadioGroup(labels=self.curve_labels,active=0)
         self.copy = Button(label='Copy Curve',button_type='success')
         self.plot = Button(label='Plot Curve',button_type='success',disabled=True)
         self.fit_data = {}
@@ -1318,7 +1320,7 @@ class general_equilibrium_simu():
         self.p.axis.visible = False
 
 
-        self.curve_box = widgetbox(self.infobox,self.curve,self.copy,self.plot,width=170)
+        self.curve_box = widgetbox(self.infobox,Div(text='<h4>Select Curve</h4>',width=200,height=30),self.curve,self.copy,self.plot,width=170)
         self.equation=TextAreaInput(title='Equations:', rows=10, cols=35, max_length=50000)
         self.kv = TextInput(title='Known Variables:')
         self.ukv = TextInput(title='Unknown Variables:')
@@ -1349,12 +1351,12 @@ class general_equilibrium_simu():
             i.on_change('value',self.create_formula_cb)
         self.load_menu.on_change('value',self.load_menu_cb)
         self.save.on_click(self.save_cb)
-        self.curve.on_change('value',self.curve_cb)
+        self.curve.on_change('active',self.curve_cb)
         self.copy.on_click(self.copy_cb)
         self.delete.on_click(self.delete_cb)
 
         # state values
-        self.layout =([column(self.p,self.formulainputs),column(self.curve_box,)],)
+        self.layout =([column(self.p,self.formulainputs),Div(text="",width=15),column(self.curve_box,)],)
         self.known_variable_inputs=[]
         self.formula_signature = []
         self.plot_signature = []
@@ -1394,24 +1396,21 @@ class general_equilibrium_simu():
 
     @display_errors
     def curve_cb(self,attr,old,new):
-        if len(new)>1:
-            self.curve.value=[new[0]]
-        else:
-            if self.curve_para.get(new[0],[]):
-                for i,j in zip(self.known_variable_inputs,self.curve_para.get(new[0],[])):
-                    i.value = j
+        if self.curve_para.get(new,[]):
+            for i,j in zip(self.known_variable_inputs,self.curve_para.get(new,[])):
+                i.value = j
 
     @display_errors
     def copy_cb(self):
-        curve = self.curve.value[0]
+        curve = self.curve.active
         if self.copy.button_type=='success':
             self.copy.button_type='warning'
             self.copy.label= '<Curve{}:{}> Copied.'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
         else:
             self.copy.button_type='success'
-            copyed = str(int(self.copy.label[6])-1)
+            copyed = (int(self.copy.label[6])-1)
             self.copy.label="Copy Curve"
-            self.curve_cb(1,1,[copyed])
+            self.curve_cb(1,1,copyed)
             self.curve_para[curve]=self.curve_para.get(copyed,[])
             self.fit_data[curve].data=self.fit_data[copyed].data
 
@@ -1448,7 +1447,7 @@ class general_equilibrium_simu():
     @display_errors
     def save_formula(self):
         with open(formula_loc,'wt') as f:
-            return json.dump({'active':self.formulas,'deleted':self.deleted_formula},f,indent=4)
+            return json.dump({'active':self.formulas,'deleted':self.deleted_formula},f,indent=2)
 
     def register_info_display(self,info):
         self.display=info
@@ -1465,7 +1464,7 @@ class general_equilibrium_simu():
         self.known_variable_inputs=[]
         for i in inputs:
             self.known_variable_inputs.append(TextInput(title=self.annotation.get(i,i),value="1"))
-        self.curve_box.children[4:]=self.known_variable_inputs
+        self.curve_box.children[5:]=self.known_variable_inputs
         self.plot.disabled=False
         self.generate_plot()
         self.curve_para={}
@@ -1587,13 +1586,13 @@ class general_equilibrium_simu():
     def generate_plot(self):
         against = self.formula_signature[4]
         primaryplot = self.plot_signature[0]
-        self.fit_data = {i: ColumnDataSource(data=self.generate_cds(mock=True)) for i in "01234"}
+        self.fit_data = {i: ColumnDataSource(data=self.generate_cds(mock=True)) for i in range(5)}
+        tools_list = "pan,ywheel_zoom,xwheel_zoom,box_zoom"
         p = figure(x_axis_label=self.annotation.get(self.formula_signature[4],self.formula_signature[4]),
                    y_axis_label=self.annotation.get(self.formula_signature[3],self.formula_signature[3]),
-                   x_axis_type='log')
-        p.title.text = 'ESS Components: {}'.format(" ".join(self.formula_signature[2]))
-        p.title_location='above'
-        for curve, color in zip("01234", self.linecolors):
+                   x_axis_type='log',toolbar_location='above',tools=tools_list)
+
+        for curve, color in enumerate(self.linecolors):
             p_1=p.line('x',primaryplot, source=self.fit_data[curve],line_color=color,line_width=2,legend=f" {primaryplot}")
             hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}/nM', '@x'),(f'{primaryplot}', '@{{{}}}'.format(primaryplot))],)
             p.add_tools(hover_tool_1)
@@ -1611,7 +1610,7 @@ class general_equilibrium_simu():
 
     @display_errors
     def plot_cb(self):
-        curve = self.curve.value[0]
+        curve = self.curve.active
         self.fit_data[curve].data=self.generate_cds()
         self.curve_para[curve]=[(i.value) for i in self.known_variable_inputs]
-        self.display.text = self.info('Plot {} generated.'.foramt(curve))
+        self.display.text = self.info('Plot {} generated.'.format(self.curve_labels[curve]))
