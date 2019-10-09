@@ -1418,6 +1418,7 @@ class general_equilibrium_simu():
     def load_menu_cb(self,attr,old,new):
         self.delete.label = 'Delete'
         self.delete.button_type = 'warning'
+        self.curve_para={}
         if new!='new':
             data = self.formulas.get(new)
             self.name.value = ""
@@ -1467,7 +1468,7 @@ class general_equilibrium_simu():
         self.curve_box.children[5:]=self.known_variable_inputs
         self.plot.disabled=False
         self.generate_plot()
-        self.curve_para={}
+        # self.curve_para={}
         self.display.text = self.info('Compile successful.')
 
     @display_errors
@@ -1478,14 +1479,14 @@ class general_equilibrium_simu():
         if notes:
             for line in notes[0].strip().split('\n'):
                 annotation.update({ line.split(":")[0].strip() : line.split(":")[1].strip()})
-        function,kv,ukv=self.prep_function(formula[1],formula[2],equation)
+        function,kv,ukv,eqkv=self.prep_function(formula[1],formula[2],equation)
         lb,ub = formula[3],formula[4]
         lb = lb or ",".join(["0"]*len(ukv))
         ub = ub or ",".join([f"max({','.join(kv)})"]*len(ukv))
         bound = f"([{lb}], [{ub}])"
-        ag_start = formula[7] or "1"
+        ag_start = formula[7] or None
         ag_range = f"[{formula[8]}]" if formula[8] else None
-        return [function,kv,ukv,plot,against,bound,ag_start,ag_range],annotation
+        return [function,kv,ukv,plot,against,bound,ag_start,ag_range,eqkv],annotation
 
     @property
     def current_formula(self):
@@ -1499,13 +1500,15 @@ class general_equilibrium_simu():
         kv = [i.strip() for i in known_variable.strip().split(',') if i]
         ukv = [i.strip() for i in unknown_variable.strip().split(',') if i]
         eq = [i.strip().split('=')[0] for i in equation.strip().split('\n') if i]
+        eq_string = ','.join(eq)
+        eqkv=[i for i in kv if i in eq_string]
         assert len(eq)==len(ukv), ('{} equations but {} variables'.format(len(eq),len(ukv)))
-        funcstring = "def _prepared_function(X,*args):\n\t{}=X\n\t{}=args\n\treturn {}".format(','.join(ukv),','.join(kv),','.join(eq))
+        funcstring = "def _prepared_function(X,*args):\n\t{}=X\n\t{}=args\n\treturn {}".format(','.join(ukv),','.join(kv),eq_string)
         exec(funcstring)
-        return locals()['_prepared_function'],kv,ukv
+        return locals()['_prepared_function'],kv,ukv,eqkv
 
     @staticmethod
-    def line_solver(_kv_arg,_f,_kv,_ukv,_plot,_against,_bound=None,_against_start="1",_against_range=None):
+    def line_solver(_kv_arg,_f,_kv,_ukv,_plot,_against,_bound,_against_start,_against_range,_eqkv):
         """
         f: function from prep_function
         kv: known_variable signature
@@ -1518,25 +1521,35 @@ class general_equilibrium_simu():
         _against_start: starting point of the against value
         all units are in nM.
         """
+
+
         _tempargs = list(_kv_arg)
-        _tempargs.insert(_kv.index(_against),None)
+        _tempargs.insert(_kv.index(_against),1)
 
         for _n,_value in zip(_kv,_tempargs ):
             exec(f"{_n}={_value}")
 
-        def point_solver(against_value):
+        def point_solver(against_value,_lastpointvalues=None):
             # nonlocal _bound
-            args = list(_kv_arg)
-            args.insert(_kv.index(_against),against_value)
-            for _n,_value in zip(_kv,args):
+            _args = list(_kv_arg)
+            _args.insert(_kv.index(_against),against_value)
+            for _n,_value in zip(_kv,_args):
                 exec(f"{_n}={_value}")
-            if _bound==None:
-                _boundtouse=([0]*len(_ukv),[1e6]*len(_ukv))
-                _guess = [1]*(len(_ukv))
+            if _lastpointvalues is not None:
+                if _bound:
+                    _hardbounds = eval(_bound)
+                    _boundtouse=([max(i/10,j) for i,j in zip(_lastpointvalues,_hardbounds[0])],
+                                 [min(i*10,j) for i,j in zip(_lastpointvalues,_hardbounds[1])])
+                else:
+                    _boundtouse=([i/10 for i in _lastpointvalues],[i*10 for i in _lastpointvalues])
             else:
+
                 _boundtouse = eval(_bound)
-                _guess = [ (i+j)/2 for i,j in zip(*_boundtouse)]
-            _result = least_squares(_f,_guess,args=tuple(args),bounds=_boundtouse)
+            _guess = [ (i+j)/2 for i,j in zip(*_boundtouse)]
+            # print("Guess {}".format(",".join("{:.3g}".format(i) for i in _guess)))
+            # print("LowBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[0])))
+            # print("UprBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[1])))
+            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse)
 
             for _n,_value in zip(_ukv, _result.x):
                 exec(f"{_n}={_value}")
@@ -1544,31 +1557,61 @@ class general_equilibrium_simu():
             for _p_l in _plot.split(','):
                 if _p_l:
                     _return_result.append(eval(_p_l))
-            return _return_result
+            return _return_result,_result.x
 
-        def directional(ratio):
-            _against_values = [eval(_against_start)]
-            _plot_values = [point_solver(eval(_against_start))]
+        def directional(_ratio):
+            _tempargs = list(_kv_arg)
+            _tempargs.insert(_kv.index(_against),1)
+
+            for _n,_value in zip(_kv,_tempargs ):
+                exec(f"{_n}={_value}")
+
+            if (_against_start):
+                _against_start_x = eval(_against_start)
+            else:
+                _against_start_x = 1
+                for _i in _eqkv:
+
+                    _against_start_x = _against_start_x*eval(_i)
+
+                _against_start_x = _against_start_x**(1/(len(_eqkv)-1))
+            _against_values = [_against_start_x]
+            _pointsolver_result = point_solver(_against_start_x)
+            _plot_values = [_pointsolver_result[0]]
+            _solutions = [_pointsolver_result[1]]
             _keeplooping=True
-            while _keeplooping==True and len(_against_values)<100:
-                _against_values.append(_against_values[-1]*ratio)
-                _plot_values.append(point_solver(_against_values[-1]))
+            while _keeplooping==True and len(_against_values)<150:
+                _against_values.append(_against_values[-1]*_ratio)
+                _pointsolver_result = point_solver(_against_values[-1],_solutions[-1])
+                _plot_values.append(_pointsolver_result[0])
+                _solutions.append(_pointsolver_result[1])
                 if abs(log_first_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01 \
                     and abs(log_second_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01:
-                    _keeplooping=False
+                    if len(_plot_values)>50:
+                        _keeplooping=False
             return _against_values,_plot_values
+
         if _against_range:
-            _plot_x,_plot_y=[],[]
-
-            for i in np.geomspace(*eval(_against_range),100):
-                _plot_x.append(i)
-                _plot_y.append(point_solver(i))
-            return _plot_x,_plot_y
+            _start_range , _end_range = eval(_against_range)
+            _start_range = max(_start_range , 1e-9)
+            _mid_range  = (_start_range * _end_range) ** (0.5)
+            _num_points = int(np.log10(_mid_range/_start_range)/np.log10(1.1))
+            _mid_res = point_solver(_mid_range)
+            _against_value_upper ,_plot_values_upper,_ps_res_up=[_mid_range],[_mid_res[0]],[_mid_res[1]]
+            _against_value_lower,_plot_values_lower,_ps_res_low = [_mid_range],[_mid_res[0]],[_mid_res[1]]
+            for i,j in zip(np.geomspace(_mid_range , _end_range,_num_points)[1:],np.geomspace( _mid_range, _start_range,_num_points)):
+                _against_value_upper.append(i)
+                _temp = point_solver(i,_ps_res_up[-1])
+                _plot_values_upper.append(_temp[0])
+                _ps_res_up.append(_temp[1])
+                _against_value_lower.append(j)
+                _temp = point_solver(j,_ps_res_low[-1])
+                _plot_values_lower.append(_temp[0])
+                _ps_res_low.append(_temp[1])
         else:
-            _against_value_upper ,_plot_values_upper = directional(1.2)
-            _against_value_lower,_plot_values_lower = directional(0.83333)
-            return _against_value_lower[::-1]+_against_value_upper[1:],_plot_values_lower[::-1]+_plot_values_upper[1:]
-
+            _against_value_upper ,_plot_values_upper = directional(1.1)
+            _against_value_lower,_plot_values_lower = directional(1/1.1)
+        return _against_value_lower[::-1]+_against_value_upper[1:],_plot_values_lower[::-1]+_plot_values_upper[1:]
 
     @display_errors
     def generate_cds(self,mock=False):
@@ -1576,6 +1619,7 @@ class general_equilibrium_simu():
         if mock:
             x,y=[1],[[1]*len(self.plot_signature)]
         else:
+
             x,y = self.line_solver(kv_arg,*self.formula_signature)
         data = {'x':x}
         for i,key in enumerate(self.plot_signature):
@@ -1587,18 +1631,18 @@ class general_equilibrium_simu():
         against = self.formula_signature[4]
         primaryplot = self.plot_signature[0]
         self.fit_data = {i: ColumnDataSource(data=self.generate_cds(mock=True)) for i in range(5)}
-        tools_list = "pan,ywheel_zoom,xwheel_zoom,box_zoom"
+        tools_list = "pan,wheel_zoom,box_zoom,reset,save"
         p = figure(x_axis_label=self.annotation.get(self.formula_signature[4],self.formula_signature[4]),
                    y_axis_label=self.annotation.get(self.formula_signature[3],self.formula_signature[3]),
                    x_axis_type='log',toolbar_location='above',tools=tools_list)
 
         for curve, color in enumerate(self.linecolors):
-            p_1=p.line('x',primaryplot, source=self.fit_data[curve],line_color=color,line_width=2,legend=f" {primaryplot}")
-            hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}/nM', '@x'),(f'{primaryplot}', '@{{{}}}'.format(primaryplot))],)
+            p_1=p.line('x',primaryplot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.65,legend=f" {primaryplot}")
+            hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}', '@x'),(f'{primaryplot}', '@{{{}}}'.format(primaryplot))],)
             p.add_tools(hover_tool_1)
             for plot,dashtype in zip(self.plot_signature[1:],cycle(['dashed','dotted','dotdash','dashdot'])):
-                p_1=p.line('x',plot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.7,legend=f" {plot}",line_dash=dashtype)
-                hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}/nM', '@x'),(f'{plot}', '@{{{}}}'.format(plot))],)#mode='vline'
+                p_1=p.line('x',plot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.5,legend=f" {plot}",line_dash=dashtype)
+                hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}', '@x'),(f'{plot}', '@{{{}}}'.format(plot))],)#mode='vline'
                 p.add_tools(hover_tool_1)
         p.plot_height = 500
         p.plot_width = 810
@@ -1610,6 +1654,7 @@ class general_equilibrium_simu():
 
     @display_errors
     def plot_cb(self):
+
         curve = self.curve.active
         self.fit_data[curve].data=self.generate_cds()
         self.curve_para[curve]=[(i.value) for i in self.known_variable_inputs]
