@@ -1,0 +1,18 @@
+{
+    "active": {
+        "Kd Two curves Demo": [
+            "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+            "A0 , B0, Kd1",
+            "A,B,AB,",
+            "",
+            "",
+            "AB/B0,B/B0",
+            "A0",
+            "1",
+            "Kd1/100,Kd1*100"
+        ]
+    },
+    "deleted": {
+        "new": null
+    }
+}

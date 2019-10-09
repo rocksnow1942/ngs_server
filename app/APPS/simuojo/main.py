@@ -1,4 +1,4 @@
-from simuojo_module import ic50_simu,DR_5PL,Kd_simu,ric50_simu,ri50_coop_simu
+from simuojo_module import ic50_simu,DR_5PL,Kd_simu,ric50_simu,ri50_coop_simu,general_equilibrium_simu
 from bokeh.io import curdoc
 from bokeh.layouts import row, layout
 from bokeh.models.widgets import Div, Select
@@ -12,7 +12,9 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 
 
-simu_sele = Select(title='Select a simulation model',value='Select a model',options=['Select a model','kd simulation','ic_50 simulation','ric_50 simulation','ric_50_coop simulation','Dose-Response 5 Para Logistic'])
+simu_sele = Select(title='Select a simulation model',value='Select a model',options=
+    ['Select a model','kd simulation','ic_50 simulation','ric_50 simulation',
+    'ric_50_coop simulation','Dose-Response 5 Para Logistic','Equilibrium State Simulator'])
 
 model_display = Div(text="""<h1>Welcome to Simuojo!</h1>""",width=600,height=75)
 
@@ -47,6 +49,14 @@ def simu_sele_cb(attr,old,new):
         select_layout.children = temp.children
         model_display.text = """<div style="text-align:center;">
         <img src="simuojo/static/ric_50_co.png" height='60' width="286" "></div>"""
+    elif new =='Equilibrium State Simulator':
+        new=general_equilibrium_simu()
+        new.register_info_display(model_display)
+        general_layout = new.layout
+        temp = layout([model_display,simu_sele],*general_layout)
+        select_layout.children = temp.children
+        model_display.text = """<h1>Equilibrium State Simulator</h1>"""
+
 
 simu_sele.on_change('value',simu_sele_cb)
 select_layout = layout([row(model_display, simu_sele)], [Div(
