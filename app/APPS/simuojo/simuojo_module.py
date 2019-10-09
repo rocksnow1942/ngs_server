@@ -1549,7 +1549,7 @@ class general_equilibrium_simu():
             # print("Guess {}".format(",".join("{:.3g}".format(i) for i in _guess)))
             # print("LowBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[0])))
             # print("UprBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[1])))
-            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse)
+            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse,xtol=1e-16,ftol=1e-15,gtol=1e-16,)
 
             for _n,_value in zip(_ukv, _result.x):
                 exec(f"{_n}={_value}")
@@ -1587,7 +1587,7 @@ class general_equilibrium_simu():
                 _solutions.append(_pointsolver_result[1])
                 if abs(log_first_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01 \
                     and abs(log_second_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01:
-                    if len(_plot_values)>50:
+                    if len(_plot_values)>20:
                         _keeplooping=False
             return _against_values,_plot_values
 
@@ -1609,8 +1609,8 @@ class general_equilibrium_simu():
                 _plot_values_lower.append(_temp[0])
                 _ps_res_low.append(_temp[1])
         else:
-            _against_value_upper ,_plot_values_upper = directional(1.1)
-            _against_value_lower,_plot_values_lower = directional(1/1.1)
+            _against_value_upper ,_plot_values_upper = directional(1.2)
+            _against_value_lower,_plot_values_lower = directional(1/1.2)
         return _against_value_lower[::-1]+_against_value_upper[1:],_plot_values_lower[::-1]+_plot_values_upper[1:]
 
     @display_errors
