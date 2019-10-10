@@ -11,6 +11,63 @@
       "1",
       "Kd1/100,Kd1*100"
     ],
+    "RIC50 Coop": [
+      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
+      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
+      "V, A, VA, VAA, R, RV, RVA, RVAA",
+      "0,0,0,0,0,0,0,0",
+      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
+      "RV/V0",
+      "A0",
+      "",
+      ""
+    ],
+    "RIC50 Coop VA on R": [
+      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
+      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0,Fmax",
+      "V, A, VA, VAA, R, RV, RVA, RVAA",
+      "0,0,0,0,0,0,0,0",
+      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
+      "Fmax*(RV+RVA+RVAA)/R0,Fmax*RV/R0,Fmax*RVA/R0,RVAA/R0*Fmax",
+      "A0",
+      "",
+      ""
+    ],
+    "Kd variable by Hill": [
+      "A*B-Kd*AB=0\nA0-A-AB=0\nB0-AB-B=0\nKd-A0*((Kd0/A0)**Hill)=0\n\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd0,Hill,Fmax",
+      "A,B,AB,Kd",
+      "",
+      "",
+      "Fmax*AB/B0,Fmax*B/B0",
+      "A0",
+      "",
+      "Kd0/1000,Kd0*1000"
+    ],
+    "RIC50 with Hill": [
+      "A*V-Kda*AV=0\nR*V-Kdr*RV=0\nA+AV-A0=0\nV+AV-V0=0\nR+RV-R0=0\nKda-A0*((Kd0/A0)**Hill)=0\n#\nA0:Aptamer Conc.\nV0:VEGF Conc.\nR0: Receptor Conc.\nKd0: Aptamer Kd\nHill:Hill coefficient for aptamer\nKdr: Receptor Kd",
+      "A0,V0,R0,Kd0,Hill,Kdr,Fmax",
+      "A,V,R,AV,RV,Kda",
+      "0,0,0,0,0,0.99*(A0*((Kd0/A0)**Hill))",
+      "A0,V0,R0,min(A0,V0),min(R0,V0),1.01*(A0*((Kd0/A0)**Hill))",
+      "RV/V0*Fmax",
+      "A0",
+      "",
+      "1e-4,1e4"
+    ],
+    "Kd - Hill": [
+      "Kd-A0*((Kd0/A0)**Hill)=0",
+      "Kd0,Hill,A0",
+      "Kd",
+      "",
+      "",
+      "Kd",
+      "A0",
+      "",
+      "1e-3,1e3"
+    ]
+  },
+  "deleted": {
     "kd against aptamer": [
       "A*B-Kd1*AB=0\nA0-A-AB=0\nB0-AB-B=0\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
       "A0 , B0, Kd1",
@@ -44,28 +101,16 @@
       "1",
       "Kd1/100,Kd1*100"
     ],
-    "RIC50 Coop": [
-      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
-      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
-      "V, A, VA, VAA, R, RV, RVA, RVAA",
-      "0,0,0,0,0,0,0,0",
-      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
-      "RV/V0",
+    "Kd variable to A0": [
+      "A*B-Kd*AB=0\nA0-A-AB=0\nB0-AB-B=0\nKd-A0*((Kd0/A0)**Hill)=0\n\n#\nA0 : Aptamer conc. / nM\nB0 :  Targent concentration /nm\nKd1 : binding Kd /nM\nAB/B0 : percent binding",
+      "A0 , B0, Kd0,Hill,Fmax",
+      "A,B,AB,Kd",
+      "",
+      "",
+      "Fmax*AB/B0,Fmax*B/B0",
       "A0",
       "",
-      ""
-    ],
-    "RIC50 Coop VA on R": [
-      "2*V*A-Kd1*VA=0\nVA * A - 2*Kd2*VAA =0\nR*V-Kr1*RV=0\nR*VA-Kr2*RVA=0\nR*VAA-Kr3*RVAA=0\nA+VA+2*VAA+RVA+2*RVAA-A0=0\nV + VA + VAA + RV + RVA + RVAA - V0=0\nR + RV + RVA + RVAA -R0=0\n#\nV0:Starting VEGF conc.\nR0:Starting Receptor Con.\nA0:Starting Aptamer Conc.\nKd1: VEGF Aptamer First binding Kd1\nKd2: VEGF Aptamer Second binding Kd\nKr1 : Receptor VEGF binding Kd\nKr2 : Receptor VEGF-Aptamer Complex Kd\nKr3: Receptor V-A-A complex Kd",
-      "Kd1, Kd2, Kr1, Kr2, Kr3,V0,R0,A0",
-      "V, A, VA, VAA, R, RV, RVA, RVAA",
-      "0,0,0,0,0,0,0,0",
-      "V0,A0,min(V0,A0),min(V0,A0/2),R0,min(R0,V0),min(R0,V0,A0),min(R0,V0,A0/2)",
-      "(RV+RVA+RVAA)/R0,RV/R0,RVA/R0,RVAA/R0",
-      "A0",
-      "",
-      ""
+      "Kd0/1000,Kd0*1000"
     ]
-  },
-  "deleted": {}
+  }
 }
