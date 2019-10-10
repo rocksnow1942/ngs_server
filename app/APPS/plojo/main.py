@@ -7,12 +7,9 @@ from bokeh.layouts import widgetbox, row, column, layout
 from bokeh.palettes import Category10
 import numpy as np
 import fit_binding as fb
-import datetime,time
-from os import path
+import datetime
 import os,copy
-import glob
 import base64
-import shelve
 from dotenv import load_dotenv
 from plojo_sql import Data
 
@@ -429,12 +426,12 @@ def save_data():
     saves = len(raw_data.experiment_to_save.keys()) + len(raw_data.index_to_save.keys())
     raw_data.save_data()
     info_box.text = info_deque('{} changes have been saved'.format(saves))
-   
+
 
 def load_data(reload_menu=True,reload_data=True):
     info_box.text = info_deque('Start Loading data...')
     global raw_data
-   
+
     if reload_data:
         raw_data = Data()
     else:
@@ -612,7 +609,7 @@ def clean_redundancy():
                 raw_data.index[i] -= index_x
                 raw_data.index_to_save.update({i:'sync'})
         info_box.text = info_deque('Index removed: {}'.format(index_x))
-        
+
     elif data_x:
         raw_data.index['0-temporary'].update(data_x)
         info_box.text = info_deque('Added to temporary: {}'.format(data_x))
@@ -910,7 +907,7 @@ def vd_delete_data_cb():
                 k.discard(i)
                 raw_data.index_to_save.update({j:'sync'})
         raw_data.experiment_to_save.update({i:'del'})
-        
+
     info_box.text = info_deque('Selected data was deleted.')
     cf_select_data_menu = cf_select_data.options
     selected_data = cf_select_data.value
