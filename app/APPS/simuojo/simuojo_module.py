@@ -1321,6 +1321,7 @@ class general_equilibrium_simu():
 
         self.x_axis_type = Toggle(label="X-log", active=True,width=70)
         self.y_axis_type = Toggle(label="Y-log", active=False,width = 70)
+        self.toggle_normalize = Toggle(label="Normalize Curves", active=False,)
 
         self.curve_box = widgetbox(self.infobox,Div(text='<h4>Select Curve</h4>',width=200,height=30),
                                    self.curve,self.copy,self.plot,width=170)
@@ -1350,6 +1351,7 @@ class general_equilibrium_simu():
 
 
         # add callbacks
+        self.toggle_normalize.on_change('active',self.toggle_normalize_cb)
         self.plot.on_click(self.plot_cb)
         self.compile.on_click(self.compile_cb)
         for i in self.create_formula:
@@ -1369,9 +1371,31 @@ class general_equilibrium_simu():
         self.curve_para = {}
         self.info_deque_holder = ["","",""]
         self.deleted_formula = {}
+        self.curve_normalize = {}
 
-    def toggle_axis_cb(self):
-        self.layout[0][0].children[0].xaxis.axis_type = 'log'
+    @display_errors
+    def toggle_normalize_cb(self,attr,old,new):
+        if new:
+            for k in list(self.fit_data.keys()):
+                if k!='x':
+                    self.fit_data[k].data = self.normalize_data(self.fit_data[k].data,self.curve_normalize.get(k,{}))
+        else:
+            for k in list(self.fit_data.keys()):
+                if k!='x':
+                    self.fit_data[k].data = self.normalize_data(self.fit_data[k].data,self.curve_normalize.get(k,{}),False)
+
+    @display_errors
+    def normalize_data(self,cdsdata,normdict,norm=True):
+        if normdict:
+            if norm:
+                for k in list(cdsdata.keys()):
+                    if k!='x':
+                        cdsdata[k]=[i/normdict[k]*100 for i in cdsdata[k]]
+            else:
+                for k in list(cdsdata.keys()):
+                    if k!='x':
+                        cdsdata[k]=[i*normdict[k]/100 for i in cdsdata[k]]
+        return cdsdata
 
     def info(self,text):
         j = len(self.info_deque_holder)-2
@@ -1473,7 +1497,7 @@ class general_equilibrium_simu():
         self.known_variable_inputs=[]
         for i in inputs:
             self.known_variable_inputs.append(TextInput(title=self.annotation.get(i,i),value="1"))
-        self.curve_box.children[5:]=self.known_variable_inputs
+        self.curve_box.children[5:]=self.known_variable_inputs + [self.toggle_normalize]
         self.plot.disabled=False
         self.generate_plot()
         # self.curve_para={}
@@ -1557,7 +1581,9 @@ class general_equilibrium_simu():
             # print("Guess {}".format(",".join("{:.3g}".format(i) for i in _guess)))
             # print("LowBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[0])))
             # print("UprBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[1])))
-            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse,xtol=1e-16,ftol=1e-15,gtol=1e-16,)
+            _machine_epsilon = np.finfo(float).eps*1.1
+            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse,
+                    xtol=_machine_epsilon,ftol=_machine_epsilon,gtol=_machine_epsilon,)
 
             for _n,_value in zip(_ukv, _result.x):
                 exec(f"{_n}={_value}")
@@ -1627,7 +1653,6 @@ class general_equilibrium_simu():
         if mock:
             x,y=[1],[[1]*len(self.plot_signature)]
         else:
-
             x,y = self.line_solver(kv_arg,*self.formula_signature)
         data = {'x':x}
         for i,key in enumerate(self.plot_signature):
@@ -1664,8 +1689,12 @@ class general_equilibrium_simu():
 
     @display_errors
     def plot_cb(self):
-
         curve = self.curve.active
-        self.fit_data[curve].data=self.generate_cds()
+        data=self.generate_cds()
+        self.curve_normalize[curve] = {i:np.max(j) for i,j in data.items() if i!='x'}
+        if self.toggle_normalize.active:
+            self.fit_data[curve].data=self.normalize_data(data,self.curve_normalize[curve])
+        else:
+            self.fit_data[curve].data=data
         self.curve_para[curve]=[(i.value) for i in self.known_variable_inputs]
         self.display.text = self.info('Plot {} generated.'.format(self.curve_labels[curve]))
