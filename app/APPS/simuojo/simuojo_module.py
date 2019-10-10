@@ -5,7 +5,7 @@ import shelve
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.models.glyphs import Text
 from bokeh.models import HoverTool,Slider,RangeSlider
-from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,MultiSelect,RadioGroup
+from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,MultiSelect,RadioGroup,Toggle
 from bokeh.layouts import widgetbox,column,row
 import numpy as np
 from simu_utils import file_save_location,file_name
@@ -1319,8 +1319,11 @@ class general_equilibrium_simu():
         self.p.ygrid.visible = False
         self.p.axis.visible = False
 
+        self.x_axis_type = Toggle(label="X-log", active=True,width=70)
+        self.y_axis_type = Toggle(label="Y-log", active=False,width = 70)
 
-        self.curve_box = widgetbox(self.infobox,Div(text='<h4>Select Curve</h4>',width=200,height=30),self.curve,self.copy,self.plot,width=170)
+        self.curve_box = widgetbox(self.infobox,Div(text='<h4>Select Curve</h4>',width=200,height=30),
+                                   self.curve,self.copy,self.plot,width=170)
         self.equation=TextAreaInput(title='Equations:', rows=10, cols=35, max_length=50000)
         self.kv = TextInput(title='Known Variables:')
         self.ukv = TextInput(title='Unknown Variables:')
@@ -1338,11 +1341,13 @@ class general_equilibrium_simu():
         self.compile = Button(label='Compile Formula',button_type='success')
         self.name = TextInput(title='New Formula Name')
         self.save =  Button(label='Save Formula',button_type='success')
-        self.delete = Button(label='Delete',button_type="warning",width=10)
+        self.delete = Button(label='Delete',button_type="warning",width=75)
         self.formulainputs = row(Div(text='',width=10),column(row(
                 widgetbox(self.kv,self.ukv,self.ukv_lb,self.ukv_ub),
                 widgetbox(self.toplot,self.against,self.against_start,self.against_range,width=205),
-                widgetbox(self.name,self.load_menu,self.compile,self.save,self.delete,width=245)),self.equation))
+                widgetbox(self.name,self.load_menu,self.compile,self.save,row(self.delete,self.x_axis_type,self.y_axis_type,),width=245)),self.equation))
+
+
 
         # add callbacks
         self.plot.on_click(self.plot_cb)
@@ -1365,6 +1370,8 @@ class general_equilibrium_simu():
         self.info_deque_holder = ["","",""]
         self.deleted_formula = {}
 
+    def toggle_axis_cb(self):
+        self.layout[0][0].children[0].xaxis.axis_type = 'log'
 
     def info(self,text):
         j = len(self.info_deque_holder)-2
@@ -1629,13 +1636,15 @@ class general_equilibrium_simu():
 
     @display_errors
     def generate_plot(self):
+        x_axis_type = 'log' if self.x_axis_type.active else 'linear'
+        y_axis_type = 'log' if self.y_axis_type.active else 'linear'
         against = self.formula_signature[4]
         primaryplot = self.plot_signature[0]
         self.fit_data = {i: ColumnDataSource(data=self.generate_cds(mock=True)) for i in range(5)}
         tools_list = "pan,wheel_zoom,box_zoom,reset,save"
         p = figure(x_axis_label=self.annotation.get(self.formula_signature[4],self.formula_signature[4]),
                    y_axis_label=self.annotation.get(self.formula_signature[3],self.formula_signature[3]),
-                   x_axis_type='log',toolbar_location='above',tools=tools_list)
+                   x_axis_type=x_axis_type,y_axis_type=y_axis_type,toolbar_location='above',tools=tools_list)
 
         for curve, color in enumerate(self.linecolors):
             p_1=p.line('x',primaryplot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.65,legend=f" {primaryplot}")
