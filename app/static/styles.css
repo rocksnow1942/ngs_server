@@ -96,7 +96,7 @@ position: relative;
 
 
 /* Toast messages*/
-@import url('https://fonts.googleapis.com/css?family=Raleway:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i');
+
 .toast__container {
     display: table-cell;
     vertical-align: middle;
@@ -207,9 +207,14 @@ position: relative;
 
 
 .flash_message_container{
-  position: -webkit-sticky;
-  position: sticky;
+  position: fixed;
   top: 0;
+  width: 700px;
+  left: 50%;
+   /* Negative half of height. */
+  margin-left: -350px; /* Negative half of width. */
+  /* position: -webkit-sticky; */
+  /* position: sticky; */
   z-index: 999;
 }
 

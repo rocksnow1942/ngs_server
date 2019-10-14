@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib.figure import Figure
-
+from collections import Counter
 from app import db,login
 
 from datetime import datetime
@@ -787,9 +787,11 @@ class Slide(SearchableMixin,db.Model):
         return self.ppt.path + f'/Slide{self.page}.PNG'
 
     @staticmethod
-    def tags_list():
+    def tags_list(n=20):
         tags = db.session.query(Slide.tag).filter(Slide.tag!=None).all()
-        return set([j.strip() for i in tags for j in i[0].split(',') if j.strip()])
+        c = Counter([j.strip() for i in tags for j in i[0].split(',') if j.strip()])
+        c = c.most_common(n)
+        return [i[0] for i in c]
 
 class PPT(SearchableMixin, db.Model):
     __tablename__ = 'powerpoint'

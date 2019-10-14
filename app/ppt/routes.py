@@ -25,8 +25,7 @@ def index():
     thumbnail = request.args.get('thumbnail','small')
     tags_list = []
     if table=='slide':
-        tags_list = list(target.tags_list())
-        
+        tags_list = target.tags_list()
     if target:
         if id:
             if table == 'ppt':

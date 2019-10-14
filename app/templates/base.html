@@ -165,7 +165,7 @@
             });
       {% endif %}
       
-      // close toast
+      // close toast messages automatically
       function close_toast_message(time){
            time = time ? time : 100;
           $(".my_toast_container").fadeTo(time, 500).slideUp(500, function () {
@@ -178,7 +178,6 @@
         if (category.every((e)=>{return e=='success' | e=='info'})){
           close_toast_message(1500)
         }
-
         }); 
     </script>
 {% endblock %}
