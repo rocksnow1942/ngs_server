@@ -1,6 +1,6 @@
 import hashlib
 import sys
-from pathlib import PurePath, Path
+from pathlib import PurePath
 import os,time
 from datetime import datetime
 # filepath = os.path.dirname(__file__)
@@ -9,15 +9,9 @@ sys.path.append(str(filepath))
 from dateutil import parser
 from app import db
 from app import create_app
-import json
-from itertools import islice
-from app.utils.ngs_util import create_folder_if_not_exist,lev_distance
-
 from pptx import Presentation
-import shutil
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from pptx import Presentation
 from app.models import Slide, PPT, Project
 
 #TODO
