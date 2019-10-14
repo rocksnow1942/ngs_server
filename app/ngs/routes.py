@@ -182,21 +182,22 @@ def addsample():
         f.form.fp_id.choices= plist
         f.form.rp_id.choices= plist
         f.form.round_id.choices = rdlist
-    if request.method == 'POST':
+    # if request.method == 'POST':
         # check if all fp an rp index are unique.
-        
+    # print(request.method, "***=>>", form.validate_on_submit())
+    if form.validate_on_submit():   
         indextuple = []
         for i in form.samples:
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
         if len(set(indextuple)) != len(indextuple):
-            flash('Error: FP RP Index have duplicates. Check Primers.','danger')
+            flash('Error: FP RP Index have duplicates. Check Primers.','warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
-        if form.validate_name():
-            flash('Name < {} > already used.'.format(form.name.data), 'danger')
-            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
+        # if form.validate_name():
+        #     flash('Name < {} > already used.'.format(form.name.data), 'danger')
+        #     return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         sequenced_round = form.validate_round()
         if sequenced_round:
-            flash('Round {} already sequenced.'.format(', '.join(['<'+i+'>' for i in sequenced_round])))
+            flash('Round {} already sequenced.'.format(', '.join(['<'+i+'>' for i in sequenced_round])),'warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         
         sg = form.populate_obj(NGSSampleGroup,id=id)

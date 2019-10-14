@@ -1,22 +1,22 @@
 {% if messages %}
 {% for category, message in messages %}
 <div class='my_toast_container row' name="{{category}}">
-    {% if category=='success' %}
-    <div class="toast toast--green col-sm-12 ">
+        {% if category=='success' %}
+        <div class="toast toast--green col-sm-12 ">
         <div class="toast__icon">
             
         </div>
         {% elif category=='info' %}
         <div class="toast toast--blue  col-sm-12">
-            <div class="toast__icon">
-               
-            </div>
-            {% else %}
-            <div class="toast toast--yellow  add-margin col-sm-12">
-                <div class="toast__icon">
-                   
-                </div>
-                {% endif %}
+        <div class="toast__icon">
+            
+        </div>
+        {% else %}
+        <div class="toast toast--yellow  add-margin col-sm-12">
+        <div class="toast__icon">
+            
+        </div>
+        {% endif %}
                 <div class="toast__content">
                     <p class="toast__type">{{category | upper}}</p>
                     <p class="toast__message">{{message}}</p>

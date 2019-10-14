@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField
+from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField
 from wtforms.validators import DataRequired,ValidationError, Length
 from app.models import User
 from flask import request
@@ -42,12 +42,12 @@ class SearchInventoryForm(FlaskForm):
 
 class SearchPPTForm(FlaskForm):
     q = StringField('Search Keywords', validators=[DataRequired()])
-    project = [('all', 'All'),]
-    search_project = SelectField(
-        'Search In Project', choices=project, validators=[DataRequired()])
+    project = [('all', 'All'),('p','p'),('t','t')]
+    search_project = SelectMultipleField(
+        'Search In Project', choices=project,validators=[DataRequired()])
     field = [('slide', 'Slide'), ('tag', 'Tag')]
 
-    search_field = SelectField(
+    search_field = SelectMultipleField(
         'Search Field', choices=field, validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):

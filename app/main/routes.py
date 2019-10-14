@@ -21,9 +21,9 @@ def before_request():
         g.search_form = formdict.get(formtype.upper(), SearchNGSForm)()    
     else:
         g.search_form = formdict.get(root.upper(), SearchNGSForm)()
-        if root.upper() == 'PPT':
-            choice = [('all', 'All'), ] + [(p.id,p.name) for p in Project.query.all()]
-            g.search_form.search_project.choices=choice
+        # if root.upper() == 'PPT':
+            # choice = [('all', 'All'), ] + [(p.id,p.name) for p in Project.query.all()]
+            # g.search_form.search_project.choices=choice
     
 
 
