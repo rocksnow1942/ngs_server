@@ -1,10 +1,189 @@
 {% extends "base.html" %}
 
 
+
 {% block app_content %}
-    <div class="jumbotron">
-      <h1>Hi, {{ current_user.username }}!</h1>
-      <h2>This is the ppt page</h2>
-    </div>
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      {% if table !='project' %}
+      <a href="{{url_for('ppt.index',table='project',thumbnail=thumbnail)}}">Projects</a>
+      {% else %}<b>Projects</b>
+      {% endif %}
+    </li>
+    <li class="breadcrumb-item">
+      {% if table!='ppt' %}
+      <a href="{{url_for('ppt.index',table='ppt',thumbnail=thumbnail)}}">PowerPoints</a>
+      {% else %}<b>PowerPoints</b>
+      {% endif %}
+    </li>
+    <li class="breadcrumb-item">
+      {% if table!='slide' %}
+      <a href="{{url_for('ppt.index',table='slide',thumbnail=thumbnail)}}">Slides</a>
+      {% else %}<b>Slides</b>
+      {% endif %}
+    </li>
+    <li class="breadcrumb-item">
+      {% if table!='tags' %}
+      <a href="{{url_for('ppt.index',table='tags',thumbnail=thumbnail)}}">Tags</a>
+      {% else %}<b>Tags</b>
+      {% endif %}
+    </li>
+   
+  </ol>
+</nav>
+
+{% if entries %}
+<div class="sticky_ppt_tools">
+<div class="row">
+  <div class="col-md-9">
+    <nav aria-label="Page navigation">
+      <ul class="pagination ">
+        <li class=" previous {% if not prev_url %} disabled{% endif %}">
+          <a class='page-link' href="{{ prev_url or '#' }}" aria-label="Previous">
+            <span aria-hidden="true">&larr;</span>
+          </a>
+        </li>
+        {% for pn,pu in page_url %}
     
+        <li class="previous {% if pn==active %} active{% endif %}"><a href="{{pu}}">{{pn}}</a></li>
+    
+        {% endfor %}
+        <li class=" previous {% if not next_url %} disabled{% endif %}">
+          <a href="{{ next_url or '#' }}" aria-label="Next">
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  <div class="col-md-3">
+    <nav aria-label="Page navigation">
+      <ul class="pagination ">
+        <li class=" previous disabled ">
+         
+            <span aria-hidden="true">Thumbnail</span>
+         
+        </li>
+
+        <li class=" previous {% if thumbnail=='small' %} active{% endif %}">
+          <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table) }}" >
+            <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
+          </a>
+        </li>
+
+        <li class=" previous {% if thumbnail=='medium' %} active{% endif %}">
+          <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table) }}">
+            <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
+          </a>
+        </li>
+        
+        <li class=" previous {% if thumbnail=='large' %} active{% endif %}">
+          <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table) }}" >
+            <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+</div>
+
+{% include "ppt/%s.html" | format(table) %}
+
+{% endif %}
+
+{% if tags_list %}
+<datalist id="tags_list">
+{% for val in tags_list %}
+  <option value="{{val}}" />
+{% endfor %}
+</datalist>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+
+<script>
+  $(".slide_container").on('click', function (event) {
+    let id = $(this).attr('id');
+    if (!$(this).find('input').length) {
+    let tag = $(this).find('span.slide_tag').text();
+    let note = $(this).find('span.slide_note').text();
+    tag = tag==='None' ? "" : tag;
+    note = note === 'None' ? "" : note;
+    $(this).find("span.slide_tag").html(`
+        <div class="input-group">
+        <input type="text" class="form-control" value="${tag}" list='tags_list' >
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="button" onclick="save_edit(event,'slide','tag','${id}')">Save Tag</button>
+            </span>
+                </div> `);
+    $(this).find("span.slide_note").html(`<div class="input-group">
+            <input type="text" class="form-control" value="${note}">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button" onclick="save_edit(event,'slide','note','${id}')">Save Note</button>
+                </span>
+                </div>`)
+    }
+  });
+
+  function save_edit(envent,table,field,id){
+    let container = $(event.target).closest('.input_container');
+    let value = $(event.target).parent().parent().find('input').val();
+    //confirm(`Change ${field} to ${value}?`)
+    if (true){
+      $.ajax({
+        url:"{{url_for('ppt.edit')}}",
+        type:"POST",
+        data:JSON.stringify({id:id,data:value,field:field,table:table}),
+        contentType:"application/json",
+        success: function (result){
+          display_flash_message(result.html);
+          $(container).find('span.slide_tag').html(result.tag);
+          $(container).find(`span.${table}_note`).html(result.note);
+        },
+        error: function (xhr,resp,text){alert(`Save edit error: ${text}`)},
+      });
+    }
+  }
+
+
+    $(".ppt_edit_trigger").on('click', function (event) {
+        let id = $(this).attr('id');
+        if (!$(this).find('input').length) {
+          let note = $(this).find('span.ppt_note').text();
+          note = note === 'None' ? "" : note;
+          $(this).find("span.ppt_note").html(`<div class="input-group">
+            <input type="text" class="form-control" value="${note}">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button" onclick="save_edit(event,'ppt','note','${id}')">Save Note</button>
+                </span>
+                </div>`)
+        }
+      });
+
+
+
+  $(".project_edit_trigger").on('click', function (event) {
+    let id = $(this).attr('id');
+    if (!$(this).find('input').length) {
+      let note = $(this).find('span.project_note').text();
+      note = note === 'None' ? "" : note;
+      $(this).find("span.project_note").html(`<div class="input-group">
+            <input type="text" class="form-control" value="${note}">
+                <span class="input-group-btn">
+                    <button class="btn btn-default" type="button" onclick="save_edit(event,'project','note','${id}')">Save Note</button>
+                </span>
+                </div>`)
+    }
+  });
+
+
+
+</script>
+
 {% endblock %}

@@ -32,12 +32,15 @@ def browse():
             elif table=='sequence_round':
                 entries = target.query.filter_by(rounds_id=id).order_by(target.count.desc()).paginate(page,pagelimit,False)
                 # entries = [SequenceDisplay(i.sequence,i.count,i.count/rd.totalread,rd.round_name) for i in r]
+            else:
+                entries = target.query.order_by(
+                    target.id.desc()).paginate(page, pagelimit, False)
         else:
             entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
           
         nextcontent = {'round':'sequence_round','selection':'round'}.get(table)
         kwargs={}
-        if id: kwargs.update(id=id,nextcontent=nextcontent)
+        if id: kwargs.update(id=id)
         totalpages = entries.total
         start,end = pagination_gaps(page,totalpages,pagelimit)
        

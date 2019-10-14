@@ -96,6 +96,8 @@
           {% include "search/ngs_search_form.html" %}
       {% elif formname=='SearchInventoryForm' %}
           {% include "search/inventory_search_form.html" %}
+      {% elif formname=='SearchPPTForm' %}
+        {% include "search/ppt_search_form.html" %}
       {% else %}
         <h1 align='center'>No Search Available</h1>
       {% endif %}
@@ -108,17 +110,14 @@
 
 {% block content %}
 <div class="container" style="min-height: 100px;" id='main_container'>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-            {% for category, message in messages %}
-                    <div class='alert alert-{{category}} alert-info' role='alert'>
-                        {{ message }}
-                    </div>
-            {% endfor %}
-    {% endif %}
-    {% endwith %}
+  <div class="flash_message_container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% include "flash_messages.html" %}
+  {% endwith %}
+</div>
+  
+
     {% block app_content %}{% endblock %}
-    
 </div>
 <!-- footer -->
 <div class='container' style="padding: 20px;">
@@ -130,6 +129,11 @@
 
 {% block scripts %}
     <script type="text/javascript">
+        // update flash message
+        function display_flash_message(result){
+          $(".flash_message_container").html(result)
+        };
+
             $(document).ready(function () {
               var url = window.location.pathname.split('/')[1];
               if (url) {
@@ -161,6 +165,18 @@
             });
       {% endif %}
       
+      // close toast
+      function close_toast_message(event){
+         // console.log($(event.target).parent(".toast__close"));
+         // e.preventDefault();
+         // var parent = $(".my_toast_container").parent(".toast__close").parent('.toast').parent('.my_toast_container');
+         // parent.fadeOut(300, function () { $(this).remove(); });
+          $(".my_toast_container").fadeOut(300, function () { $(this).remove(); })
+        
+      }
+      /*$(document).ready(function () {
+          $('.toast__close').click(close_toast_message(event));
+        });*/
       
         
       

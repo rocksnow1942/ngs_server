@@ -767,33 +767,76 @@ class Task(db.Model,BaseDataModel):
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
 
-# class Slide(SearchableMixin,db.Model):
-#     __tablename__='slide'
-#     __searchable__=['title','body']
+class Slide(SearchableMixin,db.Model):
+    __tablename__='slide'
+    __searchable__=['title','body']
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    title = Column(mysql.TEXT(collation='utf8_bin'))
+    body = Column(mysql.TEXT(collation='utf8_bin'))
+    ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
+    note = Column(String(2000))
+    tag = Column(String(900))
+    page = Column(mysql.INTEGER(unsigned=True))
+    date = Column(DateTime(), default=datetime.now)
+
+    def __repr__(self):
+        return f"<Slide {self.id}>"
+
+    @property
+    def uri(self):
+        return self.ppt.path + f'/Slide{self.page}.PNG'
+
+    @staticmethod
+    def tags_list():
+        tags = db.session.query(Slide.tag).filter(Slide.tag!=None).all()
+        return set([j.strip() for i in tags for j in i[0].split(',') if j.strip()])
+
+class PPT(SearchableMixin, db.Model):
+    __tablename__ = 'powerpoint'
+    __searchable__ =['name','note']
+    __searablemethod__ = []
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    name = Column(String(200))
+    note = Column(String(2000))
+    project_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('project.id'))
+    path = Column(String(900),unique=True)
+    md5 = Column(String(200),unique=True)
+    revision = Column(db.Integer)
+    slides = relationship('Slide',backref='ppt')
+    date = Column(DateTime(), default=datetime.now)
+    def __repr__(self):
+        return f"<PPT {self.id}>"
     
-
-# class Project(SearchableMixin,db.Model):
-#     __tablename__ = 'project'
-#     __searchable__ = ['name', 'note']
-#     __searablemethod__ = []
-#     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
-#     selection_id = Column(mysql.INTEGER(unsigned=True),
-#                           ForeignKey('selection.id'))
-#     round_name = Column(String(50))
-#     sequences = relationship("SeqRound", back_populates="round")
-#     target = Column(String(50))
-#     totalread = Column(mysql.INTEGER(unsigned=True), default=0)
-#     note = Column(String(300))
-#     forward_primer = Column(mysql.INTEGER(unsigned=True),
-#                             ForeignKey('primer.id'))
-#     reverse_primer = Column(mysql.INTEGER(unsigned=True),
-#                             ForeignKey('primer.id'))
-#     samples = relationship('NGSSample', backref='round')
-#     date = Column(DateTime(), default=datetime.now)
-#     parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
-#     children = relationship("Rounds")
+    @property
+    def uri(self):
+        self.slides.sort(key=lambda x: x.date, reverse=True)
+        if self.slides:
+            return self.slides[0].uri
+        else:
+            return None
 
 
+
+class Project(SearchableMixin,db.Model):
+    __tablename__ = 'project'
+    __searchable__ = ['name', 'note']
+    __searablemethod__ = []
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    name = Column(String(200),unique=True)
+    note = Column(String(2000))
+    ppts = relationship('PPT', backref='project')
+    date = Column(DateTime(), default=datetime.now)
+    
+    def __repr__(self):
+        return f"<Project {self.id}>"
+
+    @property
+    def uri(self):
+        # self.ppts.sort(key=lambda x: x.date, reverse=True)
+        if self.ppts:
+            return self.ppts[0].uri
+        else:
+            return None
 
 @login.user_loader
 def load_user(id):
@@ -802,6 +845,6 @@ def load_user(id):
 
 models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
-'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis}
+'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
 from app.tasks.ngs_data_processing import generate_sample_info
 from app.utils.ngs_util import reverse_comp,file_blocks

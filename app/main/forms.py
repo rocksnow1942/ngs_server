@@ -40,6 +40,24 @@ class SearchInventoryForm(FlaskForm):
         super().__init__(*args, **kwargs)
 
 
+class SearchPPTForm(FlaskForm):
+    q = StringField('Search Keywords', validators=[DataRequired()])
+    project = [('all', 'All'),]
+    search_project = SelectField(
+        'Search In Project', choices=project, validators=[DataRequired()])
+    field = [('slide', 'Slide'), ('tag', 'Tag')]
+
+    search_field = SelectField(
+        'Search Field', choices=field, validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        if 'formdata' not in kwargs:
+            kwargs['formdata'] = request.args
+        if 'csrf_enabled' not in kwargs:
+            kwargs['csrf_enabled'] = False
+        super(SearchPPTForm, self).__init__(*args, **kwargs)
+
+
 class TestForm(FlaskForm):
     q = StringField('Mock Search', validators=[DataRequired()])
     field = [('selection', 'Selection'), ('round', 'Rounds'),

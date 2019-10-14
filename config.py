@@ -18,7 +18,7 @@ class Config():
     PAGE_LIMIT = int(os.environ.get('PAGE_LIMIT') or 10)
 
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
-    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+    ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL') or None
     MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'localhost'
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 8025)
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
@@ -26,5 +26,9 @@ class Config():
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['rocksnow1942@gmail.com']
     FOLDOJO_FOLDER = os.environ.get('FOLDOJO_FOLDER') or None
-    
-    
+
+    PPT_SOURCE_FOLDER = os.environ.get('PPT_SOURCE_FOLDER') or None
+    PPT_TARGET_FOLDER = os.environ.get('PPT_TARGET_FOLDER') or None
+        
+        
+        

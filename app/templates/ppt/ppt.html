@@ -1,0 +1,58 @@
+{% if thumbnail=='small' %}
+{% for row in entries | batch(6) %}
+<div class='row'>
+    {% for entry in row %}
+
+    <div class="col-sm-2">
+        <div class="thumbnail ">
+            <p>{{entry.name}}</p>
+            <div class='slide' >
+                <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
+                    <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                        alt="{{entry.name}} - {{entry.note}}"></a>
+
+
+                <div class='zoom-hidden-text ppt_edit_trigger input_container' id="{{entry.id}}">
+                    <p>Note: <span class="ppt_note">{{entry.note}}</span></p>
+                    <p>Project: {{entry.project.name}}</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endfor %}
+
+{% else %}
+        {% for row in entries | batch(4) %}
+        <div class='row'>
+            {% for entry in row %}
+        
+            <div class="col-sm-3">
+                <div class="thumbnail ">
+                    <p>{{entry.name}}</p>
+                    <div class='slide'>
+                        <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
+                            <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                                alt="{{entry.name}} - {{entry.note}}"></a>
+        
+        
+                        <div class=' ppt_edit_trigger input_container' id="{{entry.id}}">
+                            <p>Note: <span class="ppt_note">{{entry.note}}</span></p>
+                            <p>Project: {{entry.project.name}}</p>
+                        </div>
+        
+                    </div>
+        
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% endfor %}
+
+{% endif %}
+
+

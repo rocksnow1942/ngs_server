@@ -1,0 +1,75 @@
+{% import "bootstrap/wtf.html" as wtf %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+            aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title" id="myModalLabel">Search PPT</h4>
+</div>
+
+<form action="{{url_for('main.search')}}" method="get" class="form" role="form">
+    <div class="modal-body">
+
+        <div class="row" style="padding: 10px;">
+            <div class="col-md-12">
+                {{ g.search_form.q(size=20, class='form-control',id='query_input',placeholder=g.search_form.q.label.text,value=g.search_form.q.data) }}
+            </div>
+        </div>
+        <div class="row" style="padding: 10px;">
+            <div class="col-md-6">
+                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data)}}
+            </div>
+            <div class="col-md-6">
+                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data)}}
+            </div>
+        </div>
+
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <input class="btn btn-primary" id="submit" name="submit" type="submit" value="Search PPT">
+    </div>
+</form>
+
+
+<script type="text/javascript">
+    // update search menu. id=search_field value = 
+    $(document).ready(function () {
+        let table = "{{table}}";
+        let option = [];
+        $("#search_field option").each(function () { option.push($(this).val()) });
+        if (option.includes(table)) {
+            $("#search_field").val(table);
+        };
+    });
+
+    /* function change_search_field(method) {
+        let sequence = ['known_sequence', 'primer', 'sequence'];
+        let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
+        if (method != 'text') {
+            $("#search_field option").each(function () {
+                if (sequence.includes($(this).val())) { $(this).removeAttr('disabled') }
+                else { $(this).attr('disabled', "") };
+            });
+            if (!sequence.includes($("#search_field").val())) {
+                $("#search_field").val("sequence")
+            };
+        }
+        else {
+            $("#search_field option").each(function () {
+                if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
+                else { $(this).attr('disabled', "") };
+            });
+            if (!text.includes($("#search_field").val())) {
+                $("#search_field").val("selection")
+            }
+        }
+    };
+    $(document).ready(function () {
+        let method = $("#search_method").val();
+        change_search_field(method);
+        $("#search_method").change(function (event) {
+            let method = event.target.value;
+            change_search_field(method);
+        })
+    }); */
+
+</script>

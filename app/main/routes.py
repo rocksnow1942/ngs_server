@@ -3,9 +3,9 @@ from flask import render_template, flash, redirect,url_for,request,current_app
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
-from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound
+from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project
 from flask import g
-from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm
+from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
@@ -13,13 +13,17 @@ from sqlalchemy import or_
 @bp.before_app_request
 def before_request():
     formdict = {'NGS': SearchNGSForm,
-                'FOLD': SearchInventoryForm, 'INVENTORY': SearchInventoryForm}
+                'FOLD': SearchInventoryForm, 'INVENTORY': SearchInventoryForm,
+                'PPT':SearchPPTForm}
     root = urlparse(request.url).path.split('/')[1]
     if root=='search':
         formtype=request.args.get('submit',None).split()[-1]
         g.search_form = formdict.get(formtype.upper(), SearchNGSForm)()    
     else:
         g.search_form = formdict.get(root.upper(), SearchNGSForm)()
+        if root.upper() == 'PPT':
+            choice = [('all', 'All'), ] + [(p.id,p.name) for p in Project.query.all()]
+            g.search_form.search_project.choices=choice
     
 
 

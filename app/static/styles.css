@@ -6,6 +6,23 @@ a.custom-card:link {
   text-decoration: none;
 }
 
+
+img.image-link {
+  border-radius: 15px;
+ 
+}
+img.image-link:hover {
+  border-radius: 1px;
+  animation-name: round-boarder;
+  animation-duration: 0.2s;
+  border: 1px solid rgb(144, 144, 161);
+}
+
+@keyframes round-boarder {
+  from {border-radius: 17px;}
+  to {border-radius: 1px;}
+}
+
 .narrow_row {
   padding: 0px;
   text-align: center;
@@ -22,6 +39,37 @@ a.custom-card:link {
      text-align: center;
 }
 
+.slidezoom {
+  transition: transform .2s; /* Animation */
+}
+
+
+
+.zoom-hidden-text {
+  display: none;
+}
+
+.slidezoom:hover{
+  position: sticky;
+  transform: scale(2); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+  z-index: 1000;
+  
+}
+
+.slidezoom:hover .zoom-hidden-text{
+  display: block;
+  font-size:6px;
+  background-color: white;
+}
+
+.slide:hover .zoom-hidden-text {
+  display: block;
+  font-size:14px;
+  background-color: white;
+}
+
+/* 
+
 .bgimg {
     background-image: url('{{url_for("static", filename="images/404.gif")}}');
     height: 600px;
@@ -37,10 +85,139 @@ a.custom-card:link {
    padding: 5px;
    color: #FFFFFF;
    font-weight: bold;
-}
+} */
 .customcontainer {
 border: 1px solid #DDDDDD;
 width: 800px;
 height: 600px;
 position: relative;
+}
+
+
+
+/* Toast messages*/
+@import url('https://fonts.googleapis.com/css?family=Raleway:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i');
+.toast__container {
+    display: table-cell;
+    vertical-align: middle;
+    position: relative;
+}
+
+.toast__cell{
+  display:inline-block;
+}
+
+.add-margin{
+  margin-top:20px;
+}
+
+.toast__svg{
+  fill:#fff;
+}
+
+.toast {
+  text-align:left;
+    padding: 21px 0;
+    background-color:#fff;
+    border-radius:4px;
+    max-width: 800px;
+    top: 0px;
+    position:relative;
+    box-shadow: 1px 7px 14px -5px rgba(0,0,0,0.2);
+}
+
+
+.toast:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+  border-top-left-radius:4px;
+  border-bottom-left-radius: 4px;
+
+}
+
+.toast__icon{
+  position:absolute;
+  top:50%;
+  left:22px;
+  transform:translateY(-50%);
+  width:14px;
+  height:14px;
+  padding: 7px;
+  border-radius:50%;
+  display:inline-block;
+}
+
+.toast__type {
+  color: #3e3e3e;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.toast__message {
+    font-size: 14px;
+    margin-top: 0;
+  margin-bottom: 0;
+    color: #878787;
+}
+
+.toast__content{
+  padding-left:70px;
+  padding-right:60px;
+}
+
+.toast__close {
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    width: 14px;
+    cursor:pointer;
+    height: 14px;
+  fill:#878787;
+    transform: translateY(-50%);
+}
+
+.toast--green .toast__icon{
+  background-color:#2BDE3F;
+}
+
+.toast--green:before{
+  background-color:#2BDE3F;
+}
+
+.toast--blue .toast__icon{
+  background-color:#1D72F3;
+}
+
+.toast--blue:before{
+  background-color:#1D72F3;
+}
+
+.toast--yellow .toast__icon{
+  background-color:#FFC007;
+}
+
+.toast--yellow:before{
+  background-color:#FFC007;
+}
+
+
+.flash_message_container{
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1005;
+}
+
+
+.sticky_ppt_tools{
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  background-color: white;
 }

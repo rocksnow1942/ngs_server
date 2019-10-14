@@ -1,0 +1,71 @@
+{% if thumbnail=='small' %}
+ 
+{% for row in entries | batch(4) %}
+<div class='row'>
+{% for entry in row %}
+<div class="col-sm-3">
+    <div class="thumbnail ">
+        <p>{{entry.ppt.name}}</p>
+        <div class="slidezoom slide_container" id="{{entry.id}}"><img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                alt="{{entry.title}} - {{entry.body}}">
+            <div class='zoom-hidden-text input_container'>
+               
+                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+               
+            </div>
+            </div>
+        <p align='right'>Page - {{entry.page}}</p>
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+
+{% elif thumbnail=='medium' %}
+
+{% for row in entries | batch(2) %}
+<div class='row'>
+    {% for entry in row %}
+    <div class="col-sm-6">
+        <div class="thumbnail ">
+            <p>{{entry.ppt.name}}</p>
+            <div class="slide_container" id="{{entry.id}}">
+                <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
+                    class="img-responsive image-link" alt="{{entry.title}} - {{entry.body}}">
+                    <div class = "input_container">
+                        <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                        <p>Note: <span class="slide_note">{{entry.note}}</span></p>    
+                    </div>        
+            </div>
+            <p align='right'>Page - {{entry.page}}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% elif thumbnail=='large' %}
+
+{% for entry in entries %}
+<div class='row'>
+    <div class="col-md-12">
+        <div class="thumbnail ">
+            <p>{{entry.ppt.name}}</p>
+            <div class="slide_container" id="{{entry.id}}"><img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
+                    class="img-responsive image-link" alt="{{entry.title}} - {{entry.body}}">
+            <div class="input_container">
+                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+            </div>
+            </div>
+            
+            <p align='right'>Page - {{entry.page}}</p>
+        </div>
+    </div>
+   
+</div>
+{% endfor %}
+
+{% endif %}
+
