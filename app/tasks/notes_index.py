@@ -200,7 +200,6 @@ class PPT_Indexer():
 
     def delete(self, file):
         with self.app.app_context():
-            projectname = self.get_project_name(file)
             filepath = self.mirror_path(file)
             ppt = PPT.query.filter_by(path=filepath).first()
             if ppt:
