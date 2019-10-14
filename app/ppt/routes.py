@@ -14,6 +14,12 @@ from sqlalchemy import or_
 #1. search
 #2. display trashed slides with notes. 
 
+
+@bp.after_request
+def add_header(response):
+    response.cache_control.max_age = 60
+    return response
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
