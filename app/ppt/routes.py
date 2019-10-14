@@ -10,8 +10,11 @@ from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps
 from sqlalchemy import or_
 
+#TODO
+#1. search
+#2. display trashed slides with notes. 
+
 @bp.route('/', methods=['GET', 'POST'])
-@bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
     pagelimit = 40
@@ -55,7 +58,7 @@ def index():
                     for i in range(start, end+1)]
         return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), entries=entries.items,thumbnail=thumbnail,
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
-                               page_url=page_url, active=page)
+                               page_url=page_url, active=page,id=id)
     return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail,
                            table=table,  tags_list=tags_list,
                           )
@@ -73,7 +76,7 @@ def edit():
     table,field,id,value = data['table'],data['field'],data['id'],data['data']
     target = models_table_name_dictionary.get(table, None)
     try:
-        print(table, field, id, value)
+       
         item = target.query.get(id)
         setattr(item,field,value)
         db.session.commit()

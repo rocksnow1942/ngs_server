@@ -20,6 +20,11 @@ from watchdog.events import PatternMatchingEventHandler
 from pptx import Presentation
 from app.models import Slide, PPT, Project
 
+#TODO
+#when trashing project, only save those slides with notes and tags.
+#after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name. 
+#clean up slides in that powerpoint that doesn't have tag or notes.
+# the left over slides will be displayed in "deleted tab"
 
 def glob_pptx(path):
     result = []
@@ -83,6 +88,8 @@ class PPT_Indexer():
             else:
                 self.create_new(file)
                 self.write_log(f"{self.time} Create new {file}")
+
+            # self.clean_up
 
     def create_by_path(self,file):
         path = self.mirror_path(file)
@@ -209,13 +216,13 @@ class PPT_Indexer():
                 db.session.commit()
                 self.write_log(
                     f"{self.time} Delete PPT {file}")
-            projects = Project.query.filter_by(name=projectname).all()
-            for p in projects:
-                if not p.ppts:
-                    db.session.delete(p)
-                    db.session.commit()
-                    self.write_log(
-                        f"{self.time} Delete Project {file}")
+            # projects = Project.query.filter_by(name=projectname).all()
+            # for p in projects:
+            #     if not p.ppts:
+            #         db.session.delete(p)
+            #         db.session.commit()
+            #         self.write_log(
+            #             f"{self.time} Delete Project {file}")
 
     def move(self, src, dst):
         self.write_log(f"{self.time} move {src} => {dst}")
@@ -258,7 +265,7 @@ def StartWatch(source_folder, log_file):
     my_observer.start()
     try:
         while True:
-            time.sleep(1)
+            time.sleep(10)
     except KeyboardInterrupt:
         my_observer.stop()
         my_observer.join()

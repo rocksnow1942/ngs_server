@@ -166,19 +166,19 @@
       {% endif %}
       
       // close toast
-      function close_toast_message(event){
-         // console.log($(event.target).parent(".toast__close"));
-         // e.preventDefault();
-         // var parent = $(".my_toast_container").parent(".toast__close").parent('.toast').parent('.my_toast_container');
-         // parent.fadeOut(300, function () { $(this).remove(); });
-          $(".my_toast_container").fadeOut(300, function () { $(this).remove(); })
-        
-      }
-      /*$(document).ready(function () {
-          $('.toast__close').click(close_toast_message(event));
-        });*/
-      
-        
-      
+      function close_toast_message(time){
+           time = time ? time : 100;
+          $(".my_toast_container").fadeTo(time, 500).slideUp(500, function () {
+            $(".my_toast_container").slideUp(500);
+          })
+        }
+      $(document).ready(function  () {
+        let category = [];
+        $(".my_toast_container").each(function(element){category.push($(this).attr('name'))});
+        if (category.every((e)=>{return e=='success' | e=='info'})){
+          close_toast_message(1500)
+        }
+
+        }); 
     </script>
 {% endblock %}

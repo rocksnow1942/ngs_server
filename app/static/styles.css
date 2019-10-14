@@ -52,7 +52,7 @@ img.image-link:hover {
 .slidezoom:hover{
   position: sticky;
   transform: scale(2); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
-  z-index: 1000;
+  z-index: 998;
   
 }
 
@@ -210,7 +210,7 @@ position: relative;
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 1005;
+  z-index: 999;
 }
 
 
@@ -218,6 +218,6 @@ position: relative;
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 1001;
+  z-index: 997;
   background-color: white;
 }

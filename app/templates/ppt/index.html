@@ -68,19 +68,19 @@
         </li>
 
         <li class=" previous {% if thumbnail=='small' %} active{% endif %}">
-          <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table) }}" >
+          <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" >
             <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
           </a>
         </li>
 
         <li class=" previous {% if thumbnail=='medium' %} active{% endif %}">
-          <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table) }}">
+          <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}">
             <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
           </a>
         </li>
         
         <li class=" previous {% if thumbnail=='large' %} active{% endif %}">
-          <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table) }}" >
+          <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" >
             <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
           </a>
         </li>
@@ -145,6 +145,7 @@
           display_flash_message(result.html);
           $(container).find('span.slide_tag').html(result.tag);
           $(container).find(`span.${table}_note`).html(result.note);
+          close_toast_message(1500)
         },
         error: function (xhr,resp,text){alert(`Save edit error: ${text}`)},
       });
