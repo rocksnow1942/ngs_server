@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect,url_for,request,current_app
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.admin import bp
-from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound
+from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Slide
 from flask import g
 # from app.admin.forms import SearchNGSForm, SearchInventoryForm, TestForm
 from urllib.parse import urlparse
@@ -37,3 +37,40 @@ def reindex_models():
         flash(str(e),'danger')
         return render_template('admin/result.html',content='Shit happened.')
     return render_template('admin/result.html', content='Success.')
+
+
+@bp.route('/clear_ppt_trash', methods=['GET', 'POST'])
+def clear_ppt_trash():
+    try:
+        # clear project 
+        projects = [i for i in Project.query.all() if not i.ppts]
+        for p in projects:
+            db.session.delete(p)
+            db.session.commit()
+            flash('Delete {}... success.'.format(p), 'success')
+        # clear PPT
+        ppt = PPT.query.filter_by(project_id=None).all()
+        for p in ppt:
+            for s in p.slides:
+                if s.note or s.tag:
+                    s.ppt_id=None
+            db.session.commit()
+            db.session.delete(p)
+            db.session.commit()
+            flash('Delete {}... success.'.format(p),'success')
+        # clear Slides
+        slides = Slide.query.filter_by(ppt_id=None).all()
+        count=0
+        for s in slides:
+            if s.note or s.tag:
+                pass
+            else:
+                db.session.delete(s)
+                count+=1
+        if count:
+            flash('Deleted {} slide pages... success.'.format(count), 'success')
+    except Exception as e:
+        flash(str(e), 'danger')
+        return render_template('admin/result.html', content='Shit happened.')
+    return render_template('admin/result.html', content='Success.')
+    

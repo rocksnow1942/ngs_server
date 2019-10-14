@@ -81,10 +81,8 @@ class PPT_Indexer():
         with self.app.app_context():
             if self.create_by_path(file):
                 self.write_log(f"{self.time} Update by path {file}")
-                return None
             elif self.create_by_md5((file)):
                 self.write_log(f"{self.time} Update by md5 {file}")
-                return None
             else:
                 self.create_new(file)
                 self.write_log(f"{self.time} Create new {file}")
@@ -216,14 +214,7 @@ class PPT_Indexer():
                 db.session.commit()
                 self.write_log(
                     f"{self.time} Delete PPT {file}")
-            # projects = Project.query.filter_by(name=projectname).all()
-            # for p in projects:
-            #     if not p.ppts:
-            #         db.session.delete(p)
-            #         db.session.commit()
-            #         self.write_log(
-            #             f"{self.time} Delete Project {file}")
-
+            
     def move(self, src, dst):
         self.write_log(f"{self.time} move {src} => {dst}")
 
@@ -283,10 +274,10 @@ if __name__ == "__main__":
     app = create_app(keeplog=False)
     app.app_context().push()
     source_folder = app.config['PPT_SOURCE_FOLDER']  
-    log_file = "/Users/hui/Documents/Scripts/ngs_server/app/tasks/ppt_log.txt"
+    log_file = app.config['PPT_LOG_FILE']
     print(f'start watching {source_folder}')
-    index_path(
-        '/Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization',log_file=log_file)
+    # index_path(
+    #     '/Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization',log_file=log_file)
 
     StartWatch(source_folder, log_file)
 

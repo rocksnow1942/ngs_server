@@ -59,8 +59,7 @@ def index():
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
                                page_url=page_url, active=page,id=id)
     return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail,
-                           table=table,  tags_list=tags_list,
-                          )
+                           table=table,  tags_list=tags_list,)
 
 
 
