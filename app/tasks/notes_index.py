@@ -41,7 +41,7 @@ class PPT_Indexer():
 
     def write_log(self,content):
         with open(self.log_file,'a') as f:
-            f.write(content+'\n')
+            f.write(f"{self.time} - " +content+'\n')
 
     def mirror_path(self, path):
         sf = PurePath(self.source_folder)
@@ -74,12 +74,12 @@ class PPT_Indexer():
     def create(self, file):
         with self.app.app_context():
             if self.create_by_path(file):
-                self.write_log(f"{self.time} Update by path {file}")
+                self.write_log(f" Update by path {file}")
             elif self.create_by_md5((file)):
-                self.write_log(f"{self.time} Update by md5 {file}")
+                self.write_log(f" Update by md5 {file}")
             else:
                 self.create_new(file)
-                self.write_log(f"{self.time} Create new {file}")
+                
 
             # self.clean_up
 
@@ -152,6 +152,7 @@ class PPT_Indexer():
                 slide = Slide(ppt_id=ppt.id, **s)
                 db.session.add(slide)
             cur_slides.append(slide)
+        
         for slide in (set(oldslides)-set(cur_slides)):
             if slide.note or slide.tag:
                 slide.ppt_id=None
@@ -172,8 +173,9 @@ class PPT_Indexer():
             db.session.commit()
             self.sync_slides(ppt,file)
             db.session.commit()
+            self.write_log(f" Create new {file}")
         except Exception as e:
-            self.write_log(f"{self.time} - Create New error:{e}")
+            self.write_log(f" Create New error:{e}")
 
     def create_project(self,file):
         projectname = self.get_project_name(file)
@@ -206,10 +208,10 @@ class PPT_Indexer():
                 ppt.project_id=None
                 db.session.commit()
                 self.write_log(
-                    f"{self.time} Delete PPT {file}")
+                    f" Delete PPT {file}")
             
     def move(self, src, dst):
-        self.write_log(f"{self.time} move {src} => {dst}")
+        self.write_log(f" Move {src} => {dst}")
 
 
 
@@ -221,16 +223,25 @@ class PPTX_Handler(PatternMatchingEventHandler):
 
     def on_created(self, event):
         t1=time.time()
-        self.logger.create(event.src_path)
-        t2=time.time()
-        print("Create {} Done in {:.1f}".format(event.src_path,t2-t1))
+        try:
+            self.logger.create(event.src_path)
+            t2=time.time()
+            print("Create {} Done in {:.1f}".format(event.src_path,t2-t1))
+        except Exception as e:
+            self.logger.write_log(f" Create error:{e}")
+            print(f" Create Error {event.src_path}:{e}")
+        
 
 
     def on_deleted(self, event):
         t1 = time.time()
-        self.logger.delete(event.src_path)
-        t2 = time.time()
-        print("Delete {} Done in {:.1f}".format(event.src_path, t2-t1))
+        try:
+            self.logger.delete(event.src_path)
+            t2 = time.time()
+            print("Delete {} Done in {:.1f}".format(event.src_path, t2-t1))
+        except Exception as e:
+            self.logger.write_log(f"Deletion error:{e}")
+            print(f"Delete Error {event.src_path}:{e}")
 
 
     def on_modified(self, event):
@@ -262,6 +273,13 @@ def index_path(path,log_file):
         logger.delete(i)
         logger.create(i)
 
+def index_file(path):
+    app = create_app(keeplog=False)
+    app.app_context().push()
+    log_file = app.config['PPT_LOG_FILE']
+    logger = PPT_Indexer(log_file=log_file)
+    logger.delete(path)
+    logger.create(path)
 
 if __name__ == "__main__":
     app = create_app(keeplog=False)

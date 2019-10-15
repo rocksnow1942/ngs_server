@@ -823,7 +823,7 @@ class PPT(db.Model):
         if self.slides:
             return self.slides[0].uri
         else:
-            return None
+            return 'FolderEmpty.png'
 
 class Project(db.Model):
     __tablename__ = 'project'
@@ -842,7 +842,7 @@ class Project(db.Model):
         if self.ppts:
             return self.ppts[0].uri
         else:
-            return None
+            return 'FolderEmpty.png'
 
 @login.user_loader
 def load_user(id):
