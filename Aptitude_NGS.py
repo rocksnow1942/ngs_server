@@ -1,13 +1,13 @@
 from app import create_app,db
 from app.models import models_table_name_dictionary
-from app.tasks.notes_index import index_file
+from app.tasks.notes_index import index_file,reindex
 
 app = create_app()
 
 
 @app.shell_context_processor
 def make_shell_context():
-    models_table_name_dictionary.update({'db': db,'index':index_file })
+    models_table_name_dictionary.update({'db': db,'index':index_file,'reindex':reindex })
     
     return models_table_name_dictionary
 
