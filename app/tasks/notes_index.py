@@ -86,7 +86,7 @@ class PPT_Indexer():
     def create_by_path(self,file):
         path = self.mirror_path(file)
         ppt = PPT.query.filter_by(path=path).first()
-        if ppt and (ppt.project_id == None):
+        if ppt: #and (ppt.project_id == None)
             project = self.create_project(file)
             ppt.project = project
             ppt.md5=self.get_md5(file)
@@ -176,6 +176,7 @@ class PPT_Indexer():
             self.write_log(f" Create new {file}")
         except Exception as e:
             self.write_log(f" Create New error:{e}")
+            raise e
 
     def create_project(self,file):
         projectname = self.get_project_name(file)
