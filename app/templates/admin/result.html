@@ -6,5 +6,9 @@
     <h1>Hi, System Admin {{ current_user.username }}!</h1>
 </div>
 <h1>Result:</h1>
-<h1>{{content}}</h1>
+{% for c in content %}
+<li>
+    <h5>{{c}}</h5>
+</li>
+{% endfor %}
 {% endblock %}

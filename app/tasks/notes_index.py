@@ -289,10 +289,25 @@ def reindex():
     log_file = app.config['PPT_LOG_FILE']
     logger = PPT_Indexer(log_file=log_file)
     source_folder = PurePath(app.config['PPT_SOURCE_FOLDER'])
-    paths = [str((source_folder)/PurePath(i.path)) for i in PPT.query.all()]
+    paths = [str((source_folder)/PurePath(i.path))+".pptx" for i in PPT.query.all()]
+    messages=[]
     for path in paths:
+        messages.append(f'Sync <{path}>')
+        if os.path.exists(path):
+            try:
+                logger.create(path)
+                messages.append(f'Redindexed <{path}>')
+            except Exception as e:
+                 messages.append(f'Redindex Error <{path}> - <{e}>')
+        else:
+            try:
+                logger.delete(path)
+                messages.append(f'Deleted <{path}>')
+            except Exception as e:
+                 messages.append(f'Deletion Error <{path}> - <{e}>')
+    return messages
+       
 
-    print(paths)
 
 if __name__ == "__main__":
     app = create_app(keeplog=False)

@@ -71,7 +71,7 @@ def ppt_search_handler(query, project, field, ppt):
     test, ['all'], ['all','tag'], ['all']
     string, ['9'], ['all', 'title', 'body'], ['15', '16']
     """
-
+    pass
 
 @bp.route('/get_ppt_slides/<path:filename>', methods=['GET'])
 def get_ppt_slides(filename):

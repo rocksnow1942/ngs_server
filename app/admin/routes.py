@@ -9,7 +9,7 @@ from flask import g
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
-
+from app.tasks.notes_index import reindex
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -74,3 +74,8 @@ def clear_ppt_trash():
         return render_template('admin/result.html', content='Shit happened.')
     return render_template('admin/result.html', content='Success.')
     
+
+@bp.route('/reindex_ppt', methods=['GET', 'POST'])
+def reindex_ppt():
+    msg = reindex()
+    return render_template('admin/result.html', content=msg)
