@@ -9,7 +9,7 @@ from flask import g
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
-from app.tasks.notes_index import reindex
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def admin():
@@ -77,5 +77,10 @@ def clear_ppt_trash():
 
 @bp.route('/reindex_ppt', methods=['GET', 'POST'])
 def reindex_ppt():
-    msg = reindex()
+    try:
+        # msg = reindex()
+        assert 1==0,('error this is not implemented')
+    except Exception as e:
+        flash(str(e),'danger')
+        msg=['This is not implemented yet.']
     return render_template('admin/result.html', content=msg)
