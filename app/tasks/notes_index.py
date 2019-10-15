@@ -285,8 +285,12 @@ def index_file(path):
 def reindex():
     app = create_app(keeplog=False)
     app.app_context().push()
+    log_file = app.config['PPT_LOG_FILE']
+    logger = PPT_Indexer(log_file=log_file)
     source_folder = PurePath(app.config['PPT_SOURCE_FOLDER'])
-    paths = [(source_folder)/PurePath(i.path) for i in PPT.query.all()]
+    paths = [str((source_folder)/PurePath(i.path)) for i in PPT.query.all()]
+    for path in paths:
+
     print(paths)
 
 if __name__ == "__main__":
