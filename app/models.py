@@ -819,7 +819,7 @@ class PPT(db.Model):
     
     @property
     def uri(self):
-        self.slides.sort(key=lambda x: x.date, reverse=True)
+        self.slides.sort(key=lambda x: (x.date,x.page), reverse=True)
         if self.slides:
             return self.slides[0].uri
         else:
