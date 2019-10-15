@@ -235,6 +235,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
 
     def on_deleted(self, event):
         t1 = time.time()
+        print("{} Delete {}".format(self.logger.time,event.src_path))
         try:
             self.logger.delete(event.src_path)
             t2 = time.time()
