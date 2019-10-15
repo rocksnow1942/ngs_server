@@ -3,9 +3,9 @@ from flask import render_template, flash, redirect,url_for,request,current_app
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
-from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project
+from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT
 from flask import g
-from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm
+from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm,UserSettingForm
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
@@ -16,15 +16,26 @@ def before_request():
                 'FOLD': SearchInventoryForm, 'INVENTORY': SearchInventoryForm,
                 'PPT':SearchPPTForm}
     root = urlparse(request.url).path.split('/')[1]
-    if root=='search':
-        formtype=request.args.get('submit',None).split()[-1]
-        g.search_form = formdict.get(formtype.upper(), SearchNGSForm)()    
-    else:
-        g.search_form = formdict.get(root.upper(), SearchNGSForm)()
-        # if root.upper() == 'PPT':
-            # choice = [('all', 'All'), ] + [(p.id,p.name) for p in Project.query.all()]
-            # g.search_form.search_project.choices=choice
-    
+    formtype = root.upper() if root != 'search' else request.args.get(
+        'submit', 'submit PPT').split()[-1]
+    # print(request.form)
+    g.search_form = formdict.get(formtype.upper(), SearchNGSForm)()   
+    if formtype == 'PPT': # dynamically add Search PPT form optioins and data
+        g.search_form.search_project.choices = [
+            ('all', 'All'), ] + [(p.id, p.name) for p in Project.query.all()]
+        g.search_form.search_project.data = g.search_form.search_project.data or ['all']
+        g.search_form.search_field.data = g.search_form.search_field.data or ['all']
+        g.search_form.search_ppt.data = g.search_form.search_ppt.data or ['all']
+        project = g.search_form.search_project.data
+        if 'all' in project:
+            result = db.session.query(PPT.id, PPT.name).order_by(
+            PPT.date.desc()).all()
+        else:
+            project = [int(i) for i in project]
+            result = db.session.query(PPT.id, PPT.name).filter(PPT.project_id.in_(project)).order_by(
+                PPT.date.desc()).all()
+        g.search_form.search_ppt.choices = [('all', 'All'),]+ result
+          
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -45,12 +56,14 @@ def triggererror():
 @login_required
 def search():
     form=g.search_form
-    formtype = request.args.get('submit', None).split()[-1]
-   
-    if formtype == 'NGS':
+    formtype = form.__class__.__name__#request.args.get('submit', None).split()[-1]
+  
+    if formtype == 'SearchNGSForm':
         return ngs_serach_handler(form)
-    
-    return render_template('search/search_result.html', title='Search Result', para=request.form, )
+    elif formtype == 'SearchPPTForm':
+        query,project,field,ppt = form.q.data,form.search_project.data,form.search_field.data,form.search_ppt.data
+        print("searching ppt with : {}, {}, {}, {}".format(query, project, field, ppt))
+    return render_template('search/search_result.html', title='Search Result', content='def', )
 
         
 def ngs_serach_handler(form):
@@ -85,7 +98,6 @@ def ngs_serach_handler(form):
 
     elif method == 'distance':
         return render_template('search/search_result.html',content='Not implemented yet.')
-    print("***total", total)
     start, end = pagination_gaps(page, total, pagelimit)
     next_url = url_for('main.search', page=page+1, **
                        kwargs) if total > page*pagelimit else None
@@ -97,8 +109,17 @@ def ngs_serach_handler(form):
                            nextcontent=nextcontent, entries=entries, next_url=next_url, prev_url=prev_url, page_url=page_url, active=page)
 
 
-
-
 @bp.route('/analysis_log', methods=['GET', 'POST'])
 def analysis_profile():
     return render_template('ngs/analysis_profile.html', user=current_user, title='NGS analysis')
+
+
+@bp.route('/user_settings', methods=['GET', 'POST'])
+def user_settings():
+    form = UserSettingForm(obj=current_user)
+    if form.validate_on_submit():
+        user = form.populate_obj(current_user)
+        db.session.commit()
+        flash('Settings Saved','success')
+        return redirect(request.referrer)
+    return render_template('auth/profile.html', user=current_user, title='Settings', form=form)

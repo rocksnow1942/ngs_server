@@ -13,13 +13,19 @@
                 {{ g.search_form.q(size=20, class='form-control',id='query_input',placeholder=g.search_form.q.label.text,value=g.search_form.q.data) }}
             </div>
         </div>
-        <div class="row" style="padding: 10px;">
+        <div class="row" style="padding: 2px;">
             <div class="col-md-6">
-                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data,rows=3)}}
+                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data,rows=5)}}
             </div>
             <div class="col-md-6">
-                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data,rows=3)}}
+                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data,rows=5)}}
             </div>
+        </div>
+        <div class="row" style="padding: 2px;">
+            <div class="col-md-12">
+                {{wtf.form_field(g.search_form.search_ppt,value=g.search_form.search_ppt.data,rows=8)}}
+            </div>
+            
         </div>
 
     </div>
@@ -40,36 +46,43 @@
             $("#search_field").val(table);
         };
     });
+    //make ajax request to update search ppt options based on project selections
 
-    /* function change_search_field(method) {
-        let sequence = ['known_sequence', 'primer', 'sequence'];
-        let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
-        if (method != 'text') {
-            $("#search_field option").each(function () {
-                if (sequence.includes($(this).val())) { $(this).removeAttr('disabled') }
-                else { $(this).attr('disabled', "") };
-            });
-            if (!sequence.includes($("#search_field").val())) {
-                $("#search_field").val("sequence")
-            };
-        }
-        else {
-            $("#search_field option").each(function () {
-                if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
-                else { $(this).attr('disabled', "") };
-            });
-            if (!text.includes($("#search_field").val())) {
-                $("#search_field").val("selection")
+    $(document).ready(function () {
+            
+            //change_search_ppt(projectid);
+            $("#search_project").change(function (event) {
+                let projectid = event.target.value;
+                change_search_ppt(projectid);
+            })
+        });
+
+     function change_search_ppt(projectid) {
+        $.ajax({
+            url:"{{url_for('ppt.get_ppt_by_project')}}",
+            type:'POST',
+            data : JSON.stringify({ project: projectid }), 
+            contentType:"application/json", 
+            success: function (result) {
+                console.log(result);
+                let options = '<option selected value="all">All</option>';
+                for (let opt of result.options) {
+                    options += `<option value="${opt[0]}">${opt[1]}</option>`
+                };
+                $('#search_ppt').html(options);
             }
-        }
+        })
     };
     $(document).ready(function () {
-        let method = $("#search_method").val();
-        change_search_field(method);
-        $("#search_method").change(function (event) {
-            let method = event.target.value;
-            change_search_field(method);
-        })
-    }); */
-
+            //change_search_ppt(projectid);
+            $("#search_field").change(function (event) {
+                let field = event.target.value;
+                console.log(field)
+                if (field=='tag') {
+                    $('#query_input').attr('list',"tags_list")
+                } else {
+                    $('#query_input').removeAttr('list');
+                }
+            })
+        });
 </script>

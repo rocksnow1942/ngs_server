@@ -95,6 +95,7 @@ class User(UserMixin,db.Model,DataStringMixin):
     password_hash = db.Column(db.String(128))
     data_string = Column(db.Text,default="{}")
     analysis_cart= data_string_descriptor('analysis_cart')()
+    user_setting = data_string_descriptor('user_setting',{})()
     analysis = relationship('Analysis',backref='user')
 
     def __repr__(self):
@@ -102,6 +103,14 @@ class User(UserMixin,db.Model,DataStringMixin):
 
     def set_password(self,password):
         self.password_hash=generate_password_hash(password)
+
+    @property 
+    def ngs_per_page(self):
+        return self.user_setting.get('ngs_per_page', 10)
+    
+    @property
+    def slide_per_page(self):
+        return self.user_setting.get('slide_per_page', 40)
 
     def check_password(self,password):
         if self.password_hash:
@@ -769,7 +778,7 @@ class Task(db.Model,BaseDataModel):
 
 class Slide(SearchableMixin,db.Model):
     __tablename__='slide'
-    __searchable__=['title','body','tag','note']
+    __searchable__=['title','body','tag','note','ppt_id']
     __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     title = Column(mysql.TEXT(collation='utf8_bin'))
@@ -794,10 +803,8 @@ class Slide(SearchableMixin,db.Model):
         c = c.most_common(n)
         return [i[0] for i in c]
 
-class PPT(SearchableMixin, db.Model):
+class PPT(db.Model):
     __tablename__ = 'powerpoint'
-    __searchable__ =['name','note']
-    __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(200))
     note = Column(String(2000))
@@ -818,12 +825,8 @@ class PPT(SearchableMixin, db.Model):
         else:
             return None
 
-
-
-class Project(SearchableMixin,db.Model):
+class Project(db.Model):
     __tablename__ = 'project'
-    __searchable__ = ['name', 'note']
-    __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(200),unique=True)
     note = Column(String(2000))

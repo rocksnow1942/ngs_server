@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField
-from wtforms.validators import DataRequired,ValidationError, Length
+from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField,IntegerField
+from wtforms.validators import DataRequired,ValidationError, Length,NumberRange
 from app.models import User
 from flask import request
 
@@ -42,13 +42,15 @@ class SearchInventoryForm(FlaskForm):
 
 class SearchPPTForm(FlaskForm):
     q = StringField('Search Keywords', validators=[DataRequired()])
-    project = [('all', 'All'),('p','p'),('t','t')]
+    
     search_project = SelectMultipleField(
-        'Search In Project', choices=project,validators=[DataRequired()])
-    field = [('slide', 'Slide'), ('tag', 'Tag')]
-
+        'Search In Project', choices=[('all', 'All')], validators=[DataRequired()])  # choices=project
+    field = [('all', 'All'), ('title', 'Title'),
+             ('body', 'Body'), ('tag', 'Tag'), ('note', 'Note')]
     search_field = SelectMultipleField(
         'Search Field', choices=field, validators=[DataRequired()])
+    search_ppt = SelectMultipleField(
+        'Search In PPT', validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):
         if 'formdata' not in kwargs:
@@ -56,6 +58,8 @@ class SearchPPTForm(FlaskForm):
         if 'csrf_enabled' not in kwargs:
             kwargs['csrf_enabled'] = False
         super(SearchPPTForm, self).__init__(*args, **kwargs)
+        
+        
 
 
 class TestForm(FlaskForm):
@@ -75,3 +79,15 @@ class TestForm(FlaskForm):
         if 'csrf_enabled' not in kwargs:
             kwargs['csrf_enabled'] = False
         super().__init__(*args, **kwargs)
+
+class UserSettingForm(FlaskForm):
+    ngs_per_page = IntegerField('List Item Per Page', validators=[DataRequired(),NumberRange(3, 200)])
+    slide_per_page = IntegerField('Slides Per Page', validators=[
+                                  DataRequired(), NumberRange(3, 200)])
+    submit = SubmitField('Save Settings')
+    
+    def populate_obj(self,user):
+        user.user_setting.update(ngs_per_page=self.ngs_per_page.data)
+        user.user_setting.update(slide_per_page=self.slide_per_page.data)
+        user.save_data()
+        return user

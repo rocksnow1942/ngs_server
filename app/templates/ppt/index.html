@@ -61,10 +61,10 @@
   <div class="col-md-3">
     <nav aria-label="Page navigation">
       <ul class="pagination ">
-        <li class=" previous disabled ">
+        <li class=" previous " >
          
-            <span aria-hidden="true">Thumbnail</span>
-         
+            <a aria-hidden="true" href="javascript:void(0)" onclick="show_hidden_title_body(event)">Show Text</a>
+           
         </li>
 
         <li class=" previous {% if thumbnail=='small' %} active{% endif %}">
@@ -108,7 +108,33 @@
 {{super()}}
 
 <script>
-  $(".slide_container").on('click', function (event) {
+
+  function show_hidden_title_body(event){
+    let status = $(event.target).text();
+    let scroll = $(window).scrollTop();
+    let element;
+    let offset;
+    $(".img-responsive").each(function(){
+      
+      if ($(this).offset().top-scroll>100) {
+        element=$(this); 
+        offset = $(this).offset().top - scroll;
+        return false}
+      
+    });
+    if (status=='Show Text'){
+       $(".thumbnail-hidden").css('display', 'block');
+       $(event.target).text("Hide Text");
+    }
+    else {
+      $(".thumbnail-hidden").css('display', 'none');
+       $(event.target).text("Show Text");
+    };  
+      $(window).scrollTop($(element).offset().top-offset);
+  };
+
+
+  $(".slide_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
     if (!$(this).find('input').length) {
     let tag = $(this).find('span.slide_tag').text();

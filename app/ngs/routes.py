@@ -20,7 +20,7 @@ def ngs():
 @bp.route('/browse', methods=['GET', 'POST'])
 @login_required
 def browse():
-    pagelimit = current_app.config['PAGE_LIMIT']
+    pagelimit = current_user.ngs_per_page
     table = request.args.get('table')
     id = request.args.get('id',0,type=int)
     page = request.args.get('page',1,type=int)
@@ -302,7 +302,7 @@ def get_bar_progress():
 @bp.route('/details', methods=['GET'])
 @login_required
 def details():
-    pagelimit = current_app.config['PAGE_LIMIT']
+    pagelimit = current_user.ngs_per_page
     page = request.args.get('page', 1, type=int)
     table = request.args.get('table','',str)
     id = request.args.get('id')
