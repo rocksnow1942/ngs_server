@@ -1,13 +1,13 @@
 {% if thumbnail=='small' %}
-{% for row in entries | batch(4) %}
+{% for row in entries | batch(6) %}
 {% set outerindex = loop.index%}
 <div class='row'>
 {% for entry in row %}
-<div class="col-sm-3">
+<div class="col-sm-2">
     <div class="thumbnail ">
         <h5>{{entry.ppt.name}}</h5>
         <div class="slidezoom" >
-            <img data-toggle="modal"  name = "modal-{{loop.index + outerindex*4-4}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+            <img data-toggle="modal"  name = "modal-{{loop.index + outerindex*6-6}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                 alt="No Snapshot - {{entry.title}}">
         </div>
             <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
@@ -27,7 +27,35 @@
 {% endfor %}
 
 {% elif thumbnail=='medium' %}
+{% for row in entries | batch(4) %}
+{% set outerindex = loop.index%}
+<div class='row'>
+    {% for entry in row %}
+    <div class="col-sm-3">
+        <div class="thumbnail ">
+            <h5>{{entry.ppt.name}}</h5>
+            <div class="slidezoom">
+                <img data-toggle="modal" name="modal-{{loop.index + outerindex*4-4}}"
+                    data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
+                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
+            </div>
+            <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
+                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+            </div>
+            <div class="thumbnail-hidden" style="display: none;">
+                <p><b>Title:</b> {{entry.title}}</p>
+                <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
+            </div>
 
+            <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+<!-- 
 {% for row in entries | batch(2) %}
 {% set outerindex = loop.index%}
 <div class='row'>
@@ -52,7 +80,7 @@
     </div>
     {% endfor %}
 </div>
-{% endfor %}
+{% endfor %} -->
 
 {% elif thumbnail=='large' %}
 

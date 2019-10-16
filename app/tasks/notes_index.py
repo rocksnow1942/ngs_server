@@ -97,6 +97,37 @@ class PPT_Indexer():
             return True
         return False
 
+    def create_by_md5(self, file):
+        md5 = self.get_md5(file)
+        ppt = PPT.query.filter_by(md5=md5).first()
+        if ppt and (ppt.project_id == None):
+            project = self.create_project(file)
+            ppt.project = project
+            ppt.name = self.get_PPT_name(file)
+            ppt.path = self.mirror_path(file)
+            ppt.date = datetime.now()
+            db.session.commit()
+            return True
+        return False
+
+    def create_new(self, file):
+        name = self.get_PPT_name(file)
+        path = self.mirror_path(file)
+        md5 = self.get_md5(file)
+        project = self.create_project(file)
+        revision = self.get_revision(file)
+        try:
+            ppt = PPT(name=name, path=path, project_id=project.id,
+                      md5=md5, revision=revision)
+            db.session.add(ppt)
+            db.session.commit()
+            self.sync_slides(ppt, file)
+            db.session.commit()
+            self.write_log(f" Create new {file}")
+        except Exception as e:
+            self.write_log(f" Create New error:{e}")
+            raise e
+
     def parse_ppt(self,file):
         ppt=Presentation(file)
         slides = []
@@ -161,23 +192,6 @@ class PPT_Indexer():
         db.session.commit()
         return ppt
 
-    def create_new(self,file):
-        name = self.get_PPT_name(file)
-        path = self.mirror_path(file)
-        md5 = self.get_md5(file)
-        project = self.create_project(file)
-        revision = self.get_revision(file)      
-        try:
-            ppt = PPT(name=name,path=path,project_id=project.id,md5=md5,revision=revision)
-            db.session.add(ppt)
-            db.session.commit()
-            self.sync_slides(ppt,file)
-            db.session.commit()
-            self.write_log(f" Create new {file}")
-        except Exception as e:
-            self.write_log(f" Create New error:{e}")
-            raise e
-
     def create_project(self,file):
         projectname = self.get_project_name(file)
         project = Project.query.filter_by(name=projectname).first()
@@ -187,19 +201,6 @@ class PPT_Indexer():
         project.date=datetime.now()
         db.session.commit()
         return project
-
-    def create_by_md5(self,file):
-        md5 = self.get_md5(file)
-        ppt = PPT.query.filter_by(md5=md5).first()
-        if ppt and (ppt.project_id==None):
-            project = self.create_project(file)
-            ppt.project=project
-            ppt.name=self.get_PPT_name(file)
-            ppt.path = self.mirror_path(file)
-            ppt.date = datetime.now()
-            db.session.commit()
-            return True
-        return False
 
     def delete(self, file):
         with self.app.app_context():
