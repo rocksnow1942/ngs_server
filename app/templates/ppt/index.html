@@ -154,7 +154,7 @@
       $(document).keydown(function (e) {
         if ($(e.target).attr('class') == "modal bs-example-modal-lg in") {
           let currentmoal = parseInt($(e.target).attr('name'));
-          let gap = {small:4,medium:2,large:1}["{{thumbnail}}"];
+          let gap = {small:6,medium:4,large:1}["{{thumbnail}}"];
           let next = false;
           switch (e.which) {
             case 37: // left
