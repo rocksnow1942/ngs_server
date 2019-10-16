@@ -1,12 +1,13 @@
 {% if thumbnail=='small' %}
 {% for row in entries | batch(4) %}
+{% set outerindex = loop.index%}
 <div class='row'>
 {% for entry in row %}
 <div class="col-sm-3">
     <div class="thumbnail ">
         <h5>{{entry.ppt.name}}</h5>
         <div class="slidezoom" >
-            <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+            <img data-toggle="modal"  name = "modal-{{loop.index + outerindex*4-4}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                 alt="No Snapshot - {{entry.title}}">
         </div>
             <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
@@ -28,13 +29,14 @@
 {% elif thumbnail=='medium' %}
 
 {% for row in entries | batch(2) %}
+{% set outerindex = loop.index%}
 <div class='row'>
     {% for entry in row %}
     <div class="col-sm-6">
         <div class="thumbnail ">
             <h5>{{entry.ppt.name}}</h5>
            
-                <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
+                <img data-toggle="modal" name = "modal-{{loop.index + outerindex*2-2}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
                     class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
                     <div class = "input_container slide_edit_trigger" id="{{entry.id}}">
                         <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
@@ -60,7 +62,7 @@
         <div class="thumbnail ">
             <h5>{{entry.ppt.name}}</h5>
             
-                <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
+                <img data-toggle="modal" name = "modal-{{loop.index}}" data-target="#modal-slide{{entry.id}}"  src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
                     class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
             <div class="input_container slide_edit_trigger" id="{{entry.id}}">
                 <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
@@ -83,7 +85,7 @@
 
 
 {% for entry in entries %}
-    <div class="modal bs-example-modal-lg" id="modal-slide{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal bs-example-modal-lg"  name = "{{loop.index}}" id="modal-slide{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class='row'>

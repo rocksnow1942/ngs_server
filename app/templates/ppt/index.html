@@ -150,6 +150,39 @@
       $(window).scrollTop($(element).offset().top-offset);
   };
 
+  $(document).ready(function () {
+      $(document).keydown(function (e) {
+        if ($(e.target).attr('class') == "modal bs-example-modal-lg in") {
+          let currentmoal = parseInt($(e.target).attr('name'));
+          let gap = {small:4,medium:2,large:1}["{{thumbnail}}"];
+          let next = false;
+          switch (e.which) {
+            case 37: // left
+              next = currentmoal - 1;
+              break;
+            case 38: // up
+              next= currentmoal - gap;
+              break;
+            case 39: // right
+            next = currentmoal + 1;
+              break;
+            case 40: // down
+            next = currentmoal + gap;
+              break;}
+          if (next){
+                $(`.modal[name="${currentmoal}"]`).modal('hide');
+                $(`.modal[name="${next}"]`).modal('show');}
+                $(`img[name="modal-${next}"]`).css('border', "10px solid rgb(92, 236, 99)")
+        }
+      });
+    });
+
+  $(document).ready(function(){
+    $('.modal.bs-example-modal-lg').on('hidden.bs.modal', function (event) {
+      let currentmoal = parseInt($(event.target).attr('name'));
+      $(`img[name="modal-${currentmoal}"]`).css('border', "");
+    })
+  })
 
   $(".slide_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
