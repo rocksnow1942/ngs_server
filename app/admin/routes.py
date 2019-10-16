@@ -16,8 +16,6 @@ def admin():
     return render_template('admin/index.html',title='Admin Page')
 
 
-
-
 @bp.route('/clear_trash', methods=['GET', 'POST'])
 def clear_trash():
     # TODO

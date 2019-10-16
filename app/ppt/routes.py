@@ -13,7 +13,7 @@ from sqlalchemy import or_
 #TODO
 #1. search
 #2. display trashed slides with notes. 
-
+#3. 
 
 @bp.after_request
 def add_header(response):

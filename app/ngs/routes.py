@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
 
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def ngs():
