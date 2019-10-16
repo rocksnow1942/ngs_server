@@ -63,6 +63,8 @@ def search():
         return ngs_serach_handler(form)
     elif formtype == 'SearchPPTForm':
         query,project,field,ppt = form.q.data,form.search_project.data,form.search_field.data,form.search_ppt.data
+        if 'all' in ppt:      
+            ppt = [i[0] for i in form.search_ppt.choices if i[0]!='all']
         return ppt_search_handler(query, field, ppt)
     return render_template('search/search_result.html', title='Search Result', content='def', )
 
