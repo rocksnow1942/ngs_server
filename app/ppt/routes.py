@@ -63,6 +63,9 @@ def index():
                 table = 'slide'
                 entries = target.query.filter(target.tag.contains(tag)).order_by(
                     target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
+            elif table == 'slide':
+                entries = target.query.filter(target.ppt_id!=None).order_by(
+                    target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
             else:
                 entries = target.query.order_by(
                     target.date.desc()).paginate(page, pagelimit, False)
