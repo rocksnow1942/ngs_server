@@ -9,7 +9,7 @@
             <div class='slide' >
                 <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
                     <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
-                        alt="{{entry.name}} - {{entry.note}}"></a>
+                        alt="{{entry.name}}"></a>
 
 
                 <div class='zoom-hidden-text ppt_edit_trigger input_container' id="{{entry.id}}">
@@ -36,7 +36,7 @@
                     <div class='slide'>
                         <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
                             <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
-                                alt="{{entry.name}} - {{entry.note}}"></a>
+                                alt="{{entry.name}}"></a>
         
         
                         <div class=' ppt_edit_trigger input_container' id="{{entry.id}}">
@@ -54,5 +54,3 @@
         {% endfor %}
 
 {% endif %}
-
-

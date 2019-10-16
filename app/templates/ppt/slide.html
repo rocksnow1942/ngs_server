@@ -7,7 +7,7 @@
         <h5>{{entry.ppt.name}}</h5>
         <div class="slidezoom" >
             <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
-                alt="{{entry.title}} - {{entry.body}}">
+                alt="No Snapshot - {{entry.title}}">
         </div>
             <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
                 <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
@@ -35,7 +35,7 @@
             <h5>{{entry.ppt.name}}</h5>
            
                 <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
-                    class="img-responsive image-link" alt="{{entry.title}} - {{entry.body}}">
+                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
                     <div class = "input_container slide_edit_trigger" id="{{entry.id}}">
                         <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
                         <p>Note: <span class="slide_note">{{entry.note}}</span></p>    
@@ -61,7 +61,7 @@
             <h5>{{entry.ppt.name}}</h5>
             
                 <img data-toggle="modal" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
-                    class="img-responsive image-link" alt="{{entry.title}} - {{entry.body}}">
+                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
             <div class="input_container slide_edit_trigger" id="{{entry.id}}">
                 <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
                 <p>Note: <span class="slide_note">{{entry.note}}</span></p>
@@ -92,7 +92,7 @@
                             <h5>{{entry.ppt.name}}</h5>
                             
                                 <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
-                                    alt="{{entry.title}} - {{entry.body}}">
+                                    alt="No Snapshot - {{entry.title}}">
                                 <div class="input_container slide_edit_trigger" id="{{entry.id}}">
                                     <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
                                     <p>Note: <span class="slide_note">{{entry.note}}</span></p>
