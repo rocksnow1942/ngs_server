@@ -26,26 +26,32 @@ def clear_trash():
 
 @bp.route('/reindex_models', methods=['GET', 'POST'])
 def reindex_models():
+    msg=[]
     try:
         for k,item in models_table_name_dictionary.items():
             if 'SearchableMixin' in [i.__name__ for i in item.__bases__]:
                 item.reindex()
                 flash('Reindex <{}>... success.'.format(k), 'success')
+                msg.append('Reindex <{}>... success.'.format(k))
     except Exception as e:
         flash(str(e),'danger')
-        return render_template('admin/result.html',content='Shit happened.')
-    return render_template('admin/result.html', content='Success.')
+        msg.append(str(e))
+        return render_template('admin/result.html', content=['Shit happened.']+msg)
+    return render_template('admin/result.html', content=['Success.']+msg)
 
 
 @bp.route('/clear_ppt_trash', methods=['GET', 'POST'])
 def clear_ppt_trash():
+    msg=[]
     try:
         # clear project 
         projects = [i for i in Project.query.all() if not i.ppts]
         for p in projects:
             db.session.delete(p)
             db.session.commit()
-            flash('Delete {}... success.'.format(p), 'success')
+            ss = 'Delete {}... success.'.format(p)
+            flash(ss, 'success')
+            msg.append(ss)
         # clear PPT
         ppt = PPT.query.filter_by(project_id=None).all()
         for p in ppt:
@@ -55,7 +61,9 @@ def clear_ppt_trash():
             db.session.commit()
             db.session.delete(p)
             db.session.commit()
-            flash('Delete {}... success.'.format(p),'success')
+            ss = 'Delete {}... success.'.format(p)
+            flash(ss,'success')
+            msg.append(ss)
         # clear Slides
         slides = Slide.query.filter_by(ppt_id=None).all()
         count=0
@@ -65,12 +73,15 @@ def clear_ppt_trash():
             else:
                 db.session.delete(s)
                 count+=1
+                db.session.commit()
         if count:
-            flash('Deleted {} slide pages... success.'.format(count), 'success')
+            ss = 'Deleted {} slide pages... success.'.format(count)
+            flash(ss, 'success')
+            msg.append(ss)
     except Exception as e:
         flash(str(e), 'danger')
-        return render_template('admin/result.html', content='Shit happened.')
-    return render_template('admin/result.html', content='Success.')
+        return render_template('admin/result.html', content=['Shit happened.']+msg)
+    return render_template('admin/result.html', content=['Success.']+msg)
     
 
 @bp.route('/reindex_ppt', methods=['GET', 'POST'])

@@ -101,8 +101,13 @@
   </div>
 </div>
 </div>
-
+{% if table=='trash' %}
+  {% include "ppt/slide.html" %}
+{%else%}
 {% include "ppt/%s.html" | format(table) %}
+{% endif %}
+
+
 
 {% endif %}
 

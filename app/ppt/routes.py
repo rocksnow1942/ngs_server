@@ -37,7 +37,6 @@ def index():
     thumbnail = request.args.get('thumbnail','small')  
     thumbnailurl = remove_thurmbnail_from_url(request.url)
     tag = request.args.get('tag' , None)
-    print(tag)
     if table == 'tags' and tag==None:
         return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail, thumbnailurl=thumbnailurl,
                                table=table,  entries=Slide.tags_list(500,True),)
@@ -58,18 +57,15 @@ def index():
                     target.date.desc()).paginate(page, pagelimit, False)
         else:
             if table == 'trash':
-                table='slide'
                 entries = target.query.filter_by(ppt_id=None).order_by(
                     target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
             elif table =='tags':
                 table = 'slide'
-                print(tag)
                 entries = target.query.filter(target.tag.contains(tag)).order_by(
                     target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
             else:
                 entries = target.query.order_by(
                     target.date.desc()).paginate(page, pagelimit, False)
-
         nextcontent = {'ppt': 'slide',
                        'project': 'ppt'}.get(table)
         kwargs = {'thumbnail':thumbnail}
