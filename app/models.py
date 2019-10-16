@@ -797,11 +797,50 @@ class Slide(SearchableMixin,db.Model):
         return self.ppt.path + f'/Slide{self.page}.PNG'
 
     @staticmethod
-    def tags_list(n=20):
+    def tags_list(n=20,returncount=False):
         tags = db.session.query(Slide.tag).filter(Slide.tag!=None).all()
         c = Counter([j.strip() for i in tags for j in i[0].split(',') if j.strip()])
         c = c.most_common(n)
-        return [i[0] for i in c]
+        if returncount:
+            return c
+        else:
+            return [i[0] for i in c]
+
+    @classmethod
+    def search_in_id(cls,query,fields, ids , page, per_page):
+        """
+        string, ['all', 'title', 'body'], ['15', '16']
+        """
+        if not query.strip():
+            if 'all' in ids:
+                entries = cls.query.order_by(
+                    cls.date.desc()).paginate(page, per_page, False)
+            else:
+                ids = [int(i) for i in ids]
+                entries = cls.query.filter(cls.ppt_id.in_(ids)).order_by(
+                    cls.date.desc()).paginate(page, per_page, False)
+            return entries.items, entries.total  # just return matching id slides
+
+        if not current_app.elasticsearch:
+            return [], 0
+        if 'all' in fields:
+            fields = ['title', 'body', 'tag', 'note',]
+        base = {'multi_match': {'query': query, 'fields': fields}}
+        if 'all' not in ids:
+            ids = [int(i) for i in ids]
+            base = {'bool': {'must': {"terms": {"ppt_id":ids}}, 'filter':base}}
+        result = current_app.elasticsearch.search(
+            index='slide', body={'query': base, 'from': (page - 1) * per_page,'size':per_page})
+        ids = [int(hit['_id']) for hit in result['hits']['hits']]
+        total = result['hits']['total']
+        # to account for difference between elastic search version on mac and ubuntu.
+        if isinstance(total, dict):
+            total = total['value']
+        if total==0:
+            return cls.query.filter_by(id=0),0
+        when = [ (k,i) for i,k in enumerate(ids) ]
+        return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
+        
 
 class PPT(db.Model):
     __tablename__ = 'powerpoint'

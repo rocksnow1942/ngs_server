@@ -9,6 +9,7 @@ from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchP
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
+from app.ppt.routes import ppt_search_handler
 
 @bp.before_app_request
 def before_request():
@@ -62,12 +63,12 @@ def search():
         return ngs_serach_handler(form)
     elif formtype == 'SearchPPTForm':
         query,project,field,ppt = form.q.data,form.search_project.data,form.search_field.data,form.search_ppt.data
-        print("searching ppt with : {}, {}, {}, {}".format(query, project, field, ppt))
+        return ppt_search_handler(query, field, ppt)
     return render_template('search/search_result.html', title='Search Result', content='def', )
 
         
 def ngs_serach_handler(form):
-    pagelimit=current_app.config['PAGE_LIMIT']
+    pagelimit = current_user.ngs_per_page
     table=form.search_field.data
     target = models_table_name_dictionary.get(table)
     method = form.search_method.data

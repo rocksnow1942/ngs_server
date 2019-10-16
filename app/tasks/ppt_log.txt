@@ -1,0 +1,13 @@
+19/10/15 20:43:12 -  Delete PPT /Users/hui/Cloudstation/R&D/Projects/VEGF/Test folder/test slides for new.pptx
+19/10/15 20:43:12 -  Delete PPT /Users/hui/Cloudstation/R&D/Projects/VEGF/Test folder/new test.pptx
+19/10/15 20:43:12 -  Delete PPT /Users/hui/Cloudstation/R&D/Projects/VEGF/Test folder/test slides for f.pptx
+19/10/15 20:43:13 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Charaterization EBM buffer effect.pptx
+19/10/15 20:43:14 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Charaterization Kd and IC50_2018_Archived.pptx
+19/10/15 20:43:18 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Charaterization 2017-2018.10.pptx
+19/10/15 20:43:18 -  Delete PPT /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Charaterization RIC50.pptx
+19/10/15 20:43:20 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/VEGF bioBV1 v.s. BV1.pptx
+19/10/15 20:43:20 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/Bispecific aptamer QC.pptx
+19/10/15 20:43:21 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/VEGF21 aptamer.pptx
+19/10/15 20:43:23 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/VEGF-ANG2 BS Aptamers Characterization.pptx
+19/10/15 20:43:23 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/VEGF ELISAssay.pptx
+19/10/15 20:43:23 -  Update by path /Users/hui/Cloudstation/R&D/Projects/VEGF/VEGF Aptamer Characterization/VEGF Aptamer Characterization Mics/VEGF Macugen.pptx

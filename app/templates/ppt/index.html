@@ -30,6 +30,15 @@
       {% else %}<b>Tags</b>
       {% endif %}
     </li>
+
+    <li class="breadcrumb-item">
+      {% if table!='trash' %}
+      <a href="{{url_for('ppt.index',table='trash',thumbnail=thumbnail)}}">
+       Trash
+      </a>
+      {% else %}<b>Trash</b>
+      {% endif %}
+    </li>
    
   </ol>
 </nav>
@@ -68,19 +77,22 @@
         </li>
 
         <li class=" previous {% if thumbnail=='small' %} active{% endif %}">
-          <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" >
+          <!-- <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" > -->
+            <a  href="{{thumbnailurl+'&thumbnail=small'}}" >
             <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
           </a>
         </li>
 
         <li class=" previous {% if thumbnail=='medium' %} active{% endif %}">
-          <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}">
+          <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}"> -->
+            <a href="{{thumbnailurl+'&thumbnail=medium'}}">
             <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
           </a>
         </li>
         
         <li class=" previous {% if thumbnail=='large' %} active{% endif %}">
-          <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" >
+          <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" > -->
+            <a href="{{thumbnailurl+'&thumbnail=large'}}">
             <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
           </a>
         </li>

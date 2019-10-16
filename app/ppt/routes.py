@@ -14,6 +14,9 @@ from sqlalchemy import or_
 #1. search
 #2. display trashed slides with notes. 
 #3. 
+def remove_thurmbnail_from_url(url):
+    return '&'.join(i for i in url.split('&') if 'thumbnail' not in i)
+
 
 @bp.after_request
 def add_header(response):
@@ -24,11 +27,23 @@ def add_header(response):
 @login_required
 def index():
     pagelimit = current_user.slide_per_page
-    table = request.args.get('table','ppt')
+    table = request.args.get('table',None)
+    if not table:
+        return redirect(url_for('ppt.index',table='ppt'))
+    
     id = request.args.get('id', 0, type=int)
     page = request.args.get('page', 1, type=int)
     target = models_table_name_dictionary.get(table, None)
-    thumbnail = request.args.get('thumbnail','small')
+    thumbnail = request.args.get('thumbnail','small')  
+    thumbnailurl = remove_thurmbnail_from_url(request.url)
+    tag = request.args.get('tag' , None)
+    print(tag)
+    if table == 'tags' and tag==None:
+        return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail, thumbnailurl=thumbnailurl,
+                               table=table,  entries=Slide.tags_list(500,True),)
+    if table == 'trash' or table == 'tags':
+        target = Slide
+        
     tags_list = Slide.tags_list()
     if target:
         if id:
@@ -42,8 +57,18 @@ def index():
                 entries = target.query.order_by(
                     target.date.desc()).paginate(page, pagelimit, False)
         else:
-            entries = target.query.order_by(
-                target.date.desc()).paginate(page, pagelimit, False)
+            if table == 'trash':
+                table='slide'
+                entries = target.query.filter_by(ppt_id=None).order_by(
+                    target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
+            elif table =='tags':
+                table = 'slide'
+                print(tag)
+                entries = target.query.filter(target.tag.contains(tag)).order_by(
+                    target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
+            else:
+                entries = target.query.order_by(
+                    target.date.desc()).paginate(page, pagelimit, False)
 
         nextcontent = {'ppt': 'slide',
                        'project': 'ppt'}.get(table)
@@ -59,19 +84,50 @@ def index():
                            page=entries.prev_num, **kwargs) if entries.has_prev else None
         page_url = [(i, url_for('ppt.index', table=table, page=i, **kwargs))
                     for i in range(start, end+1)]
-        return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), entries=entries.items,thumbnail=thumbnail,
+        return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), entries=entries.items, thumbnail=thumbnail, thumbnailurl=thumbnailurl,
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
                                page_url=page_url, active=page,id=id)
-    return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail,
+        
+    return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  thumbnail=thumbnail, thumbnailurl=thumbnailurl,
                            table=table,  tags_list=tags_list,)
 
 
-def ppt_search_handler(query, project, field, ppt):
+@bp.route('/tags/<tag>', methods=['GET'])
+@login_required
+def tags(tag):
+    
+    return ppt_search_handler(str(tag),['tag'],['all'])
+
+
+def ppt_search_handler(query, field, ppt):
     """
     test, ['all'], ['all','tag'], ['all']
     string, ['9'], ['all', 'title', 'body'], ['15', '16']
     """
-    pass
+    thumbnailurl=remove_thurmbnail_from_url(request.url)
+    page = request.args.get('page', 1, int)
+    pagelimit = current_user.slide_per_page
+    kwargs={}
+    for k in request.args:
+        kwargs[k] = (request.args.getlist(k))
+    
+    thumbnail = request.args.get('thumbnail', 'small')
+    kwargs.pop('page', None)
+    kwargs.update(thumbnail=thumbnail)
+    entries,total = Slide.search_in_id(query,field,ppt,page,pagelimit)
+    start, end = pagination_gaps(page, total, pagelimit)
+    next_url = url_for('main.search', page=page+1, **
+                       kwargs) if total > page*pagelimit else None
+    prev_url = url_for('main.search', page=page-1, **
+                       kwargs) if page > 1 else None
+    page_url = [(i, url_for('main.search', page=i, **kwargs))
+                for i in range(start, end+1)]
+
+    tags_list = Slide.tags_list()
+
+    return render_template('ppt/index.html', title='Slide Search result' , entries=entries, thumbnail=thumbnail,thumbnailurl=thumbnailurl,
+                           next_url=next_url, prev_url=prev_url, table='slide', nextcontent=None, tags_list=tags_list,
+                           page_url=page_url, active=page, id=id)
 
 @bp.route('/get_ppt_slides/<path:filename>', methods=['GET'])
 def get_ppt_slides(filename):

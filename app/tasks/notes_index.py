@@ -13,7 +13,7 @@ from pptx import Presentation
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from app.models import Slide, PPT, Project
-
+from flask import current_app
 #TODO
 #when trashing project, only save those slides with notes and tags.
 #after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name. 
@@ -284,11 +284,11 @@ def index_file(path):
     logger.create(path)
 
 def reindex():
-    app = create_app(keeplog=False)
-    app.app_context().push()
-    log_file = app.config['PPT_LOG_FILE']
+   
+    
+    log_file = current_app.config['PPT_LOG_FILE']
     logger = PPT_Indexer(log_file=log_file)
-    source_folder = PurePath(app.config['PPT_SOURCE_FOLDER'])
+    source_folder = PurePath(current_app.config['PPT_SOURCE_FOLDER'])
     paths = [str((source_folder)/PurePath(i.path))+".pptx" for i in PPT.query.all()]
     messages=[]
     for path in paths:
