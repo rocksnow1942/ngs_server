@@ -128,9 +128,10 @@ def ppt_search_handler(query, field, ppt):
                            next_url=next_url, prev_url=prev_url, table='slide', nextcontent=None, tags_list=tags_list,
                            page_url=page_url, active=page, id=id)
 
-@bp.route('/get_ppt_slides/<path:filename>', methods=['GET'])
-def get_ppt_slides(filename):
-    return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=False)
+@bp.route('/get_ppt_slides', methods=['GET'])
+def get_ppt_slides():
+    filename = request.args.get('filename')
+    return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=True)
 
 
 @bp.route('/edit', methods=['POST'])

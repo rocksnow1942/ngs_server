@@ -828,9 +828,10 @@ class Slide(SearchableMixin,db.Model):
         base = {'multi_match': {'query': query, 'fields': fields}}
         if 'all' not in ids:
             ids = [int(i) for i in ids]
-            base = {'bool': {'must': {"terms": {"ppt_id":ids}}, 'filter':base}}
-        result = current_app.elasticsearch.search(
+            base = {'bool': {'must': [base], 'filter':{"terms": {"ppt_id":ids}}}}
+        result = current_app.elasticsearch.search(\
             index='slide', body={'query': base, 'from': (page - 1) * per_page,'size':per_page})
+        
         ids = [int(hit['_id']) for hit in result['hits']['hits']]
         total = result['hits']['total']
         # to account for difference between elastic search version on mac and ubuntu.
