@@ -170,6 +170,7 @@
             next = currentmoal + gap;
               break;}
           if (next){
+                let windowheight = $(window).height();
                 $(`.modal[name="${currentmoal}"]`).modal('hide');
                 $(`.modal[name="${next}"]`).modal('show');
                 $(`img[name="modal-${next}"]`).css('border', "10px solid rgb(92, 236, 99)");

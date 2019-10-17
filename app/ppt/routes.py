@@ -130,7 +130,7 @@ def ppt_search_handler(query, field, ppt):
 
 @bp.route('/get_ppt_slides/<path:filename>', methods=['GET'])
 def get_ppt_slides(filename):
-    return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=True)
+    return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=False)
 
 
 @bp.route('/edit', methods=['POST'])
