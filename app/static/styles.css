@@ -6,6 +6,9 @@ a.custom-card:link {
   text-decoration: none;
 }
 
+h5.slide_move:hover {
+  cursor: move;
+}
 
 img.image-link {
   border-radius: 15px;
@@ -17,11 +20,17 @@ img.image-link:hover {
   animation-name: round-boarder;
   animation-duration: 0.2s;
   border: 1px solid rgb(255, 86, 86);
+  cursor: pointer;
 }
 
 @keyframes round-boarder {
   from {border-radius: 17px;}
   to {border-radius: 1px;}
+}
+
+.input_container {
+background-color: rgb(220, 247, 248);
+cursor: pointer;
 }
 
 .narrow_row {
@@ -52,7 +61,7 @@ img.image-link:hover {
 
 .slidezoom:hover{
   position: sticky;
-  transform: scale(1.8); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+  transform: scale(1.5); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
   z-index: 998;
   display: float;
 }

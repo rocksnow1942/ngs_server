@@ -2,9 +2,9 @@
 {% for entry in entries  %}
 
 <div>
-<div class="slide_container">
+<div class="slide_container col-md-2 ">
     <div class="thumbnail ">
-        <h5>{{entry.ppt.name}}</h5>
+        <h5 class="slide_move">{{entry.ppt.name}}</h5>
         <div class="slide_image_container slidezoom" >
             <img data-toggle="modal"  name = "modal-{{loop.index}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                 alt="No Snapshot - {{entry.title}}">
@@ -17,7 +17,7 @@
                 <p><b>Title:</b> {{entry.title}}</p>
                 <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
             </div>  
-        <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
+        <p align='right'>{{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
     </div>
 </div>
 </div>

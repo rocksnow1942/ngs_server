@@ -149,11 +149,13 @@
       $(window).scrollTop($(element).offset().top-offset);
   };
 
+  // keyboard to move modal.
   $(document).ready(function () {
       $(document).keydown(function (e) {
         if ($(e.target).attr('class') == "modal bs-example-modal-lg in") {
           let currentmoal = parseInt($(e.target).attr('name'));
-          let gap = {small:6,medium:4,large:1}["{{thumbnail}}"];
+
+          let gap = {small:6,medium:4,large:2}[_thumbnail_size];
           let next = false;
           switch (e.which) {
             case 37: // left
@@ -184,6 +186,7 @@
       });
     });
 
+    // give a tracing for modal seleciton
   $(document).ready(function(){
     $('.modal.bs-example-modal-lg').on('hidden.bs.modal', function (event) {
       let currentmoal = parseInt($(event.target).attr('name'));
@@ -250,8 +253,9 @@
         }
       });
 
-
+  var _thumbnail_size
   function set_thumbnail(size) {
+    _thumbnail_size = size 
     let divs = $('.slide_container');
     $('.thumbnail_small').removeClass('active');
     $('.thumbnail_medium').removeClass('active');
@@ -269,7 +273,7 @@
         break;
       case 'medium':
       $('.slide_image_container').addClass('slidezoom');
-        $('.slide_input').addClass('thumbnail-hidden').css('display', 'none');
+        $('.slide_input').removeClass('thumbnail-hidden').css('display', 'block');
         $('.slide_container').removeClass().addClass('slide_container col-md-3 col-sm-6');
         $('.thumbnail_medium').addClass('active');
         $('.zoom-hidden-text').css('display', 'block');
