@@ -1,116 +1,27 @@
-{% if thumbnail=='small' %}
-{% for row in entries | batch(6) %}
-{% set outerindex = loop.index%}
-<div class='row'>
-{% for entry in row %}
-<div class="col-sm-2">
+
+{% for entry in entries  %}
+
+<div>
+<div class="slide_container">
     <div class="thumbnail ">
         <h5>{{entry.ppt.name}}</h5>
-        <div class="slidezoom" >
-            <img data-toggle="modal"  name = "modal-{{loop.index + outerindex*6-6}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+        <div class="slide_image_container slidezoom" >
+            <img data-toggle="modal"  name = "modal-{{loop.index}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                 alt="No Snapshot - {{entry.title}}">
         </div>
-            <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
+            <div class='slide_input input_container slide_edit_trigger thumbnail-hidden' style="display: none;" id="{{entry.id}}">
                 <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
                 <p>Note: <span class="slide_note">{{entry.note}}</span></p> 
             </div>
             <div class="thumbnail-hidden" style="display: none;">
                 <p><b>Title:</b> {{entry.title}}</p>
                 <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
-            </div>
-            
+            </div>  
         <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
     </div>
 </div>
-{% endfor %}
 </div>
-{% endfor %}
-
-{% elif thumbnail=='medium' %}
-{% for row in entries | batch(4) %}
-{% set outerindex = loop.index%}
-<div class='row'>
-    {% for entry in row %}
-    <div class="col-sm-3">
-        <div class="thumbnail ">
-            <h5>{{entry.ppt.name}}</h5>
-            <div class="slidezoom">
-                <img data-toggle="modal" name="modal-{{loop.index + outerindex*4-4}}"
-                    data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
-                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
-            </div>
-            <div class='thumbnail-hidden input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
-                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
-                <p>Note: <span class="slide_note">{{entry.note}}</span></p>
-            </div>
-            <div class="thumbnail-hidden" style="display: none;">
-                <p><b>Title:</b> {{entry.title}}</p>
-                <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
-            </div>
-
-            <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endfor %}
-
-<!-- 
-{% for row in entries | batch(2) %}
-{% set outerindex = loop.index%}
-<div class='row'>
-    {% for entry in row %}
-    <div class="col-sm-6">
-        <div class="thumbnail ">
-            <h5>{{entry.ppt.name}}</h5>
-           
-                <img data-toggle="modal" name = "modal-{{loop.index + outerindex*2-2}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
-                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
-                    <div class = "input_container slide_edit_trigger" id="{{entry.id}}">
-                        <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
-                        <p>Note: <span class="slide_note">{{entry.note}}</span></p>    
-                    </div>   
-                    <div class="thumbnail-hidden" style="display: none;">
-                        <p><b>Title:</b> {{entry.title}}</p>
-                        <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
-                    </div>
-           
-            <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% endfor %} -->
-
-{% elif thumbnail=='large' %}
-
-{% for entry in entries %}
-<div class='row'>
-    <div class="col-md-12">
-        <div class="thumbnail ">
-            <h5>{{entry.ppt.name}}</h5>
-            
-                <img data-toggle="modal" name = "modal-{{loop.index}}" data-target="#modal-slide{{entry.id}}"  src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"
-                    class="img-responsive image-link" alt="No Snapshot - {{entry.title}}">
-            <div class="input_container slide_edit_trigger" id="{{entry.id}}">
-                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
-                <p>Note: <span class="slide_note">{{entry.note}}</span></p>
-            </div>
-            <div class="thumbnail-hidden" style="display: none;">
-                <p><b>Title:</b> {{entry.title}}</p>
-                <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
-            </div>
-           
-            
-            <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
-        </div>
-    </div>
-   
-</div>
-{% endfor %}
-
-{% endif %}
-
+{%endfor%}
 
 {% for entry in entries %}
     <div class="modal bs-example-modal-lg"  name = "{{loop.index}}" id="modal-slide{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">

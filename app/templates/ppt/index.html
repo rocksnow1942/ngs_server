@@ -76,23 +76,23 @@
            
         </li>
 
-        <li class=" previous {% if thumbnail=='small' %} active{% endif %}">
+        <li class="thumbnail_small previous {% if thumbnail=='small' %} active{% endif %}">
           <!-- <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" > -->
-            <a  href="{{thumbnailurl+'&thumbnail=small'}}" >
+            <a  href="javascript:set_thumbnail('small')" >
             <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
           </a>
         </li>
 
-        <li class=" previous {% if thumbnail=='medium' %} active{% endif %}">
+        <li class="thumbnail_medium previous {% if thumbnail=='medium' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}"> -->
-            <a href="{{thumbnailurl+'&thumbnail=medium'}}">
+            <a href="javascript:set_thumbnail('medium')">
             <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
           </a>
         </li>
         
-        <li class=" previous {% if thumbnail=='large' %} active{% endif %}">
+        <li class="thumbnail_large previous {% if thumbnail=='large' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" > -->
-            <a href="{{thumbnailurl+'&thumbnail=large'}}">
+            <a href="javascript:set_thumbnail('large')">
             <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
           </a>
         </li>
@@ -123,9 +123,8 @@
 
 {% block scripts %}
 {{super()}}
-
-<script>
-
+  
+<script >
   function show_hidden_title_body(event){
     let status = $(event.target).text();
     let scroll = $(window).scrollTop();
@@ -237,7 +236,7 @@
   }
 
 
-    $(".ppt_edit_trigger").on('click', function (event) {
+  $(".ppt_edit_trigger").on('click', function (event) {
         let id = $(this).attr('id');
         if (!$(this).find('input').length) {
           let note = $(this).find('span.ppt_note').text();
@@ -252,6 +251,45 @@
       });
 
 
+  function set_thumbnail(size) {
+    let divs = $('.slide_container');
+    $('.thumbnail_small').removeClass('active');
+    $('.thumbnail_medium').removeClass('active');
+    $('.thumbnail_large').removeClass('active');
+    $(".slide_container").unwrap();
+    let grid_col = 0
+    switch (size) {
+      case "small":
+        $('.slide_image_container').addClass('slidezoom');
+        $('.slide_input').addClass('thumbnail-hidden').css('display','none');
+        $('.slide_container').removeClass().addClass('slide_container col-md-2 col-sm-4');
+        $('.thumbnail_small').addClass('active');
+        $('.zoom-hidden-text').css('display',"");
+        grid_col=6
+        break;
+      case 'medium':
+      $('.slide_image_container').addClass('slidezoom');
+        $('.slide_input').addClass('thumbnail-hidden').css('display', 'none');
+        $('.slide_container').removeClass().addClass('slide_container col-md-3 col-sm-6');
+        $('.thumbnail_medium').addClass('active');
+        $('.zoom-hidden-text').css('display', 'block');
+       grid_col=4
+        break;
+      case 'large':
+      $('.slide_image_container').removeClass('slidezoom');
+      $('.slide_input').removeClass('thumbnail-hidden').css('display', 'block');
+      $('.slide_container').removeClass().addClass('slide_container col-md-6 col-sm-12');
+      $('.thumbnail_large').addClass('active');
+      $('.zoom-hidden-text').css('display', 'block');
+       grid_col=2
+      break;
+    };
+     for (let i = 0; i < divs.length; i += grid_col) {
+      divs.slice(i, i + grid_col).wrapAll("<div class='row slide_row'> </div>  ")
+    }
+    };
+  
+    $(document).ready(set_thumbnail("{{thumbnail}}"))
 
   $(".project_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
@@ -266,6 +304,9 @@
                 </div>`)
     }
   });
+
+
+
 
 </script>
 
