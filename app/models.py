@@ -781,8 +781,8 @@ class Slide(SearchableMixin,db.Model):
     __searchable__=['title','body','tag','note','ppt_id']
     __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
-    title = Column(mysql.TEXT(collation='utf8_bin'))
-    body = Column(mysql.TEXT(collation='utf8_bin'))
+    title = Column(mysql.TEXT)
+    body = Column(mysql.TEXT)
     ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
     note = Column(String(2000))
     tag = Column(String(900))
