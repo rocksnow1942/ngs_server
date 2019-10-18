@@ -1,13 +1,12 @@
+a {
+  cursor: pointer;
+}
 
 a.custom-card:hover {
   text-decoration: none;
 }
 a.custom-card:link {
   text-decoration: none;
-}
-
-h5.slide_move:hover {
-  cursor: move;
 }
 
 img.image-link {
@@ -22,6 +21,69 @@ img.image-link:hover {
   border: 1px solid rgb(255, 86, 86);
   cursor: pointer;
 }
+.slide_container{
+  padding: 5px;
+}
+.slide_title{
+  overflow-y: visible; 
+  display:block;
+  font-weight: bold;
+  cursor: move;
+}
+.slide_title.small{
+  height: 35px;
+  font-size:8px;
+}
+.slide_title.medium{
+  height: 30px;
+}
+.slide_title.large{
+  height: 30px;
+  font-size:14px;
+}
+.box{
+  border: solid 1px #ddd;
+  background: #fff;
+  width: 100%;
+  padding: 3px;
+  overflow: hidden;
+  display: block;
+  overflow-y: scroll;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+}
+.box.small {
+  height: 200px;
+  
+}
+.box.medium {
+   height: 350px;
+  
+}
+.box.large {
+   height: 550px;
+ 
+}
+
+.box.green {
+  background: #BCED91;
+  color: #3d6d12;
+  border-color: #6dc520;
+}
+
+.box.red {
+  background: #F08080;
+  color: #931111;
+  border-color: #c01717;
+}
+
+.box.blue {
+  color: #084a84;
+  background: #62B1F6;
+  border-color: #0a65b5;
+}
+
 
 @keyframes round-boarder {
   from {border-radius: 17px;}
@@ -62,20 +124,20 @@ cursor: pointer;
 .slidezoom:hover{
   position: sticky;
   transform: scale(1.5); /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
-  z-index: 998;
+  z-index: 851;
   display: float;
 }
 
 .slidezoom:hover .zoom-hidden-text{
   display: block;
   font-size:6px;
-  background-color: white;
+  background-color: rgb(218, 245, 175);
 }
 
 .slide:hover .zoom-hidden-text {
   display: block;
   font-size:14px;
-  background-color: white;
+  background-color:  rgb(218, 245, 175)
 }
 
 /* 
@@ -225,7 +287,7 @@ position: relative;
   margin-left: -350px; /* Negative half of width. */
   /* position: -webkit-sticky; */
   /* position: sticky; */
-  z-index: 999;
+  z-index: 900;
 }
 
 
@@ -233,6 +295,6 @@ position: relative;
   position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 997;
+  z-index: 850;
   background-color: white;
 }

@@ -1,8 +1,9 @@
 {% for entry in entries  %}
 <div>
     <div class="slide_container  col-md-2 ">
-        <div class="thumbnail ">
-            <p>{{entry.name}}</p>
+        <div class="box ">
+            <div class="slide_title"> {{entry.name}}</div>
+            
             <div class='slide'>
                 <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
                     <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"

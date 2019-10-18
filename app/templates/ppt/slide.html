@@ -1,12 +1,11 @@
+<div class='row' id="sortable">
 
 {% for entry in entries  %}
-
-<div>
 <div class="slide_container col-md-2 ">
-    <div class="thumbnail ">
-        <h5 class="slide_move">{{entry.ppt.name}}</h5>
-        <div class="slide_image_container slidezoom" >
-            <img data-toggle="modal"  name = "modal-{{loop.index}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+    <div class="box {{entry.flag}}">
+        <div class="slide_title"> {{entry.ppt.name}}</div>
+        <div class="slide_image_container" >
+            <img data-toggle="modal"  name = "{{loop.index}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                 alt="No Snapshot - {{entry.title}}">
         </div>
             <div class='slide_input input_container slide_edit_trigger thumbnail-hidden' style="display: none;" id="{{entry.id}}">
@@ -20,9 +19,12 @@
         <p align='right'>{{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
     </div>
 </div>
-</div>
 {%endfor%}
 
+</div>
+
+
+<!-- modal display -->
 {% for entry in entries %}
     <div class="modal bs-example-modal-lg"  name = "{{loop.index}}" id="modal-slide{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
         <div class="modal-dialog modal-lg" role="document">

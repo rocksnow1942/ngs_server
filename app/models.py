@@ -788,9 +788,14 @@ class Slide(SearchableMixin,db.Model):
     tag = Column(String(900))
     page = Column(mysql.INTEGER(unsigned=True))
     date = Column(DateTime(), default=datetime.now)
+    _flag = Column(String(10))
 
     def __repr__(self):
         return f"<Slide {self.id}>"
+
+    @property
+    def flag(self):
+        return self._flag if self._flag else ""
 
     @property
     def uri(self):
