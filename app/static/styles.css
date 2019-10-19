@@ -1,6 +1,14 @@
 a {
   cursor: pointer;
 }
+.cursor_pointer{
+  cursor: pointer;
+}
+
+.narrow {
+  padding-bottom:0px;
+  margin:0px;
+}
 
 a.custom-card:hover {
   text-decoration: none;
@@ -23,12 +31,19 @@ img.image-link:hover {
 }
 .slide_container{
   padding: 5px;
+  padding-bottom: 10px;
 }
 .slide_title{
   overflow-y: visible; 
   display:block;
   font-weight: bold;
   cursor: move;
+}
+.slide_flag{
+  padding: 2px;
+  padding-bottom: 5px;
+  display:block;
+ 
 }
 .slide_title.small{
   height: 35px;
@@ -46,23 +61,23 @@ img.image-link:hover {
   background: #fff;
   width: 100%;
   padding: 3px;
-  overflow: hidden;
+  overflow: display;
   display: block;
   overflow-y: scroll;
-  -moz-border-radius: 4px;
-  -webkit-border-radius: 4px;
-  border-radius: 4px;
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  border-radius: 8px;
 }
 .box.small {
-  height: 200px;
+  height: 230px;
   
 }
 .box.medium {
-   height: 350px;
+   height: 380px;
   
 }
 .box.large {
-   height: 550px;
+   height: 580px;
  
 }
 

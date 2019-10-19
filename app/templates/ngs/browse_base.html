@@ -60,7 +60,6 @@
 {{super()}}
 
 <script>
-     
     // jquery legal id names
     function jq_id(myid) {
         return "#" + myid.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
@@ -131,8 +130,8 @@ function add_to_analysis(table,id) {
 {% endif %}
 // set badge count
 function set_analysis_count_badge(result) {
-  $('#analysis_cart_count').html(`<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>` + result['analysis_count']);
-  $('#analysis_cart_count_container').css('visibility', result['analysis_count'] ? 'visible' : 'hidden');
+  $('#analysis_cart_count').html(result['analysis_count']);
+  $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
 }
 
 </script>

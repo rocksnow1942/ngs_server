@@ -1,5 +1,5 @@
 from app import db
-from flask import render_template, flash, redirect,url_for,request,current_app
+from flask import render_template, flash, redirect, url_for, request, current_app, jsonify
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
@@ -43,13 +43,15 @@ def before_request():
 @bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
-    return render_template('index.html',title='Home')
+    follow_ppt = current_user.follow_ppt.keys()
+    entries = PPT.query.filter(PPT.id.in_(follow_ppt)).all()
+    return render_template('index.html',title='Home',follow_ppt=entries)
 
 
 
 @bp.route('/triggererror', methods=['GET', 'POST'])
 def triggererror():
-    assert False, ('new error')    
+    assert False, ('new error')
     return None
 
 
@@ -126,3 +128,13 @@ def user_settings():
         flash('Settings Saved','success')
         return redirect(request.referrer)
     return render_template('auth/profile.html', user=current_user, title='Settings', form=form)
+
+
+@bp.route('/user_settings_ajax', methods=['POST'])
+def user_settings_ajax():
+    data = request.json.get('setting')
+    current_user.user_setting.update(data)
+    current_user.save_data()
+    db.session.commit()
+    messages = [('success',"Setting <{}> set to <{}>.".format(k,i)) for k,i in data.items()]
+    return jsonify(html=render_template('flash_messages.html', messages=messages))

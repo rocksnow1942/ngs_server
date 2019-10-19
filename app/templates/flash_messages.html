@@ -1,6 +1,6 @@
 {% if messages %}
 {% for category, message in messages %}
-<div class='my_toast_container row' name="{{category}}">
+<div class='my_toast_container row' style="display:none;" name="{{category}}">
         {% if category=='success' %}
         <div class="toast toast--green col-sm-12 ">
         <div class="toast__icon">

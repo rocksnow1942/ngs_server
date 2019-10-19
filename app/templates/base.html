@@ -73,12 +73,29 @@
                     {% if not current_user.is_anonymous %}
                   </ul>
                   <ul class="nav navbar-nav navbar-right">
-                    <li id="analysis_cart_count_container" style="visibility:{% if current_user.analysis_cart %}visible{%else%}hidden{%endif%};">
-                      <a href="{{url_for('ngs.analysis_cart')}}">  
-                        <span id='analysis_cart_count' class='badge'><span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>{{current_user.analysis_cart_count()}}</span>
+                    <li id="analysis_cart_count_container" style="display:{% if current_user.analysis_cart %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ngs.analysis_cart')}}"> <span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>
+                        <span id='analysis_cart_count' class='badge'>{{current_user.analysis_cart_count()}}</span>
                       </a>
                     </li>
                   </ul>
+                  <ul class="nav navbar-nav navbar-right">
+                    <li id="slide_cart_count_container"
+                      style="display:{% if current_user.slide_cart %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ppt.slide_cart')}}"><span class="glyphicon glyphicon-folder-close" aria-hidden="true"></span>
+                        <span id='slide_cart_count' class='badge'>{{current_user.slide_cart_count}}</span>
+                      </a>
+                    </li>
+                  </ul>
+                  {% set current_follow_ppt_count = current_user.follow_ppt_update_count %}
+                  <ul class="nav navbar-nav navbar-right">
+                    <li id="follow_ppt_count_container" style="display:{% if current_follow_ppt_count %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ppt.user_follow_slides')}}"><span class="glyphicon glyphicon-bell" aria-hidden="true"></span>
+                        <span id='slide_cart_count' class='badge'>{{current_follow_ppt_count}}</span>
+                      </a>
+                    </li>
+                  </ul>
+                  
                   {% endif %}
                   
 
@@ -113,6 +130,7 @@
 <div class="container" style="min-height: 100px;" id='main_container'>
   <div class="flash_message_container">
   {% with messages = get_flashed_messages(with_categories=true) %}
+  
   {% include "flash_messages.html" %}
   {% endwith %}
 </div>
@@ -131,17 +149,19 @@
 {% block scripts %}
     <script type="text/javascript">
         // update flash message
-        function display_flash_message(result){
-          $(".flash_message_container").html(result)
-        };
+
 
             $(document).ready(function () {
               var url = window.location.pathname.split('/')[1];
-              if (url) {
-              $('ul.nav a[href*="'+ url +'"]').parent().addClass('active');
-              $('ul.nav a').filter(function() {
-                   return this.href == url;
-              }).parent().addClass('active');
+              let perfectmatch = $('ul.nav a').filter(function () {
+                return $(this).attr('href') == window.location.pathname;
+              });
+              if (perfectmatch.length) {
+                perfectmatch.parent().addClass('active')
+              } else {
+                if (url) {
+                  $('ul.nav a[href*="' + url + '"]').filter(function () { return $(this).attr('name') != 'badge_icon' }).parent().addClass('active');
+                }
               }
           });
     
@@ -167,18 +187,22 @@
       {% endif %}
       
       // close toast messages automatically
+      function display_flash_message(result,time) {
+          $(".flash_message_container").html(result);
+         close_toast_message(time);        
+        };
       function close_toast_message(time){
-           time = time ? time : 100;
-          $(".my_toast_container").fadeTo(time, 500).slideUp(500, function () {
-            $(".my_toast_container").slideUp(500);
-          })
+           time = time ? time : 500;
+            $(".my_toast_container").slideDown('slow','swing').delay(time).slideUp(500, 'swing')
         }
       $(document).ready(function  () {
         let category = [];
         $(".my_toast_container").each(function(element){category.push($(this).attr('name'))});
         if (category.every((e)=>{return e=='success' | e=='info'})){
-          close_toast_message(1500)
-        }
+          close_toast_message(1000)
+        } else (
+          $(".my_toast_container").slideDown('slow', 'swing')
+        )
         }); 
     </script>
 {% endblock %}

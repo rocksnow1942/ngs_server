@@ -372,7 +372,8 @@ def add_to_analysis():
     id = int(id)
     try:
         if table == 'delete':
-            current_user.analysis_cart.remove(id)
+            if (id in current_user.analysis_cart):
+                current_user.analysis_cart.remove(id)
         else:
             if table == 'selection':
                 sele = Selection.query.get(id)
@@ -384,8 +385,9 @@ def add_to_analysis():
         current_user.save_data()
         db.session.commit()
     except:
-        flash('An Error occured. Please refresh page.','warning')
+        flash('An Error occured during editing analysis cart. Please refresh page.','warning')
     return jsonify({'analysis_count':current_user.analysis_cart_count(),'remaining':current_user.analysis_cart})
+
 
 
 @bp.route('/analysis_cart', methods=['POST','GET'])

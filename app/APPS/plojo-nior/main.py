@@ -633,6 +633,7 @@ def process_df_upload(df):
         meta['name']=name[8:].strip()
     else:
         meta['date']=sd_date.value
+        meta['name'] = name[8:].strip()
     meta.update(speed=run_speed)
     unit=df.iloc[1,0]
     unit = 'time' if unit=='min' else 'volume'

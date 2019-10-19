@@ -12,10 +12,10 @@ def JSON_descriptor(name):
             return json.loads(getattr(instance,name))
 
         def __set__(self,instance,value):
-            setattr(instance,name,json.dumps(value))
+            setattr(instance, name, json.dumps(value, separators=(',', ':')))
         
         def __delete__(self,instance):
-            setattr(instance, name, json.dumps({}))
+            setattr(instance, name, json.dumps({}, separators=(',', ':')))
     return Desc()
 
 class Plojonior_Data(db.Model):

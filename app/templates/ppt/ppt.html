@@ -1,10 +1,16 @@
 {% for entry in entries  %}
 <div>
-    <div class="slide_container col-md-2 ">
+    <div class="slide_container col-xs-2 ">
         <div class="box ">
-        <div class="slide_title"> {{entry.name}}</div>
+        <div class="slide_title slide_flag"> {{entry.name}}
+            {% if current_user.is_following_ppt(entry.id) %}
+            <span onclick="javascript:add_ppt_to_follow(event)" name="{{entry.id}}" class="label label-warning cursor_pointer">Unfollow</span>
+            {% else %}
+            <span onclick="javascript:add_ppt_to_follow(event)" name="{{entry.id}}" class="label label-info cursor_pointer">Follow</span>
+            {% endif %}
+        </div>
             <div class='slide'>
-                <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
+                <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id) }}">
                     <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                         alt="{{entry.name}}"></a>  
                 <div class='zoom-hidden-text ppt_edit_trigger input_container' id="{{entry.id}}">

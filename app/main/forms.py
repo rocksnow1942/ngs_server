@@ -46,7 +46,7 @@ class SearchPPTForm(FlaskForm):
     search_project = SelectMultipleField(
         'Search In Project', choices=[('all', 'All')], validators=[DataRequired()])  # choices=project
     field = [('all', 'All'), ('title', 'Title'),
-             ('body', 'Body'), ('tag', 'Tag'), ('note', 'Note')]
+             ('body', 'Body'), ('flag', 'Flag: Red Green Blue'), ('tag', 'Tag'), ('note', 'Note'), ]
     search_field = SelectMultipleField(
         'Search Field', choices=field, validators=[DataRequired()])
     search_ppt = SelectMultipleField(

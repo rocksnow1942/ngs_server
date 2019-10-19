@@ -45,7 +45,7 @@ class DataStringMixin():
             return {}
 
     def save_data(self):
-        self.data_string = json.dumps(self.data)
+        self.data_string = json.dumps(self.data, separators=(',', ':'))
 
 class SearchableMixin():
     @classmethod 
@@ -93,16 +93,45 @@ class User(UserMixin,db.Model,DataStringMixin):
     email= db.Column(db.String(120), index=True, unique=True)
     privilege = db.Column(db.String(10),default='user')
     password_hash = db.Column(db.String(128))
-    data_string = Column(db.Text,default="{}")
+    data_string = Column(mysql.LONGTEXT, default="{}")
     analysis_cart= data_string_descriptor('analysis_cart')()
     user_setting = data_string_descriptor('user_setting',{})()
     analysis = relationship('Analysis',backref='user')
-
+    slide_cart = data_string_descriptor('slide_cart',[])()
+    follow_ppt = data_string_descriptor('follow_ppt',{})()
+   
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
     def set_password(self,password):
         self.password_hash=generate_password_hash(password)
+    
+    def is_following_ppt(self,ppt_id):
+        return str(ppt_id) in self.follow_ppt
+    
+    @property
+    def follow_ppt_update_count(self):
+        update = self.follow_ppt_update()
+        return sum(len(i) for i in update.values()) 
+       
+    def single_ppt_update_count(self,ppt_id):
+        if str(ppt_id) in self.follow_ppt:
+            slides = [i.id for i in PPT.query.get(int(ppt_id)).slides]
+            new = set(slides) - set(self.follow_ppt[str(ppt_id)])
+            return len(new)
+        else:
+            return 0
+
+    def follow_ppt_update(self):
+        update={}
+        for k in list(self.follow_ppt.keys()):
+            ppt = PPT.query.get(k)
+            if ppt:
+                slides = [i.id for i in ppt.slides]
+                new = set(slides) - set(self.follow_ppt[k])
+                if new:
+                    update[k]=list(new)     
+        return update
 
     @property 
     def ngs_per_page(self):
@@ -120,6 +149,15 @@ class User(UserMixin,db.Model,DataStringMixin):
         digest=md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
+
+    @property
+    def slide_cart_count(self):
+        return len(self.slide_cart)
+    
+    @property
+    def follow_ppt_count(self):
+        return len(self.follow_ppt)
+
 
     def analysis_cart_count(self):
         return len(self.analysis_cart)
@@ -741,7 +779,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
             
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']
-            self.datafile = json.dumps(datadict)
+            self.datafile = json.dumps(datadict, separators=(',', ':'))
             db.session.commit()
 
 class NGSSample(db.Model,BaseDataModel):
@@ -778,7 +816,7 @@ class Task(db.Model,BaseDataModel):
 
 class Slide(SearchableMixin,db.Model):
     __tablename__='slide'
-    __searchable__=['title','body','tag','note','ppt_id']
+    __searchable__=['title','body','tag','note','ppt_id','flag']
     __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     title = Column(mysql.TEXT)
