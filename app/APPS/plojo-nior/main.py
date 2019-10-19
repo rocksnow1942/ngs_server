@@ -606,7 +606,7 @@ def sd_data_generator():
                 meta = {'speed':run_speed,'date':data_date,'name':data_name,data_key:{'y_label':axis_label_dict.get(data_key[0],'default')}}
                 if data_key[0]=='A':
                     meta[data_key].update(extcoef=ext_coef)
-                raw = {data_key:{'time':data_range,'signal':data_signal}}
+                raw = {data_key:{'time':data_range,'signal':[round(i,6) for i in data_signal]}}
                 result_dict = {'meta':meta,'raw':raw}
             elif extension.lower()=='xls':
                 toread = BytesIO(file_contents)
