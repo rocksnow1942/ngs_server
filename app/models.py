@@ -667,8 +667,8 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         for r in self.rounds:
             if r.parent and r.parent not in sr:
                 sr.append(r.parent)
-        result = [(i.round_name,"Note: "+i.note,url_for('ngs.details',table='round',id=i.id)) for i in sr]
-        result.append((self.selection_name, "Note: "+self.note, "#"))
+        result = [(i.round_name, i.note,url_for('ngs.details',table='round',id=i.id)) for i in sr]
+        result.append((self.selection_name, self.note, "#"))
         return result
 
     def json_tree(self):
