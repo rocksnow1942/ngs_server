@@ -316,6 +316,20 @@ function draw_d3_tree (treeData) {
         zoomListener.translate([x, y]);
     }
 
+    // place on left edge 
+    function leftNode(source) {
+        scale = zoomListener.scale();
+        x = -source.y0;
+        y = -source.x0;
+        x = x * scale + viewerWidth / 10;
+        y = y * scale + viewerHeight / 2;
+        d3.select('g').transition()
+            .duration(duration)
+            .attr("transform", "translate(" + x + "," + y + ")scale(" + scale + ")");
+        zoomListener.scale(scale);
+        zoomListener.translate([x, y]);
+    }
+
     // Toggle children function
 
     function toggleChildren(d) {
@@ -526,5 +540,5 @@ function draw_d3_tree (treeData) {
 
     // Layout the tree initially and center on the root node.
     update(root);
-    centerNode(root);
+    leftNode(root);
 }

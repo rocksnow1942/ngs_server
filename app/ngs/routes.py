@@ -548,5 +548,4 @@ def get_selection_tree_json():
     sele = Selection.query.get(s_id)
     return jsonify(sele.json_tree())
 
-    # return jsonify({'name': 'test', 'children': [{'name': 'test2', 'children': []}]})
 
