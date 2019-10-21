@@ -662,6 +662,15 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
     def __repr__(self):
         return f"Selection <{self.selection_name}>, ID: {self.id}"
 
+    def json_tree_notes(self):
+        sr = [i for i in self.rounds]
+        for r in self.rounds:
+            if r.parent and r.parent not in sr:
+                sr.append(r.parent)
+        result = [(i.round_name,"Note: "+i.note) for i in sr]
+        result.append((self.selection_name,"Note: "+self.note))
+        return result
+
     def json_tree(self):
         """return tree json"""
         sr = [ i for i in self.rounds]
