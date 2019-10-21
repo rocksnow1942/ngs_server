@@ -66,7 +66,7 @@ img.image-link:hover {
   padding: 3px;
   overflow: display;
   display: block;
-  overflow-y: scroll;
+  /* overflow-y: scroll; */
   -moz-border-radius: 8px;
   -webkit-border-radius: 8px;
   border-radius: 8px;
