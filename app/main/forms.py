@@ -84,10 +84,12 @@ class UserSettingForm(FlaskForm):
     ngs_per_page = IntegerField('List Item Per Page', validators=[DataRequired(),NumberRange(3, 200)])
     slide_per_page = IntegerField('Slides Per Page', validators=[
                                   DataRequired(), NumberRange(3, 200)])
+    thumbnail = SelectField('Default Thumbnail Size',choices=[('small','Small'),('medium','Medium'),('large','Large'),('list','List')])
     submit = SubmitField('Save Settings')
     
     def populate_obj(self,user):
         user.user_setting.update(ngs_per_page=self.ngs_per_page.data)
         user.user_setting.update(slide_per_page=self.slide_per_page.data)
+        user.user_setting.update(thumbnail=self.thumbnail.data)
         user.save_data()
         return user

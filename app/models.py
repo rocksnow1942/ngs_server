@@ -2,7 +2,6 @@ import numpy as np
 from matplotlib.figure import Figure
 from collections import Counter
 from app import db,login
-
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, current_user
@@ -99,6 +98,7 @@ class User(UserMixin,db.Model,DataStringMixin):
     analysis = relationship('Analysis',backref='user')
     slide_cart = data_string_descriptor('slide_cart',[])()
     follow_ppt = data_string_descriptor('follow_ppt',{})()
+    bookmarked_ppt = data_string_descriptor('bookmarked_ppt', [])()
    
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -110,10 +110,29 @@ class User(UserMixin,db.Model,DataStringMixin):
         return str(ppt_id) in self.follow_ppt
     
     @property
-    def follow_ppt_update_count(self):
+    def follow_ppt_update_count(self): 
         update = self.follow_ppt_update()
         return sum(len(i) for i in update.values()) 
-       
+    
+    def remove_dead_ppt_link(self):
+        slide_cart,bookmarked_ppt = [],[]
+        for i in self.slide_cart:
+            if Slide.query.get(i):
+                slide_cart.append(i)
+        for i in self.bookmarked_ppt:
+            if Slide.query.get(i):
+                bookmarked_ppt.append(i)
+        self.slide_cart ,self.bookmarked_ppt = slide_cart,bookmarked_ppt
+        for key in list(self.follow_ppt.keys()):
+            ppt = PPT.query.get(key)
+            if ppt:
+                slides = [i.id for i in ppt.slides]
+                self.follow_ppt[key] = list(set(self.follow_ppt[key]) & set(slides))
+            else:
+                self.follow_ppt.pop(key)
+
+
+
     def single_ppt_update_count(self,ppt_id):
         if str(ppt_id) in self.follow_ppt:
             slides = [i.id for i in PPT.query.get(int(ppt_id)).slides]
@@ -136,6 +155,10 @@ class User(UserMixin,db.Model,DataStringMixin):
     @property 
     def ngs_per_page(self):
         return self.user_setting.get('ngs_per_page', 10)
+
+    @property 
+    def thumbnail(self):
+        return self.user_setting.get('thumbnail', 'small')
     
     @property
     def slide_per_page(self):
@@ -175,11 +198,22 @@ class User(UserMixin,db.Model,DataStringMixin):
         return User.query.get(id)
         
     def test_task(self,n):
-        job=current_app.task_queue.enqueue("app.tasks.ngs_data_processing.test_worker",n)
+        job = current_app.task_queue.enqueue(
+            "app.tasks.ngs_data_processing.test_worker", n, job_timeout=3600)
     
     @property
     def isadmin(self):
         return self.privilege=='admin'
+
+    def launch_search(self,seq,table):
+        job = current_app.task_queue.enqueue(
+            'app.tasks.ngs_data_processing.lev_distance_search', seq, table, job_timeout=3600)
+        t = Task(id=job.get_id(), name=f"Lev distance search in <{table}>.")
+        db.session.add(t)
+        db.session.commit()
+        return t.id
+
+
 
 class BaseDataModel():
     @property
@@ -234,7 +268,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             return DataReader.load_json(self.analysis_file)
             
     def load_rounds(self):
-        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id)
+        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Load analysis {self}.")
         self.task_id=t.id 
         self.save_data()
@@ -676,7 +710,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
     datafile = Column(String(200))
     processingresult = Column(db.Text)
-    task_id = Column(db.String(36),ForeignKey('task.id'))
+    task_id = Column(db.String(36), ForeignKey('task.id', ondelete='SET NULL'),nullable=True)
 
     def __repr__(self):
         return f"NGS Sample <{self.name}>, ID:{self.id}"
@@ -711,7 +745,8 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         return l1,l2,l3,l4
 
     def launch_task(self):
-        job=current_app.task_queue.enqueue('app.tasks.ngs_data_processing.parse_ngs_data',self.id)
+        job = current_app.task_queue.enqueue(
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()
@@ -810,7 +845,9 @@ class Task(db.Model,BaseDataModel):
     progress = db.Column(db.Float,default=0)
     complete = db.Column(db.Boolean, default=False)
     date = Column(DateTime(), default=datetime.now)
-
+    ngssample = relationship(
+        'NGSSampleGroup', backref=db.backref('task', passive_deletes=True))
+   
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
 

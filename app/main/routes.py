@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
 from app.ppt.routes import ppt_search_handler
+from app.utils.analysis._alignment import lev_distance
 
 @bp.before_app_request
 def before_request():
@@ -80,6 +81,8 @@ def ngs_serach_handler(form):
     kwargs = dict(request.args)
     kwargs.pop('page', None)
     nextcontent = {'round': 'sequence_round', 'selection': 'round'}.get(table)
+    seqdict = dict(primer='sequence', known_sequence='rep_seq',
+                   sequence='aptamer_seq')
     if method == 'text':
         entries, total = target.search(form.q.data,page,pagelimit)
     elif method == 'sequence':
@@ -102,7 +105,15 @@ def ngs_serach_handler(form):
         entries=result.items
 
     elif method == 'distance':
-        return render_template('search/search_result.html',content='Not implemented yet.')
+        seq = form.q.data
+        if not validate_sequence(seq):
+            flash('Sequence not valid. Only ATCG is allowed.', 'warning')
+            return redirect(request.referrer)
+        taskid = current_user.launch_search(seq,table)
+        target = models_table_name_dictionary.get(table)
+        total = target.query.count()
+        # render a template to display progress bar with task id, after done display result page. 
+        return render_template('ngs/task_progress.html',task_id=taskid,table=table,total=total)
     start, end = pagination_gaps(page, total, pagelimit)
     next_url = url_for('main.search', page=page+1, **
                        kwargs) if total > page*pagelimit else None

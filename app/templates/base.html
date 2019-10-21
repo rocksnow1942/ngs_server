@@ -52,11 +52,13 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{current_user.username}} <span class="caret"></span></a>
                         <ul class="dropdown-menu">
                           <li><a href="{{url_for('auth.profile')}}">Profile</a></li>
-                          <li><a href="{{url_for('main.analysis_profile')}}">NGS Analysis</a></li>
                           <li><a href="{{url_for('main.user_settings')}}">Settings</a></li>
-                          <li><a href="#">...</a></li>
                           <li role="separator" class="divider"></li>
-                          <li><a href="#">...</a></li>
+                          <li><a href="{{url_for('main.analysis_profile')}}">NGS Analysis</a></li>
+                          <li><a href="{{url_for('ppt.bookmarked')}}">Bookmarked Slides</a></li>
+                         
+                          
+        
                           {% if current_user.isadmin %}
                               <li role="separator" class="divider"></li>
                               <li><a href="{{url_for('admin.admin')}}">Admin Page</a></li>
@@ -87,11 +89,11 @@
                       </a>
                     </li>
                   </ul>
-                  {% set current_follow_ppt_count = current_user.follow_ppt_update_count %}
+                 
                   <ul class="nav navbar-nav navbar-right">
-                    <li id="follow_ppt_count_container" style="display:{% if current_follow_ppt_count %}block{%else%}none{%endif%};">
+                    <li id="follow_ppt_count_container" style="display:{% if current_user.follow_ppt_update_count %}block{%else%}none{%endif%};">
                       <a name='badge_icon' href="{{url_for('ppt.user_follow_slides')}}"><span class="glyphicon glyphicon-bell" aria-hidden="true"></span>
-                        <span id='slide_cart_count' class='badge'>{{current_follow_ppt_count}}</span>
+                        <span id='follow_ppt_count' class='badge'>{{current_user.follow_ppt_update_count}}</span>
                       </a>
                     </li>
                   </ul>
@@ -147,62 +149,44 @@
 {% endblock %}
 
 {% block scripts %}
-    <script type="text/javascript">
-        // update flash message
-
-
-            $(document).ready(function () {
-              var url = window.location.pathname.split('/')[1];
-              let perfectmatch = $('ul.nav a').filter(function () {
-                return $(this).attr('href') == window.location.pathname;
-              });
-              if (perfectmatch.length) {
-                perfectmatch.parent().addClass('active')
-              } else {
-                if (url) {
-                  $('ul.nav a[href*="' + url + '"]').filter(function () { return $(this).attr('name') != 'badge_icon' }).parent().addClass('active');
-                }
-              }
-          });
-    
-
-          $(document).ready(function () {
-              $(window).resize(function () {
-                var bodyheight = $(this).height();
-               
-                $("#main_container").css('min-height',bodyheight-150);
-              }).resize();
-            });
-
-      // monitor key board.
-      {% if current_user.is_authenticated %}
-          $(document).ready(function () {
-              $(document).keypress(function (e) {
-                var c = String.fromCharCode(e.which);
-                if (e.target.tagName == 'BODY' && c === 'f') {
-                  $('#search_dialog').modal('show');
-                }
-              });
-            });
-      {% endif %}
-      
-      // close toast messages automatically
-      function display_flash_message(result,time) {
-          $(".flash_message_container").html(result);
-         close_toast_message(time);        
-        };
-      function close_toast_message(time){
-           time = time ? time : 500;
-            $(".my_toast_container").slideDown('slow','swing').delay(time).slideUp(500, 'swing')
+<script type="text/javascript" src="{{url_for('static',filename='js/base.js')}}"> </script>
+{% if current_user.is_authenticated %}
+<script>
+    // monitor key board  F for search.
+    $(document).ready(function () {
+      $(document).keypress(function (e) {
+        var c = String.fromCharCode(e.which);
+        if (e.target.tagName == 'BODY' && c === 'f') {
+          $('#search_dialog').modal('show');
         }
-      $(document).ready(function  () {
-        let category = [];
-        $(".my_toast_container").each(function(element){category.push($(this).attr('name'))});
-        if (category.every((e)=>{return e=='success' | e=='info'})){
-          close_toast_message(1000)
-        } else (
-          $(".my_toast_container").slideDown('slow', 'swing')
-        )
-        }); 
-    </script>
+      });
+    });
+    
+// follow a powerpoint or unfollow a powerpoint. definded here for index page use as well
+function add_ppt_to_follow(event) {
+  let ppt_id = $(event.target).attr('name');
+  let action = $(event.target).text();
+  $.ajax({
+    url: "{{url_for('ppt.add_ppt_to_follow')}}",
+    type: "POST",
+    data: JSON.stringify({ ppt_id: ppt_id, action: action }),
+    contentType: "application/json",
+    success: function (result) {
+      display_flash_message(result.html, 1000);
+      if (!result.status) {
+        $(event.target).text('Follow');
+        $(event.target).removeClass('label-warning').addClass('label-info')
+      } else {
+        $(event.target).text('Unfollow');
+        $(event.target).removeClass('label-info').addClass('label-warning')
+      }
+    },
+    error: function (xhr, resp, text) { alert(`Save Flag error: ${text}`) },
+  })
+}
+
+</script>
+{% endif %}
+
+
 {% endblock %}

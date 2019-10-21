@@ -13,8 +13,8 @@
           aria-controls="collapseOne" class="custom-card" ><h3 class="panel-title"> 
             {% if not follow_ppt %}
             You are not following any projects.
-            {% elif current_follow_ppt_count %}
-            Your Following Project Updates:
+            {% elif current_user.follow_ppt_update_count %}
+            Your Following Project have {{current_user.follow_ppt_update_count}} Updates:
             {% else %}
             You are up to date on the projects you followed. Good job!
             {% endif %}
@@ -72,34 +72,3 @@
     
 {% endblock %}
 
-
-{% block scripts %}
-{{super()}}
-<script>
-
-  function add_ppt_to_follow(event) {
-    let ppt_id = $(event.target).attr('name');
-    let action = $(event.target).text();
-    $.ajax({
-      url: "{{url_for('ppt.add_ppt_to_follow')}}",
-      type: "POST",
-      data: JSON.stringify({ ppt_id: ppt_id, action: action }),
-      contentType: "application/json",
-      success: function (result) {
-        display_flash_message(result.html, 1000);
-        if (!result.status) {
-          $(event.target).text('Follow');
-          $(event.target).removeClass('label-warning').addClass('label-info')
-        } else {
-          $(event.target).text('Unfollow');
-          $(event.target).removeClass('label-info').addClass('label-warning')
-        }
-      },
-      error: function (xhr, resp, text) { alert(`Save Flag error: ${text}`) },
-    })
-  }
-
-</script>
-
-
-{% endblock %}

@@ -34,27 +34,30 @@ img.image-link:hover {
   padding-bottom: 10px;
 }
 .slide_title{
-  overflow-y: visible; 
+  
   display:block;
   font-weight: bold;
   cursor: move;
+  margin:1px;
+
 }
 .slide_flag{
-  padding: 2px;
-  padding-bottom: 5px;
+  padding-left: 10px;
   display:block;
+  padding-bottom: 5px;
+  margin:1px;
  
 }
 .slide_title.small{
-  height: 35px;
-  font-size:8px;
+  height: auto;
+  font-size:10px;
 }
 .slide_title.medium{
-  height: 30px;
+  height: auto;
 }
 .slide_title.large{
-  height: 30px;
-  font-size:14px;
+  height: auto;
+  font-size:16px;
 }
 .box{
   border: solid 1px #ddd;
@@ -69,7 +72,7 @@ img.image-link:hover {
   border-radius: 8px;
 }
 .box.small {
-  height: 230px;
+  height: 223px;
   
 }
 .box.medium {

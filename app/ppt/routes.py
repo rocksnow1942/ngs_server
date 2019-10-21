@@ -27,6 +27,7 @@ def add_header(response):
 @login_required
 def index():
     pagelimit = current_user.slide_per_page
+    thumbnail = current_user.thumbnail
     table = request.args.get('table',None)
     if not table:
         return redirect(url_for('ppt.index',table='ppt'))
@@ -84,10 +85,10 @@ def index():
                     for i in range(start, end+1)]
         return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), entries=entries.items, 
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
-                               page_url=page_url, active=page,id=id)
+                               page_url=page_url, active=page,id=id,thumbnail=thumbnail)
         
     return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), 
-                           table=table,  tags_list=tags_list,)
+                           table=table,  tags_list=tags_list, thumbnail=thumbnail)
 
 
 @bp.route('/user_follow_slides', methods=['GET', 'POST'])
@@ -95,6 +96,7 @@ def index():
 def user_follow_slides():
     ppt_id = request.args.get('id',0)
     pagelimit = current_user.slide_per_page
+    thumbnail = current_user.thumbnail
     page = request.args.get('page', 1, type=int)
     if ppt_id:
         slides_id = current_user.follow_ppt_update().get(str(ppt_id),[])
@@ -114,7 +116,7 @@ def user_follow_slides():
                 for i in range(start, end+1)]
     return render_template('ppt/slide_comparison.html', title='Project-Update', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
-                           page_url=page_url, active=page, backurl=request.referrer, mode="update", ppt_id=ppt_id)
+                           page_url=page_url, active=page, backurl=request.referrer, mode="follow_ppt", ppt_id=ppt_id, thumbnail=thumbnail)
    
 
 
@@ -122,9 +124,10 @@ def user_follow_slides():
 @login_required
 def slide_cart():
     pagelimit = current_user.slide_per_page
+    thumbnail = current_user.thumbnail
     page = request.args.get('page', 1, type=int)
     when = [(j,i) for i,j in enumerate(current_user.slide_cart)]
-    entries = Slide.query.filter(Slide.id.in_(current_user.slide_cart)).order_by(db.case(when,value=Slide.id)).paginate(page,pagelimit,False)
+    entries = Slide.query.filter(Slide.id.in_(current_user.slide_cart)).order_by(db.case(when,value=Slide.id).desc()).paginate(page,pagelimit,False)
     totalpages = entries.total
     
     start, end = pagination_gaps(page, totalpages, pagelimit, gap=15)
@@ -138,7 +141,49 @@ def slide_cart():
     
     return render_template('ppt/slide_comparison.html', title='Slides-Comparison', entries=entries.items, 
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
-                           page_url=page_url, active=page, backurl=request.referrer,mode="selected")
+                           page_url=page_url, active=page, backurl=request.referrer, mode="slide_cart", thumbnail=thumbnail)
+
+
+@bp.route('/add_to_bookmark', methods=['POST'])
+@login_required
+def add_to_bookmark():
+    new = [ i for i in current_user.slide_cart if i not in current_user.bookmarked_ppt ]
+    current_user.bookmarked_ppt.extend(new)
+    current_user.save_data()
+    db.session.commit()
+    messages=[('success',"Bookmarked <{}> slides.".format(len(new)))]
+    return jsonify(html=render_template('flash_messages.html', messages=messages))
+
+
+
+@bp.route('/bookmarked', methods=['GET', 'POST'])
+@login_required
+def bookmarked():
+    pagelimit = current_user.slide_per_page
+    thumbnail = current_user.thumbnail
+    page = request.args.get('page', 1, type=int)
+    when = [(j, i) for i, j in enumerate(current_user.bookmarked_ppt)]
+    if when:
+        entries = Slide.query.filter(Slide.id.in_(current_user.bookmarked_ppt)).order_by(
+            db.case(when, value=Slide.id)).paginate(page, pagelimit, False)
+    else:
+        entries = Slide.query.filter_by(id=None).paginate(page,pagelimit,False)
+    totalpages = entries.total
+
+    start, end = pagination_gaps(page, totalpages, pagelimit, gap=15)
+
+    next_url = url_for('ppt.bookmarked',
+                       page=entries.next_num,) if entries.has_next else None
+    prev_url = url_for('ppt.bookmarked',
+                       page=entries.prev_num, ) if entries.has_prev else None
+    page_url = [(i, url_for('ppt.bookmarked',  page=i, ))
+                for i in range(start, end+1)]
+
+    return render_template('ppt/slide_comparison.html', title='Bookmarked-Slides', entries=entries.items,
+                           next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
+                           page_url=page_url, active=page, backurl=request.referrer, mode="bookmarked_ppt", thumbnail=thumbnail)
+
+
 
 @bp.route('/tags/<tag>', methods=['GET'])
 @login_required
@@ -169,9 +214,14 @@ def add_flag():
 @bp.route('/remove_all_slide_cart', methods=['GET'])
 @login_required
 def remove_all_slide_cart():
-    current_user.slide_cart=[]
+    mode = request.args.get('mode',None)
+    if mode == 'slide_cart':
+        current_user.slide_cart=[]
+    elif mode == 'bookmarked_ppt':
+        current_user.bookmarked_ppt=[]
     current_user.save_data()
     db.session.commit()
+    flash('All slides in {} was deleted'.format(mode), 'info')
     return redirect(url_for('ppt.index'))
 
 
@@ -202,33 +252,47 @@ def read_allslides():
 
 
 
+
 @bp.route('/add_to_slide_cart', methods=['POST'])
 @login_required
 def add_to_slide_cart():
     try:
+        current_user.remove_dead_ppt_link()
         id = int(request.json.get('slide_id'))
         action = request.json.get('action')
-        slide = Slide.query.get(id)
+        mode = request.json.get('mode', 'slide_cart')
+        slide = Slide.query.get(id) 
+       
         if action=='delete':
-            if id in current_user.slide_cart:
-                current_user.slide_cart.remove(id)
-                current_user.save_data()
-                db.session.commit()
-                messages=[]
+            if mode == 'slide_cart' or mode == 'bookmarked_ppt':
+                toedit = getattr(current_user, mode)
+                if id in toedit:
+                    toedit.remove(id)
+            else:
+                ppt_id = slide.ppt_id
+                if current_user.follow_ppt.get(str(ppt_id),[]):
+                    if id not in current_user.follow_ppt.get(str(ppt_id)):
+                        current_user.follow_ppt[str(ppt_id)].append(id)
+            messages = []
         else:
             if (id not in current_user.slide_cart) and slide:
                 current_user.slide_cart.append(id)
-                current_user.save_data()
-                db.session.commit()
                 messages = [('success', "{} was added to your comparison.".format(slide))]
             else:
-                messages = [('info', "Side {} is already added or don't exist anymore.".format(id))]
+                messages = [
+                    ('info', "Side {} don't exist anymore or is already added.".format(id))]
+        current_user.save_data()
+        db.session.commit()
     except Exception as e:
         messages = [
             ('danger', "Error occurred: {}.".format(e))]
-    return jsonify(slide_count= len(current_user.slide_cart),html=render_template('flash_messages.html', messages=messages))
-
-
+    count=0
+    if mode == 'slide_cart':
+        count = len(current_user.slide_cart)
+    elif mode == 'follow_ppt':
+        count = current_user.follow_ppt_update_count
+    return jsonify(count= count,notice=bool(messages),html=render_template('flash_messages.html', messages=messages))
+    
 @bp.route('/add_ppt_to_follow', methods=['POST'])
 @login_required
 def add_ppt_to_follow():
@@ -258,16 +322,15 @@ def ppt_search_handler(query, field, ppt):
     test, ['all'], ['all','tag'], ['all']
     string, ['9'], ['all', 'title', 'body'], ['15', '16']
     """
-    thumbnailurl=remove_thurmbnail_from_url(request.url)
     page = request.args.get('page', 1, int)
     pagelimit = current_user.slide_per_page
+    thumbnail = current_user.thumbnail
     kwargs={}
     for k in request.args:
         kwargs[k] = (request.args.getlist(k))
     
-    thumbnail = request.args.get('thumbnail', 'small')
+    
     kwargs.pop('page', None)
-    kwargs.update(thumbnail=thumbnail)
     entries,total = Slide.search_in_id(query,field,ppt,page,pagelimit)
     start, end = pagination_gaps(page, total, pagelimit)
     next_url = url_for('main.search', page=page+1, **
@@ -279,7 +342,7 @@ def ppt_search_handler(query, field, ppt):
 
     tags_list = Slide.tags_list()
 
-    return render_template('ppt/index.html', title='Slide Search result' , entries=entries, thumbnail=thumbnail,thumbnailurl=thumbnailurl,
+    return render_template('ppt/index.html', title='Slide Search result' , entries=entries, thumbnail=thumbnail,
                            next_url=next_url, prev_url=prev_url, table='slide', nextcontent=None, tags_list=tags_list,
                            page_url=page_url, active=page, id=id)
 

@@ -1,14 +1,14 @@
 from app import db
 from flask import render_template, flash, redirect,url_for,request,current_app
 from flask_login import current_user,login_required
-from datetime import datetime
 from app.admin import bp
-from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Slide
+from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Slide,Task
 from flask import g
 # from app.admin.forms import SearchNGSForm, SearchInventoryForm, TestForm
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
+from datetime import datetime, timedelta
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -19,9 +19,22 @@ def admin():
 @bp.route('/clear_trash', methods=['GET', 'POST'])
 def clear_trash():
     # TODO
+    msg = []
+    oldtask = Task.query.filter(Task.date < (
+        datetime.now() - timedelta(days=1))).all()
+    try:
+        for i in oldtask:
+            msg.append(f'Deleting... <{i.id}>')
+            db.session.delete(i)
+            db.session.commit()
+        msg.append(f'All trash tasks deleted... <{len(oldtask)}>')
+        flash('Deleted {} tasks.'.format(len(oldtask)),'success')
+    except Exception as e:
+        flash('Delete Tasks error :<{}>.'.format(e), 'danger')
+        msg.append(f'Delete Tasks error. Error : <{e}>')
     # need to delete trash from SQL tasks, and unused analysis folders.
     # clear up file uploads.
-    return None
+    return render_template('admin/result.html', content=['Success.']+msg)
 
 
 @bp.route('/reindex_models', methods=['GET', 'POST'])

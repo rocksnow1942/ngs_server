@@ -10,6 +10,7 @@ import logging
 import os
 from redis import Redis
 import rq
+from rq.job import Job
 from elasticsearch import Elasticsearch
 
 db = SQLAlchemy()
@@ -19,6 +20,13 @@ mail = Mail()
 login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = 'Please log in to access this page.'
+
+def fetch_job_from_queue(rdqueue):
+    def wrapped(taskid):
+        job = Job.fetch(taskid,connection=rdqueue)
+        return job.result
+    return wrapped
+
 
 def create_app(config_class = Config,keeplog=True):
     app = Flask(__name__)
@@ -31,6 +39,8 @@ def create_app(config_class = Config,keeplog=True):
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('ngs-server-tasks', connection=app.redis)
+
+    app.fetch_job_result = fetch_job_from_queue(app.redis)
 
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None

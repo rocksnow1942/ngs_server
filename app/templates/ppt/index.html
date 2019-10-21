@@ -51,7 +51,7 @@
 
 <div class="sticky_ppt_tools">
 <div class="row ">
-  <div class="col-md-9 ">
+  <div class="col-xs-9">
     <nav aria-label="Page navigation narrow">
       <ul class="pagination narrow ">
         <li class=" previous {% if not prev_url %} disabled{% endif %}">
@@ -72,32 +72,33 @@
       </ul>
     </nav>
   </div>
-  <div class="col-md-3">
+  <div class="col-xs-3" align='right'>
     <nav aria-label="Page navigation narrow">
       <ul class="pagination narrow">
-        <li class=" previous " >
-         
-            <a aria-hidden="true" href="javascript:void(0)" onclick="show_hidden_title_body(event)">Show Text</a>
-           
+        <li class=" thumbnail_list previous {% if thumbnail=='list' %} active{% endif %} " >
+              <a onclick="javascript:_set_thumbnail(event,'list','{{table}}')">
+              <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+            </a>
+           <!--  <a aria-hidden="true" href="javascript:void(0)" onclick="show_hidden_title_body(event)">Show Text</a> -->
         </li>
 
         <li class="thumbnail_small previous {% if thumbnail=='small' %} active{% endif %}">
           <!-- <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" > -->
-            <a onclick="javascript:_set_thumbnail(event,'small')" >
+            <a onclick="javascript:_set_thumbnail(event,'small','{{table}}')")" >
             <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
           </a>
         </li>
 
         <li class="thumbnail_medium previous {% if thumbnail=='medium' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}"> -->
-            <a onclick="javascript:_set_thumbnail(event,'medium')">
+            <a onclick="javascript:_set_thumbnail(event,'medium','{{table}}')")">
             <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
           </a>
         </li>
         
         <li class="thumbnail_large previous {% if thumbnail=='large' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" > -->
-            <a onclick="javascript:_set_thumbnail(event,'large')">
+            <a onclick="javascript:_set_thumbnail(event,'large','{{table}}')")">
             <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
           </a>
         </li>
@@ -134,76 +135,81 @@
 {% block scripts %}
 {{super()}}
 <script src= "{{url_for('static',filename='js/ppt_js.js')}}"></script>
+
 <script>  
-  function slide_add_flag(event, action) {
-      let slide_id = $(event.target).attr('name');
-      let color = $(event.target).text();
-      if (color) {
-        // change and display flag
-        let color_id = { N: "none", G: 'green', B: 'blue', R: 'red' }[color];
-        let target_box = $(`span[name='${slide_id}']`).closest('.box');
-        target_box.removeClass('red green blue').addClass(color_id);
-        $.ajax({
-          url: "{{url_for('ppt.add_flag')}}",
-          type: "POST",
-          data: JSON.stringify({ flag: color_id, slide_id: slide_id }),
-          contentType: "application/json",
-          success: function (result) {
-            display_flash_message(result.html, 1000);
+// set page layout based on thumbain parameter
+$(document).ready(set_thumbnail("{{thumbnail}}"));
 
-          },
-          error: function (xhr, resp, text) { alert(`Save Flag error: ${text}`) },
-        })
-      } else {
+// function add_ppt_to_follow is defined on base page.
 
-        // add to compare cart
-        $.ajax({
-          url: "{{ url_for('ppt.add_to_slide_cart')}}",
-          type: "POST",
-          data: JSON.stringify({ slide_id: slide_id, action: action }),
-          contentType: 'application/json',
-          success: function (result) {
-            // update cart rendering.
-            let slide_count = result['slide_count'];
-            $('#slide_cart_count').html(slide_count);
-            $('#slide_cart_count_container').css('display', slide_count ? 'block' : 'none');
-            if (action == 'delete') {
-              $(`.slide_container[name=${slide_id}]`).fadeOut(500).done().remove();
-            } else {
-              display_flash_message(result.html, 1000);
-            }
-          },
-          error: function (xhr, resp, text) {
-            console.log(xhr, resp, text);
-          }
-        });
-      }
-    }
-
-    function add_ppt_to_follow(event) {
-      let ppt_id = $(event.target).attr('name');
-      let action = $(event.target).text();
+// add flag RGB to slide; also for adding or deleting slide from collectoins (follow ppt, slide cart, bookmark)
+function slide_add_flag(event,mode) {
+    let slide_id = $(event.target).attr('name');
+    let color = $(event.target).text();
+    if ('NRGB'.split("").includes(color)) {
+      // change and display flag
+      let color_id = { N: "none", G: 'green', B: 'blue', R: 'red' }[color];
+      let target_box = $(`span[name='${slide_id}']`).closest('.box');
+      target_box.removeClass('red green blue').addClass(color_id);
       $.ajax({
-        url: "{{url_for('ppt.add_ppt_to_follow')}}",
+        url: "{{url_for('ppt.add_flag')}}",
         type: "POST",
-        data: JSON.stringify({ ppt_id: ppt_id, action: action }),
+        data: JSON.stringify({ flag: color_id, slide_id: slide_id }),
         contentType: "application/json",
         success: function (result) {
           display_flash_message(result.html, 1000);
-          if (!result.status) {
-            $(event.target).text('Follow');
-            $(event.target).removeClass('label-warning').addClass('label-info')
-          } else {
-            $(event.target).text('Unfollow');
-            $(event.target).removeClass('label-info').addClass('label-warning')
+        },
+        error: function (xhr, resp, text) { alert(`Error ppt.add_flag: ${text}`) },
+      })
+    } else {
+      let action = $(event.target).parent().find('.glyphicon-minus').length ? 'delete':'add';
+      // add to compare cart
+      //console.log({ slide_id: slide_id, action: action, mode: mode });
+      $.ajax({
+        url: "{{ url_for('ppt.add_to_slide_cart')}}",
+        type: "POST",
+        data: JSON.stringify({ slide_id: slide_id, action: action , mode: mode }),
+        contentType: 'application/json',
+        success: function (result) {
+          if (result.notice) {
+              display_flash_message(result.html, 1000);
+          };
+          if (action == 'delete') {
+            $(`.slide_container[name=${slide_id}]`).fadeOut(500, () => { $(this).remove() });
+          };
+          let count = result.count;
+          if (mode=='slide_cart') { 
+          $('#slide_cart_count').html(count);
+          $('#slide_cart_count_container').css('display', count ? 'block' : 'none');
+            } else if (mode=='follow_ppt') {
+          $('#follow_ppt_count').html(count);
+          $('#follow_ppt_count_container').css('display', count ? 'block' : 'none');
           }
         },
-        error: function (xhr, resp, text) { alert(`Save Flag error: ${text}`) },
-      })
+        error: function (xhr, resp, text) {
+          alert(`function ppt.add_to_slide_cart Error: ${text}`)
+        }
+      });
     }
+  }
 
 
-  function save_edit(envent, table, field, id) {
+// ajax to add all slide in slide cart to bookmark
+function add_to_bookmark(event) {
+  if( confirm('Sure to Bookmark all selected slides?')) {
+    $.ajax({
+      url: "{{url_for('ppt.add_to_bookmark')}}",
+      type:"POST",
+      success: function(result){
+        display_flash_message(result.html,1000)
+      }
+    })
+  }
+};
+
+
+// save edits to note and tag
+function save_edit(envent, table, field, id) {
     let container = $(event.target).closest('.input_container');
     let value = $(event.target).parent().parent().find('input').val();
     //confirm(`Change ${field} to ${value}?`)
@@ -214,7 +220,7 @@
         data: JSON.stringify({ id: id, data: value, field: field, table: table }),
         contentType: "application/json",
         success: function (result) {
-          display_flash_message(result.html);
+          display_flash_message(result.html,1000);
           $(container).find('span.slide_tag').html(result.tag);
           $(container).find(`span.${table}_note`).html(result.note);
         },
@@ -222,6 +228,7 @@
       });
     }
   }
+
 </script>
 <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
 {% endblock %}

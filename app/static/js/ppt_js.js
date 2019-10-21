@@ -1,5 +1,5 @@
 
-
+// show hidden text, then chaning DOM window scroll. not using anymore. 
 function show_hidden_title_body(event) {
     let status = $(event.target).text();
     let scroll = $(window).scrollTop();
@@ -29,7 +29,7 @@ function show_hidden_title_body(event) {
 $(document).ready(function () {
     $(document).keydown(function (e) {
 
-        let gap = { small: 6, medium: 4, large: 2 }[_thumbnail_size];
+        let gap = { small: 6, medium: 4, large: 2,list:1 }[_thumbnail_size];
         let current_modal_id, current_div_index;
         if ($(`img.active[data-toggle='modal']`).length) {
             current_modal_id = $(`img.active[data-toggle='modal']`).attr('name');
@@ -93,7 +93,7 @@ $(document).ready(function () {
 });
 
 
-// give a tracing for modal seleciton
+// give a tracing for modal seleciton; once a modal is show, show boarder to other data toggle image.
 $(document).ready(function () {
     $('.modal.bs-example-modal-lg').on('shown.bs.modal', function (event) {
         let currentmoal = parseInt($(event.target).attr('name'));
@@ -102,6 +102,7 @@ $(document).ready(function () {
     })
 })
 
+// open tag and note eidtor for slides
 $(".slide_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
     if (!$(this).find('input').length) {
@@ -126,6 +127,7 @@ $(".slide_edit_trigger").on('click', function (event) {
 });
 
 
+// open tag and note eidtor for ppt 
 $(".ppt_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
     if (!$(this).find('input').length) {
@@ -140,55 +142,7 @@ $(".ppt_edit_trigger").on('click', function (event) {
     }
 });
 
-var _thumbnail_size
-
-function _set_thumbnail(event, size) {
-    set_thumbnail(size)
-    $(event.target).blur();
-};
-function set_thumbnail(size) {
-    _thumbnail_size = size
-    $('.thumbnail_small').removeClass('active');
-    $('.thumbnail_medium').removeClass('active');
-    $('.thumbnail_large').removeClass('active');
-    switch (size) {
-        case "small":
-            //  $('.slide_image_container').addClass('slidezoom');
-            $('.slide_input').addClass('thumbnail-hidden').css('display', 'none');
-            $('.slide_container').removeClass("col-xs-3 col-xs-6").addClass(' col-xs-2 ');
-            $('.box').removeClass('medium large').addClass('small');
-            $('.thumbnail_small').addClass('active');
-            $('slide_title').removeClass().addClass('slide_title small');
-            $('.zoom-hidden-text').css('display', "");
-
-            break;
-        case 'medium':
-            // $('.slide_image_container').addClass('slidezoom');
-            $('.slide_input').removeClass('thumbnail-hidden').css('display', 'block');
-            $('.slide_container').removeClass('col-xs-6 col-xs-2').addClass('col-xs-3 ');
-            $('.box').removeClass('small large').addClass('medium');
-            $('slide_title').removeClass('small large').addClass('medium');
-            $('.thumbnail_medium').addClass('active');
-            $('.zoom-hidden-text').css('display', 'block');
-
-            break;
-        case 'large':
-            //  $('.slide_image_container').removeClass('slidezoom');
-            $('.slide_input').removeClass('thumbnail-hidden').css('display', 'block');
-            $('.box').removeClass("small medium").addClass('large');
-            $('slide_title').removeClass("small medium").addClass('large');
-            $('.slide_container').removeClass("col-xs-3 col-xs-2").addClass('col-xs-6');
-            $('.thumbnail_large').addClass('active');
-            $('.zoom-hidden-text').css('display', 'block');
-            break;
-    };
-    /*for (let i = 0; i < divs.length; i += grid_col) {
-     divs.slice(i, i + grid_col).wrapAll("<div class='row slide_row'> </div>  ")
-   }*/
-};
-
-$(document).ready(set_thumbnail("small"))
-
+// open tag and note eidtor for project
 $(".project_edit_trigger").on('click', function (event) {
     let id = $(this).attr('id');
     if (!$(this).find('input').length) {
@@ -203,6 +157,81 @@ $(".project_edit_trigger").on('click', function (event) {
     }
 });
 
+
+var _thumbnail_size
+
+function _set_thumbnail(event, size,table) {
+    if (size=='list' && ['project','ppt',].includes(table)) {
+        $(event.target).blur();
+    } else {
+        set_thumbnail(size)
+        $(event.target).blur();
+    }
+};
+
+// change page layout for slide ppt and project layout.
+function set_thumbnail(size) {
+    _thumbnail_size = size
+    $('[class^="thumbnail_"]').removeClass('active');
+   /* $('.thumbnail_medium').removeClass('active');
+    $('.thumbnail_large').removeClass('active');
+    $('.thumbnail_large').removeClass('active');*/
+    $('.slide_image_container').removeClass('col-xs-3');
+    switch (size) {
+        case "small":
+            //  $('.slide_image_container').addClass('slidezoom');       
+            $('.slide_input.outer').css('display', 'none');
+            $('.thumbnail_title_text').css('display', 'block');
+            $('.slide_container').removeClass("col-xs-3 col-xs-6 col-xs-12").addClass(' col-xs-2 ');
+            $('.box').removeClass('medium large').addClass('small');
+            $('.thumbnail_small').addClass('active');
+            $('.slide_title.outer').removeClass('medium large').addClass('small');
+            $('.zoom-hidden-text').css('display', "");
+            $('.thumbnail_list_text').css('display', 'none');
+
+            break;
+        case 'medium':
+            // $('.slide_image_container').addClass('slidezoom');
+           
+            $('.slide_input.outer').css('display', 'block');
+            $('.slide_container').removeClass('col-xs-6 col-xs-2 col-xs-12').addClass('col-xs-3 ');
+            $('.box').removeClass('small large').addClass('medium');
+            $('.slide_title.outer').removeClass('small large').addClass('medium');
+            $('.thumbnail_medium').addClass('active');
+            $('.zoom-hidden-text').css('display', 'block');
+            $('.thumbnail_list_text').css('display', 'none');
+
+            break;
+        case 'large':
+            //  $('.slide_image_container').removeClass('slidezoom');
+           
+            $('.thumbnail_title_text').css('display', 'block');
+            $('.slide_input.outer').css('display', 'block');
+            $('.box').removeClass("small medium").addClass('large');
+            $('.slide_title.outer').removeClass("small medium").addClass('large');
+            $('.slide_container').removeClass("col-xs-3 col-xs-2 col-xs-12").addClass('col-xs-6');
+            $('.thumbnail_large').addClass('active');
+            $('.zoom-hidden-text').css('display', 'block');
+            $('.thumbnail_list_text').css('display', 'none');
+            break;
+        case 'list':
+            $('.slide_image_container').addClass('col-xs-3');
+            $('.slide_input.outer').css('display', 'none');
+            $('.slide_container').removeClass("col-xs-3 col-xs-2 col-xs-6").addClass('col-xs-12');
+            $('.box').removeClass("small medium large");
+            $('.thumbnail_title_text').css('display','none');
+            $('.thumbnail_list_text').css('display', 'block');
+            $('.thumbnail_list').addClass('active');
+            $('.zoom-hidden-text').css('display', 'none');
+            break;
+        
+    };
+    /*for (let i = 0; i < divs.length; i += grid_col) {
+     divs.slice(i, i + grid_col).wrapAll("<div class='row slide_row'> </div>  ")
+   }*/
+};
+
+// add sortable to slides. 
 $(function () {
     $("#sortable").sortable({ handle: '.slide_title' });
     $("#sortable").disableSelection();

@@ -1,6 +1,6 @@
 from rq import get_current_job
 from app import db
-from app.models import NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound,Analysis
+from app.models import models_table_name_dictionary,NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound,Analysis
 from app import create_app
 import os
 from flask import current_app
@@ -10,8 +10,9 @@ from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_e
 from collections import Counter
 import re
 from app.utils.analysis import DataReader
-
-
+from app.utils.analysis._alignment import lev_distance
+from functools import partial
+from app.utils.analysis._utils import poolwrapper
 
 app = create_app(keeplog=False)
 app.app_context().push()
@@ -24,6 +25,7 @@ def _set_task_progress(progress):
         if progress >= 100:
             task.complete = True
         db.session.commit()
+       
 
 class NGS_Sample_Process:
     """
@@ -339,6 +341,46 @@ def build_cluster(id):
     db.session.commit()
     _set_task_progress(100)
 
+def dynamic_lev_distance(seq,fix_seq="",diff_ratio=0.4):
+    query_length = len(fix_seq)
+    cutoff = abs(len(seq)-query_length)+query_length*diff_ratio
+    dis = lev_distance(seq, fix_seq, cutoff)
+    if dis<cutoff:
+        return dis 
+    return None
+    
+
+def lev_distance_search(query,table):
+    
+    #table can be sequence, primer, known_sequence
+    query=query.strip()
+    query_length = len(query)
+    target = models_table_name_dictionary.get(table)
+    seq_atr_name = dict(primer='sequence', known_sequence='rep_seq',
+                   sequence='aptamer_seq').get(table)
+    result = []
+    total = target.query.count()
+    have_more=True 
+    page = 0
+    pagelimit = 10000
+    task = partial(dynamic_lev_distance,fix_seq=query,diff_ratio=0.3)
+    while have_more:
+        page+=1
+        searchcontent = db.session.query(
+            getattr(target, 'id'), getattr(target, seq_atr_name)).paginate(page,pagelimit,False)
+        if not searchcontent.has_next:
+            have_more = False
+        searchcontent = searchcontent.items
+        tempresult = poolwrapper(task,[i[1] for i in searchcontent],callback=_set_task_progress,
+                                 progress_gap=((page-1)*pagelimit / total * 99, min(99, page*pagelimit / total * 99)))
+       
+        for _dis, (_id, _s) in zip(tempresult, searchcontent):
+            if _dis != None:
+                result.append((_id, _dis))
+    result.sort(key=lambda x:x[1])
+    result = result[0:50]
+    _set_task_progress(100)
+    return result 
 
 if __name__ == '__main__':
     """test data processing module"""

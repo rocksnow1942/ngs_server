@@ -284,20 +284,6 @@ def ngs_data_processing():
         flash(f'Cannot Process Data of Sample ID: <{id}>.','danger')
     return redirect(request.referrer)
 
-@bp.route('/get_bar_progress', methods=['POST'])
-@login_required
-def get_bar_progress():
-    ids = request.json['barlist']
-    progresses = dict.fromkeys(ids)
-    for id in ids:
-        table,index = id.split(':')
-        if table != 'task': indx=int(index)
-        t = models_table_name_dictionary.get(table, None)
-        if t:
-            progress = t.query.get(index).progress
-            progresses[id] = progress
-    return jsonify(progresses)
-
 
 
 @bp.route('/details', methods=['GET'])
@@ -513,3 +499,43 @@ def edit_analysis():
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
     return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=True)
+
+
+@bp.route('/get_bar_progress', methods=['POST'])
+@login_required
+def get_bar_progress():
+    ids = request.json['barlist']
+    progresses = dict.fromkeys(ids)
+    for id in ids:
+        table, index = id.split(':')
+        if table != 'task':
+            indx = int(index)
+        t = models_table_name_dictionary.get(table, None)
+        if t:
+            progress = t.query.get(index).progress
+            progresses[id] = progress
+    return jsonify(progresses)
+
+
+@bp.route('/lev_search/<table>', methods=['GET'])
+@login_required
+def lev_search(table):
+    task_id = request.args.get('task_id')
+    page = request.args.get('page', 1, type=int)
+    try:
+        result = current_app.fetch_job_result(task_id)
+    except:
+        abort(404)
+    target = {'sequence':SeqRound,'primer':Primers,'known_sequence':KnownSequence}.get(table)
+    entries = []
+    table = "sequence_round" if table =='sequence' else table
+    for _id, _s in result:
+        if table == 'sequence_round':
+            entry = target.query.filter_by(sequence_id=_id).order_by(target.count.desc()).first()
+        else:
+            entry = target.query.get(_id)
+        entry.lev_score = _s
+        entries.append(entry)
+    return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
+                           table=table )
+

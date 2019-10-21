@@ -37,52 +37,39 @@
 
 
 <script type="text/javascript">
-    // update search menu. id=search_field value = 
-    $(document).ready(function () {
-        let table = "{{table}}";
-        let option = [];
-        $("#search_field option").each(function () { option.push($(this).val()) });
-        if (option.includes(table)) {
-            $("#search_field").val(table);
-        };
+ 
+
+$(document).ready(function () {
+        $("#search_project").change(function (event) {
+            let projectid = event.target.value;
+            change_search_ppt(projectid);
+        })
     });
-    //make ajax request to update search ppt options based on project selections
 
-    $(document).ready(function () {
-            
-            //change_search_ppt(projectid);
-            $("#search_project").change(function (event) {
-                let projectid = event.target.value;
-                change_search_ppt(projectid);
-            })
-        });
-
-     function change_search_ppt(projectid) {
-        $.ajax({
-            url:"{{url_for('ppt.get_ppt_by_project')}}",
-            type:'POST',
-            data : JSON.stringify({ project: projectid }), 
-            contentType:"application/json", 
-            success: function (result) {
-                console.log(result);
-                let options = '<option selected value="all">All</option>';
-                for (let opt of result.options) {
-                    options += `<option value="${opt[0]}">${opt[1]}</option>`
-                };
-                $('#search_ppt').html(options);
+    function change_search_ppt(projectid) {
+    $.ajax({
+        url:"{{url_for('ppt.get_ppt_by_project')}}",
+        type:'POST',
+        data : JSON.stringify({ project: projectid }), 
+        contentType:"application/json", 
+        success: function (result) {
+            let options = '<option selected value="all">All</option>';
+            for (let opt of result.options) {
+                options += `<option value="${opt[0]}">${opt[1]}</option>`
+            };
+            $('#search_ppt').html(options);
+        }
+    })
+};
+$(document).ready(function () {
+        //change_search_ppt(projectid);
+        $("#search_field").change(function (event) {
+            let field = event.target.value;
+            if (field=='tag') {
+                $('#query_input').attr('list',"tags_list")
+            } else {
+                $('#query_input').removeAttr('list');
             }
         })
-    };
-    $(document).ready(function () {
-            //change_search_ppt(projectid);
-            $("#search_field").change(function (event) {
-                let field = event.target.value;
-                console.log(field)
-                if (field=='tag') {
-                    $('#query_input').attr('list',"tags_list")
-                } else {
-                    $('#query_input').removeAttr('list');
-                }
-            })
-        });
+    });
 </script>

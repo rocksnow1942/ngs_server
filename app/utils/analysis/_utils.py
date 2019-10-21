@@ -17,6 +17,9 @@ import platform
 
 ascii=True if platform.platform().startswith('Win') else None
 
+
+        
+
 def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=None,callback=None,progress_gap=(0,100),**kwargs):
     workerheads=psutil.cpu_count(logical=False)
     worker=multiprocessing.Pool(workerheads,initializer,initargs)
@@ -24,15 +27,20 @@ def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=N
     chunksize= int(total//chunks)+1 if chunks else 1
     result = []
     count=0
+    progress = progress_gap[0]
     for _ in worker.imap(task, workload, chunksize):
-        result.append(_)
-        if callback:
-            callback(
-                count/total*(progress_gap[1]-progress_gap[0])+progress_gap[0])
+        count+=1
+        result.append(_) 
+        if callback :
+            current_pro = count/total*(progress_gap[1]-progress_gap[0])+progress_gap[0]
+            if current_pro > progress + 1:
+                progress = current_pro
+                callback(current_pro)     
     worker.close()
     worker.join()
     worker.terminate()
     return result
+
 
 
 def lev_cluster_from_seed(seed, list_of_seq, distance, connect):
@@ -77,6 +85,9 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     clusterlimit will limit cluster number to a threshold, after that, cluster number cannot grow, each new
     sequence is inserted to the existing cluster.
     """
+   
+
+
     print('Start clustering with levenshtein distance...')
     print('Current time: {}'.format(datetime.datetime.now()))
     seq = dict(zip(list_of_seq,apt_count))
@@ -84,13 +95,15 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     result_key = [list_of_seq[0]]
     result = {list_of_seq[0]: []}
     lenth = len(list_of_seq)
-    # percentcounter=0.02
+    percentcounter=0
     current=0
     starttime=time.time()
     for k,i in enumerate(list_of_seq):
         if callback: 
             current = k/lenth*80
-            callback(current)
+            if percentcounter  < current -1:
+                percentcounter = current
+                callback(current)
         if len(result_key)>clusterlimit:
             print('Cluster limit of {} reached. Start seed clustering...'.format(clusterlimit))
             break

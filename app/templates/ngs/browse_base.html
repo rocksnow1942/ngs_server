@@ -58,20 +58,8 @@
 
 {% block scripts %}
 {{super()}}
-
+<script src="{{url_for('static',filename='js/ngs.js')}}"></script>
 <script>
-    // jquery legal id names
-    function jq_id(myid) {
-        return "#" + myid.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
-    }
-   // update progressbar
-    function set_bar_progress(barid, progress) {
-        const p = progress + '%';
-        const txt = ((progress==100) ? 'Done.' : p); 
-        console.log(barid,txt);
-        $(jq_id(barid)).css('width', p).attr('aria-valuenow', progress).text(txt);
-      };
-
     function update_progress_bar() {
       let interval=setInterval(function () {
         var barlist = [];
@@ -99,6 +87,8 @@
         });
       }, 500);
     };
+
+    
 // making progressbar when page first load.
   $(document).ready(function () {
       if ($(".progress-bar").length) {
@@ -106,28 +96,6 @@
       };
     });
 
-  
-  
-
-{% if table=='selection' or table=='round' %}
-// ajax to add seleciton or round and update cart information.
-function add_to_analysis(table,id) {
-  $.ajax({
-    url: "{{ url_for('ngs.add_to_analysis')}}",
-    type: "POST",
-    data: JSON.stringify({ data: [table,id] }),
-    contentType: 'application/json',
-    success: function (result) {
-      // update cart rendering.
-      set_analysis_count_badge(result);
-    },
-    error: function (xhr, resp, text) {
-      console.log(xhr, resp, text);
-    }
-  });
-}
-
-{% endif %}
 // set badge count
 function set_analysis_count_badge(result) {
   $('#analysis_cart_count').html(result['analysis_count']);
@@ -135,5 +103,26 @@ function set_analysis_count_badge(result) {
 }
 
 </script>
+
+{% if table=='selection' or table=='round' %}
+<script>
+// ajax to add seleciton or round and update cart information.
+function add_to_analysis(table,id) {
+$.ajax({
+url: "{{ url_for('ngs.add_to_analysis')}}",
+type: "POST",
+data: JSON.stringify({ data: [table,id] }),
+contentType: 'application/json',
+success: function (result) {
+// update cart rendering.
+set_analysis_count_badge(result);
+},
+error: function (xhr, resp, text) {
+console.log(xhr, resp, text);
+}
+});
+}
+</script>
+{% endif %}
 
 {% endblock %}

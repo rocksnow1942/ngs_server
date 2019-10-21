@@ -2,27 +2,38 @@
 
 
 {% block ppt_breadcrumb %}
-{% if mode=='selected' %}
+{% if mode=='slide_cart' %}
         <div class='row'>
-            <div class='col-xs-4'><a href="{{backurl}}" class='btn btn-info' style="margin-left:28%">Go Back</a></div>
+            <div class='col-xs-4'><a href="{{backurl}}" class='btn btn-info' >Go Back</a></div>
             <div class='col-xs-4'>
                 <h2 align='center' class='narrow'>Selected Slides</h2>
             </div>
-            <div class='col-xs-4'><a href="{{url_for('ppt.remove_all_slide_cart')}}" class='btn btn-danger'
-                    style="margin-left:48%" onclick="return confirm('Sure to remove all selected slides?')">Clear All</a></div>
+            <div class='col-xs-2' align='right'><a  class='btn btn-primary' 
+                    onclick="javascript:add_to_bookmark()">Bookmark</a></div>
+                    <!-- style="margin-left:48%" -->
+            <div class='col-xs-2' align='right'><a href="{{url_for('ppt.remove_all_slide_cart',mode=mode)}}" class='btn btn-danger'
+                    onclick="return confirm('Sure to remove all selected slides?')">Clear All</a></div>
+                    <!-- style="margin-left:4%" -->
         </div>
         
-{% elif mode=='update' %}
+{% elif mode=='follow_ppt' %}
         <div class='row'>
-            <div class='col-xs-4'><a href="{{backurl}}" class='btn btn-info' style="margin-left:28%">Go Back</a></div>
-            <div class='col-xs-4'>
+            <div class='col-xs-4'><a href="{{backurl}}" class='btn btn-info' >Go Back</a></div>
+            <div class='col-xs-4' >
                 <h2 align='center' class='narrow'>Project Slide Updates</h2>
             </div>
-            <div class='col-xs-4'><a href="{{url_for('ppt.read_allslides',ppt_id=ppt_id)}}" class='btn btn-danger'
-                    style="margin-left:48%" onclick="return confirm('Sure to mark all slides as read?')">Read All</a></div>
+            <div class='col-xs-4' align='right'><a href="{{url_for('ppt.read_allslides',ppt_id=ppt_id)}}" class='btn btn-danger'
+                   onclick="return confirm('Sure to mark all slides as read?')">Read All</a></div>
         </div>
-{% else %}
-        blockofcode
+{% elif mode == 'bookmarked_ppt' %}
+        <div class='row'>
+            <div class='col-xs-4'><a href="{{backurl}}" class='btn btn-info' >Go Back</a></div>
+            <div class='col-xs-4'>
+                <h2 align='center' class='narrow'>Your Slide Bookmarks</h2>
+            </div>
+            <div class='col-xs-4' align='right'><a href="{{url_for('ppt.remove_all_slide_cart',mode=mode)}}" class='btn btn-danger'
+                    onclick="return confirm('Sure to delete all bookmarks?')">Delete All</a></div>
+        </div>
 {% endif %}
 <hr style="margin-bottom: 12px; margin-top:6px;">
 {% endblock %}
@@ -34,6 +45,7 @@
     {% for entry in entries  %}
     <div class="slide_container col-xs-2" name="{{entry.id}}">
         <div class="box {{entry.flag}}">
+            <div class="thumbnail_title_text">
             <div class="slide_title">{{entry.ppt.name}}</div>
             <div class="slide_flag">
                 <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
@@ -44,23 +56,44 @@
                     class="label label-success cursor_pointer">G</span>
                 <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
                     class="label label-danger cursor_pointer">R</span>
-                <span onclick="javascript:slide_add_flag(event,'delete')" name="{{entry.id}}"
+                <span onclick="javascript:slide_add_flag(event,'{{mode}}')" name="{{entry.id}}"
                     class="label label-warning cursor_pointer"><span name="{{entry.id}}"
                         class="glyphicon glyphicon-minus" aria-hidden="true"></span></span>
+            </div>
             </div>
             <div class="slide_image_container">
                 <img data-toggle="modal" name="{{loop.index}}" data-target="#modal-slide{{entry.id}}"
                     src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                     alt="No Snapshot - {{entry.title}}">
             </div>
-            <div class='slide_input input_container slide_edit_trigger thumbnail-hidden' style="display: none;"
+            <div class='slide_input outer input_container slide_edit_trigger' style="display: none;"
                 id="{{entry.id}}">
                 <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
                 <p>Note: <span class="slide_note">{{entry.note}}</span></p>
             </div>
-            <div class="thumbnail-hidden" style="display: none;">
-                <p><b>Title:</b> {{entry.title}}</p>
-                <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
+            <div class="col-xs-9 thumbnail_list_text" style="display: none;">
+                <div class="slide_flag slide_title ">
+                    {{entry.ppt.name}}
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-default cursor_pointer">N</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-primary cursor_pointer">B</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-success cursor_pointer">G</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-danger cursor_pointer">R</span>
+                    <span onclick="javascript:slide_add_flag(event,'{{mode}}')" name="{{entry.id}}"
+                        class="label label-warning cursor_pointer"><span name="{{entry.id}}" class="glyphicon glyphicon-minus"
+                            aria-hidden="true"></span></span>
+                </div>
+                <div class='slide_input inner input_container slide_edit_trigger' id="{{entry.id}}">
+                    <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                    <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+                </div>
+                <div>
+                    <p><b>Title:</b> {{entry.title}}</p>
+                    <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
+                </div>
             </div>
             <p align='right' style="padding: 1px;">{{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
         </div>
@@ -88,7 +121,7 @@
                                 class="label label-success cursor_pointer">G</span>
                             <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
                                 class="label label-danger cursor_pointer">R</span>
-                            <span onclick="javascript:slide_add_flag(event,'delete')" name="{{entry.id}}"
+                            <span onclick="javascript:slide_add_flag(event,'{{mode}}')" name="{{entry.id}}"
                                 class="label label-warning cursor_pointer"><span name="{{entry.id}}"
                                     class="glyphicon glyphicon-minus"></span></span></h5>
                         <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}"

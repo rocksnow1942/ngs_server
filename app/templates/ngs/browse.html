@@ -36,22 +36,3 @@
 
 {% endblock %}
 
-
-<!-- 
-<nav aria-label="...">
-  <ul class="pager">
-    <li class="previous {% if not prev_url %} disabled{% endif %}">
-      <a class="page-link" href="{{ prev_url or '#' }}">&larr; Previous</a>
-    </li>
-    <li class="previous">
-      <span>|</span>
-    </li>
-    <li class="previous {% if not next_url %} disabled{% endif %}">
-      <a class="page-link" href="{{ next_url or '#' }}">Next &rarr;</a>
-    </li>
-    {% if table != 'sequence' %}
-    <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
-          aria-hidden="true"></span> {{table.upper()}}</a></li>
-    {% endif %}
-  </ul>
-</nav> -->
