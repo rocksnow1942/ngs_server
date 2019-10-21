@@ -1,4 +1,6 @@
 // Get JSON data
+var general_tree_data = {};
+
 function draw_d3_tree (treeData) {
 
     // Calculate total nodes, max label length
@@ -411,13 +413,12 @@ function draw_d3_tree (treeData) {
                 return d.children || d._children ? -10 : 10;
             })
             .attr("dy", ".35em")
-            .attr('title',function(d){return d.note;})
             .attr('class', 'nodeText')
             .attr("text-anchor", function (d) {
                 return d.children || d._children ? "end" : "start";
             })
-            .html(function (d) {
-                return `<a href="${d.url}">${d.name}</a>`;
+            .text(function (d) {
+                return d.name;
             })
             .style("fill-opacity", 0);
 
@@ -541,8 +542,8 @@ function draw_d3_tree (treeData) {
                 delay: 100
             }
         });
-
-
+        sync_tree(root,general_tree_data);
+       
     }
 
     // Append a group which holds all nodes and which the zoom Listener can act upon.
@@ -561,4 +562,31 @@ function draw_d3_tree (treeData) {
     // Layout the tree initially and center on the root node.
     update(root);
     leftNode(root);
+}
+
+
+function remove_parent(oldtree) {
+    for (let key in tree) {
+        if (key!='name' && key !='children') { delete tree[key] }
+        else if (key=='children') {
+            for (let child in tree['children']) {
+                remove_parent(tree['children'][child]);
+            }
+        }
+    }
+}
+
+
+
+function sync_tree(oldtree,newtree) {
+    for (let key in oldtree) {
+        if (key =='name' ) { newtree['name']=oldtree['name'] }
+        else if (key == 'children') {
+            newtree['children'] = []
+            for (let child in oldtree['children']) {
+                newtree['children'].push({})
+                sync_tree(oldtree['children'][child], newtree['children'][newtree['children'].length-1]);
+            }
+        }
+    }
 }

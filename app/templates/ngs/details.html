@@ -109,7 +109,14 @@
     </div>
 </div>
 <div id="tree-outer-container" style='display:none'>
-    <h4 align='center'>{{entry.__repr__()}} - Tree</h4>
+    <div class='row'>
+    <div class='col-xs-8 col-xs-offset-2'>
+        <h4 align='center'>{{entry.__repr__()}} - Tree</h4>
+    </div>
+    <div class='col-xs-2' align='right'><a href="javascript:save_tree()" class='btn btn-info'
+            onclick="return confirm('Sure to save the selection tree?')">Save Tree</a></div>
+    </div>
+    
 <div  id="tree-container" ></div>
 </div>
 
@@ -432,6 +439,21 @@
             })
         }        
     };
+
+    function save_tree () {
+        if (general_tree_data) {
+            $.ajax({
+                url: "{{url_for('ngs.save_tree')}}",
+                type : "POST",
+                data: JSON.stringify({tree: general_tree_data}),
+                contentType: 'application/json',
+                success: function (result) {
+                    alert(result.msg[0].toUpperCase()+'!\n'+result.msg[1])
+                    //display_flash_message(result.html, 1000);
+                },
+            })
+        }
+    }
 </script>
 {% endblock %}
 

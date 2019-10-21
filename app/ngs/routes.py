@@ -549,3 +549,29 @@ def get_selection_tree_json():
     return jsonify(dict(tree=sele.json_tree(),))
 
 
+
+
+
+@bp.route('/save_tree', methods=['POST'])
+@login_required
+def save_tree():
+    try:
+        tree = request.json['tree']
+        sele = Selection.query.filter_by(id=tree['name'][3:]).first()
+        tree = {'name': 'root', 'children':tree['children']}
+        def dfs(tree):  
+            yield tree     
+            for v in tree.get('children',[]):
+                for u in dfs(v):
+                    yield u
+        for i in dfs(tree):
+            if i['name']!='root':
+                parent = Rounds.query.filter_by(round_name=i['name'],selection_id=sele.id).first()
+                children = Rounds.query.filter(Rounds.round_name.in_([j['name'] for j in  i.get('children', [])])).all()
+                for child in children:
+                    child.parent_id=parent.id
+        db.session.commit()       
+        messages = [('success','Selection tree saved.')]
+    except Exception as e:
+        messages = [('warning',f'Error occured during saving tree: <{e}>')]
+    return jsonify(msg=messages[0])
