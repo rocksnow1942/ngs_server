@@ -677,11 +677,12 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         for r in self.rounds:
             if r.parent and r.parent not in sr:
                 sr.append(r.parent)
-        result = {'name':self.name,'children' : []}
+        result = {'name':self.name,'note':self.note,'url':'javascript:void(0)','children' : []}
         todel = []
         for r in sr:
             if (not r.parent) or (not (r in self.rounds)):
-                result['children'].append({'name': r.round_name,'children':[]})
+                result['children'].append({'name': r.round_name,'note':r.note,
+            'url': url_for('ngs.details', table='round', id=r.id), 'children': []})
                 todel.append(r)
         for i in todel: sr.remove(i)
        
@@ -692,7 +693,8 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
                 p = self.search_tree(i.parent.round_name, result)
                
                 if p:
-                    p['children'].append({'name': i.round_name,'children':[]})
+                    p['children'].append({'name': i.round_name, 'note': i.note,
+                    'url': url_for('ngs.details', table='round', id=i.id),'children':[]})
                     toremove.append(i)
             for i in toremove:
                 

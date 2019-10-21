@@ -428,30 +428,6 @@
                     $('#tree-outer-container').css('display', 'block');
                     draw_d3_tree(result.tree);
                     $('#tree-container').addClass('row').attr('align', 'center');
-                    let note = result.note;
-                    for (let i=0; i<note.length; i++) {
-                        
-                         
-                    $('.nodeText').filter(function (index) { return $(this).text() === note[i][0] }).attr('title',note[i][1]).html(`<a href="${note[i][2]}">${note[i][0]}</a>`)
-
-                    } 
-                   
-                    $('.nodeText').tooltip({
-                                            show: {
-                                                effect: "slideDown",
-                                                duration: 200,
-                                                delay: 100
-                                            },      
-                                             position: {
-                                                my: "left+50 top+15", at: "left bottom"
-                                                            },                                  
-                                            hide: {
-                                                effect: "slideUp",
-                                                duration: 100,
-                                                delay: 100
-                                            }
-                                        });
-
                 }
             })
         }        

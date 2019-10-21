@@ -544,9 +544,8 @@ def lev_search(table):
 @login_required
 def get_selection_tree_json():
     s_id = request.json.get('id')
-    print('selection: ',s_id)
     sele = Selection.query.get(s_id)
-    notes = sele.json_tree_notes()
-    return jsonify(dict(tree=sele.json_tree(),note=notes))
+    # notes = sele.json_tree_notes()
+    return jsonify(dict(tree=sele.json_tree(),))
 
 

@@ -411,12 +411,13 @@ function draw_d3_tree (treeData) {
                 return d.children || d._children ? -10 : 10;
             })
             .attr("dy", ".35em")
+            .attr('title',function(d){return d.note;})
             .attr('class', 'nodeText')
             .attr("text-anchor", function (d) {
                 return d.children || d._children ? "end" : "start";
             })
-            .text(function (d) {
-                return d.name;
+            .html(function (d) {
+                return `<a href="${d.url}">${d.name}</a>`;
             })
             .style("fill-opacity", 0);
 
@@ -442,8 +443,9 @@ function draw_d3_tree (treeData) {
             .attr("text-anchor", function (d) {
                 return d.children || d._children ? "end" : "start";
             })
-            .text(function (d) {
-                return d.name;
+            .attr('title', function (d) { return d.note; })
+            .html(function (d) {
+                return `<a href="${d.url}">${d.name}</a>`;
             });
 
         // Change the circle fill depending on whether it has children and is collapsed
@@ -523,6 +525,24 @@ function draw_d3_tree (treeData) {
             d.x0 = d.x;
             d.y0 = d.y;
         });
+        // add too tip back
+        $('.nodeText').tooltip({
+            show: {
+                effect: "slideDown",
+                duration: 200,
+                delay: 100
+            },
+            position: {
+                my: "left+50 top+15", at: "left bottom"
+            },
+            hide: {
+                effect: "slideUp",
+                duration: 100,
+                delay: 100
+            }
+        });
+
+
     }
 
     // Append a group which holds all nodes and which the zoom Listener can act upon.

@@ -16,7 +16,7 @@ from app.models import Slide, PPT, Project
 from flask import current_app
 #TODO
 #when trashing project, only save those slides with notes and tags.
-#after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name. 
+#after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name.
 #clean up slides in that powerpoint that doesn't have tag or notes.
 # the left over slides will be displayed in "deleted tab"
 
@@ -79,7 +79,7 @@ class PPT_Indexer():
                 self.write_log(f" Update by md5 {file}")
             else:
                 self.create_new(file)
-                
+
 
             # self.clean_up
 
@@ -172,7 +172,7 @@ class PPT_Indexer():
         for s in slides:
             slide_collection = Slide.query.filter_by(ppt_id=ppt.id,title=s['title'],body=s['body']).order_by(Slide.page).all()
             found = False
-            if slide_collection: 
+            if slide_collection:
                 for slide in slide_collection:
                     if slide not in cur_slides:
                         slide.ppt=ppt
@@ -184,7 +184,7 @@ class PPT_Indexer():
                 slide = Slide(ppt_id=ppt.id, **s)
                 db.session.add(slide)
             cur_slides.append(slide)
-        
+
         for slide in (set(oldslides)-set(cur_slides)):
             if slide.note or slide.tag:
                 slide.ppt_id=None
@@ -212,7 +212,7 @@ class PPT_Indexer():
                 db.session.commit()
                 self.write_log(
                     f" Delete PPT {file}")
-            
+
     def move(self, src, dst):
         self.write_log(f" Move {src} => {dst}")
 
@@ -233,7 +233,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
         except Exception as e:
             self.logger.write_log(f" Create error:{e}")
             print(f" Create Error {event.src_path}:{e}")
-        
+
 
 
     def on_deleted(self, event):
@@ -286,8 +286,8 @@ def index_file(path):
     logger.create(path)
 
 def reindex():
-   
-    
+
+
     log_file = current_app.config['PPT_LOG_FILE']
     logger = PPT_Indexer(log_file=log_file)
     source_folder = PurePath(current_app.config['PPT_SOURCE_FOLDER'])
@@ -308,13 +308,13 @@ def reindex():
             except Exception as e:
                  messages.append(f'Deletion Error <{path}> - <{e}>')
     return messages
-       
+
 
 
 if __name__ == "__main__":
     app = create_app(keeplog=False)
     app.app_context().push()
-    source_folder = app.config['PPT_SOURCE_FOLDER']  
+    source_folder = app.config['PPT_SOURCE_FOLDER']
     log_file = app.config['PPT_LOG_FILE']
     print(f'start watching {source_folder}')
     # index_path(
