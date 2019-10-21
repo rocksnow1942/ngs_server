@@ -8,7 +8,7 @@ from flask_login import UserMixin, current_user
 from hashlib import md5
 from time import time
 import jwt
-from flask import current_app
+from flask import current_app, url_for
 from itertools import islice
 import json
 from sqlalchemy import Column, String,ForeignKey,DateTime,func
@@ -667,8 +667,8 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         for r in self.rounds:
             if r.parent and r.parent not in sr:
                 sr.append(r.parent)
-        result = [(i.round_name,"Note: "+i.note) for i in sr]
-        result.append((self.selection_name,"Note: "+self.note))
+        result = [(i.round_name,"Note: "+i.note,url_for('ngs.details',table='round',id=i.id)) for i in sr]
+        result.append((self.selection_name, "Note: "+self.note, "#"))
         return result
 
     def json_tree(self):
