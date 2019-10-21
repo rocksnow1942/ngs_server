@@ -166,6 +166,7 @@ class PPT_Indexer():
 
     def sync_slides(self,ppt,file):
         slides = self.parse_ppt(file)
+        slides.sort(key=lambda x: (x['date'],x['page']))
         oldslides=ppt.slides
         cur_slides = []
         for s in slides:
