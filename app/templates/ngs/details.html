@@ -103,11 +103,16 @@
         <div class="row">
             <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'>Edit
                 Selection</a></div>
-            <div class="col-sm-6"><a href="" class='btn btn-info btn-block' role='button'>Draw Selection Tree</a></div>
+            <div class="col-sm-6"><a onclick="javascript:display_tree('{{entry.id}}')" class='btn btn-info btn-block' role='button'>Draw Selection Tree</a></div>
         </div>
         </div>
     </div>
 </div>
+<div id="tree-outer-container" style='display:none'>
+    <h4 align='center'>Selection <{{entry.name}}> - Tree</h4>
+<div  id="tree-container" ></div>
+</div>
+
 <h4>Round List</h4>
 {% include "ngs/table_pagination.html" %}
 <table class="table table-hover">
@@ -394,10 +399,39 @@
 </table>
 
 {% else %}
-        blockofcode
+      
     
 {% endif %}
 
 
 
 {% endblock %}
+
+
+
+{% if table=='selection' %}
+{% block scripts %}
+{{super()}}
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="{{url_for('static',filename='js/dndTree.js')}}"></script>
+<script>
+    function display_tree (id) {
+        if ($('#tree-outer-container').css('display') == 'none') {
+            $.ajax({
+                url: "{{url_for('ngs.get_selection_tree_json')}}",
+                type: "POST",
+                data: JSON.stringify({ id: id }),
+                contentType: 'application/json',
+                success: function (result) {
+                    $('#tree-outer-container').css('display', 'block');
+
+                    draw_d3_tree(result);
+                    $('#tree-container').addClass('row').attr('align', 'center');
+                }
+            })
+        }        
+    };
+</script>
+{% endblock %}
+
+{% endif %}

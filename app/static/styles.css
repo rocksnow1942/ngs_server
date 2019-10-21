@@ -158,24 +158,6 @@ cursor: pointer;
   background-color:  rgb(218, 245, 175)
 }
 
-/* 
-
-.bgimg {
-    background-image: url('{{url_for("static", filename="images/404.gif")}}');
-    height: 600px;
-    background-size: auto;
-}
- .tagfloat {
-   float: left;
-   position: absolute;
-   left: 0px;
-   top: 0px;
-   z-index: 1000;
-   background-color: #92AD40;
-   padding: 5px;
-   color: #FFFFFF;
-   font-weight: bold;
-} */
 .customcontainer {
 border: 1px solid #DDDDDD;
 width: 800px;
@@ -315,4 +297,48 @@ position: relative;
   top: 0;
   z-index: 850;
   background-color: white;
+}
+
+
+
+/* Style For Tree plot */
+
+ .node {
+        cursor: pointer;
+    }
+
+.overlay {
+    background-color: #EEE;
+}
+
+.node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+}
+
+.node text {
+    font-size: 10px;
+    font-family: sans-serif;
+}
+
+.link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+}
+
+.templink {
+    fill: none;
+    stroke: red;
+    stroke-width: 3px;
+}
+
+.ghostCircle.show {
+    display: block;
+}
+
+.ghostCircle,
+.activeDrag .ghostCircle {
+    display: none;
 }

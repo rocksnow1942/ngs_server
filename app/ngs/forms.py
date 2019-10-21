@@ -108,7 +108,7 @@ class Round_Add(CheckName):
         
         if not rd: rd = Rounds()
         rd.selection_id=selection_id
-        rd.round_name = form.round_name.data
+        rd.round_name = form.round_name.data.strip()
         rd.target = form.target.data
         rd.note = form.note.data
         rd.forward_primer=fpid
@@ -119,9 +119,19 @@ class Round_Add(CheckName):
 
     def validate_parent(self,parent):
         if parent.data.strip():
-            if not Rounds.query.filter_by(round_name=parent.data.strip()).first():
+            par = Rounds.query.filter_by(round_name=parent.data.strip()).first()
+            if not par:
                 raise ValidationError(
                     'Round <{}> is not created.'.format(parent.data))
+            if self.round_name.data.strip() == parent.data.strip():
+                raise ValidationError(
+                    'Round <{}> can\'t be its own parent.'.format(parent.data))
+            if par.parent and par.parent.round_name == self.round_name.data.strip():
+                raise ValidationError(
+                    "Round <{}>'s parent is Round <{}>.".format(parent.data,self.round_name.data))
+
+
+            
 
     def validate_selection(self,selection):
         if not Selection.query.filter_by(selection_name=selection.data).first():

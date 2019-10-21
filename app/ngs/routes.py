@@ -539,3 +539,14 @@ def lev_search(table):
     return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
                            table=table )
 
+
+@bp.route('/get_selection_tree_json', methods=['POST'])
+@login_required
+def get_selection_tree_json():
+    s_id = request.json.get('id')
+    print('selection: ',s_id)
+    sele = Selection.query.get(s_id)
+    return jsonify(sele.json_tree())
+
+    # return jsonify({'name': 'test', 'children': [{'name': 'test2', 'children': []}]})
+

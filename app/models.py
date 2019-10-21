@@ -546,6 +546,10 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     children = relationship("Rounds")
     def __repr__(self):
         return f"Round <{self.round_name}>, ID:{self.id}"
+    @property
+    def tree_name(self):
+        return self.round_name + '\n' + self.note
+
 
     @property
     def name(self):
@@ -657,6 +661,54 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
 
     def __repr__(self):
         return f"Selection <{self.selection_name}>, ID: {self.id}"
+
+    def json_tree(self):
+        """return tree json"""
+        sr = [ i for i in self.rounds]
+        for r in self.rounds:
+            if r.parent and r.parent not in sr:
+                sr.append(r.parent)
+        result = {'name':self.name,'children' : []}
+        todel = []
+        for r in sr:
+            if (not r.parent) or (not (r in self.rounds)):
+                result['children'].append({'name': r.round_name,'children':[]})
+                todel.append(r)
+        for i in todel: sr.remove(i)
+       
+        while sr:
+          
+            toremove = []
+            for i in sr:
+                p = self.search_tree(i.parent.round_name, result)
+               
+                if p:
+                    p['children'].append({'name': i.round_name,'children':[]})
+                    toremove.append(i)
+            for i in toremove:
+                
+                sr.remove(i)
+        return result 
+
+    def search_tree(self,ele,tree):
+        def dfs(tree):
+            yield tree 
+            for v in tree['children']:
+                for u in dfs(v):
+                    yield u 
+        for i in dfs(tree):
+            if i['name'] == ele:
+                return i 
+        return False
+
+        # TODO why this is wrong?
+        # if ele == tree['name']:
+        #     return tree
+        # else:
+        #     for i in tree['children']:
+        #         return self.search_tree(ele,i)
+        
+
 
     def display(self):
         line1 = f"{self.selection_name}"
