@@ -46,50 +46,26 @@
     </tr>
 
     {% for entry in entries %}
-    <tr id="{{entry.__tablename__}}_{{entry.id}}">
+    <tr>
         <td width="50px">
-            {% if entry.haschildren() and nextcontent %}
-            <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">
-                {{ entry.id_display }}
-            </a>
-            {%else%}
-            {{entry.id_display}}
-            {% endif %}
+            {{entry.id_display}}    
         </td>
         <td>
             <li><a
                     href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a>
             </li>
-            {% for line in entry.display()[1:] %}
+            {% for line in entry.display()[2:] %}
             <li>{{line}}</li>
             {% endfor %}
+          
+            <li style='font-family: Courier New, Courier, monospace;'>Sequence:&nbsp;{{entry.aligndisplay[0]}}</li>
+            <li style='font-family: Courier New, Courier, monospace;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{entry.aligndisplay[1]}}</li>
+            <li style='font-family: Courier New, Courier, monospace;'>Query:&nbsp;&nbsp;&nbsp;&nbsp;{{entry.aligndisplay[2]}}</li>
+           
         </td>
-        {% if entry.__tablename__=='ngs_sample_group' %}
-        <td>
-            {% set uploadto %}{{ entry.id }}{% endset %}
-            {% include 'upload/uploadwidget.html'%}
-            {% if entry.processed %}
-            <button class="btn btn-default disabled" type="button"><span class="glyphicon glyphicon-qrcode"
-                    aria-hidden="true"></span> Already Processed</button>
-            {% elif entry.task_id %}
-            <div class="progress ">
-                <div class="progress-bar progress-bar-striped active" id="{{entry.__tablename__+':'+entry.id|string}}"
-                    role="progressbar" aria-valuenow="{{entry.progress}}" aria-valuemin="0" aria-valuemax="100"
-                    style="width: {{entry.progress}}%">
-                    {{entry.progress}}%
-                </div>
-            </div>
-            {% elif entry.datafile %}
-            <a class="btn btn-default" href="{{url_for('ngs.ngs_data_processing',id=entry.id)}}" role="button">
-                <span class="glyphicon glyphicon-qrcode" aria-hidden="true"></span> Process NGS Data</a>
-            {% endif %}
-        </td>
-        {% endif %}
-
         <td width='50px'>
             {{entry.lev_score}}
         </td>
-
         <td width='50px'>
             <div class="btn-group">
                 <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
@@ -110,8 +86,6 @@
                 </ul>
             </div>
         </td>
-
-
     </tr>
     {% endfor %}
 </table>

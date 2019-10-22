@@ -112,7 +112,7 @@ class NGS_Sample_Process:
         for k in list(self.collection.keys()):
             rd_id,seq = k
             count = self.collection[k]
-            if count > 1:
+            if count > 2: # only over 2 count sequence will be committed.
                 self.collection.pop(k)
                 self.length_count[len(seq)]+=count
                 sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
@@ -351,7 +351,6 @@ def dynamic_lev_distance(seq,fix_seq="",diff_ratio=0.4):
     
 
 def lev_distance_search(query,table):
-    
     #table can be sequence, primer, known_sequence
     query=query.strip()
     query_length = len(query)
@@ -380,7 +379,7 @@ def lev_distance_search(query,table):
     result.sort(key=lambda x:x[1])
     result = result[0:50]
     _set_task_progress(100)
-    return result 
+    return dict(result=result,query=query)
 
 if __name__ == '__main__':
     """test data processing module"""

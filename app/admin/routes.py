@@ -18,6 +18,9 @@ def admin():
 
 @bp.route('/clear_trash', methods=['GET', 'POST'])
 def clear_trash():
+    """
+    clear tasks that are more than a day old.
+    """
     # TODO
     msg = []
     oldtask = Task.query.filter(Task.date < (
@@ -26,7 +29,7 @@ def clear_trash():
         for i in oldtask:
             msg.append(f'Deleting... <{i.id}>')
             db.session.delete(i)
-            db.session.commit()
+        db.session.commit()
         msg.append(f'All trash tasks deleted... <{len(oldtask)}>')
         flash('Deleted {} tasks.'.format(len(oldtask)),'success')
     except Exception as e:
@@ -39,6 +42,9 @@ def clear_trash():
 
 @bp.route('/reindex_models', methods=['GET', 'POST'])
 def reindex_models():
+    """
+    reindex all the elastic searach models
+    """
     msg=[]
     try:
         for k,item in models_table_name_dictionary.items():
@@ -55,6 +61,9 @@ def reindex_models():
 
 @bp.route('/clear_ppt_trash', methods=['GET', 'POST'])
 def clear_ppt_trash():
+    """
+    clear empty project, and ppt that not in project and slides.
+    """
     msg=[]
     try:
         # clear project 

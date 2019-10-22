@@ -17,7 +17,7 @@ from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
-from app.utils.analysis import DataReader
+from app.utils.analysis import DataReader,Alignment
 from app.utils.search import add_to_index, remove_from_index, query_index
 
 def data_string_descriptor(name,mode=[]):
@@ -374,9 +374,15 @@ class SeqRound(db.Model):
         if ks:
             ks = 'A.K.A. : '+ks.sequence_name+'\n'
         l1= self.sequence_display
-        l2=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
-        l3=f"Length: {len(self.sequence.aptamer_seq)} n.t."
+        l3=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
+        l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         return l1,l2,l3
+    
+    def align(self,query):
+        align = Alignment(self.sequence.aptamer_seq)
+        align=align.align(query,offset=False)
+        return align.format(link=True,maxlength=95).split('\n')
+   
     @property
     def aka(self):
         ks = self.sequence.knownas or ''
@@ -397,7 +403,7 @@ class SeqRound(db.Model):
         return self.round.RP
 
     
-    @property
+    @lazyproperty
     def sequence_display(self):
         return f"{self.sequence.aptamer_seq}"
 
@@ -443,6 +449,11 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     target = Column(mysql.VARCHAR(50))
     note = Column(mysql.VARCHAR(500))
     sequence_variants =  relationship('Sequence',backref='knownas')
+
+    def align(self, query):
+        align = Alignment(self.rep_seq)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
 
     @property
     def name(self):
@@ -490,6 +501,12 @@ class Sequence(db.Model,BaseDataModel):
     known_sequence_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('known_sequence.id'))
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
+
+    def align(self, query):
+        align = Alignment(self.aptamer_seq)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
+
 
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
@@ -748,6 +765,12 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
    
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
+
+    def align(self, query):
+        align = Alignment(self.sequence)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
+
 
     def display(self):
         l1 = f"{self.name}"

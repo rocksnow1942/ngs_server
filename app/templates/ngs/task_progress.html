@@ -55,6 +55,7 @@
                     };
                     // break out set interval if all done.
                     if (alldone) { 
+                        clearInterval(interval);
                         $('#progress_title').html("<h1>Search Done. Redirecting ...</h1>");
                         let redirurl = "{{url_for('ngs.lev_search',table=table,task_id=task_id,**request.args)}}".split('&amp;').join('&');
                         setTimeout(()=>{ location.href = redirurl},1500)

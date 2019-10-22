@@ -523,7 +523,9 @@ def lev_search(table):
     task_id = request.args.get('task_id')
     page = request.args.get('page', 1, type=int)
     try:
-        result = current_app.fetch_job_result(task_id)
+        jobresult = current_app.fetch_job_result(task_id)
+        result = jobresult['result']
+        query = jobresult['query']
     except:
         abort(404)
     target = {'sequence':SeqRound,'primer':Primers,'known_sequence':KnownSequence}.get(table)
@@ -535,9 +537,10 @@ def lev_search(table):
         else:
             entry = target.query.get(_id)
         entry.lev_score = _s
+        entry.aligndisplay = entry.align(query)
         entries.append(entry)
     return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
-                           table=table )
+                           table=table,)
 
 
 @bp.route('/get_selection_tree_json', methods=['POST'])

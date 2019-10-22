@@ -26,6 +26,9 @@ def add_header(response):
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
+    """
+    main browsing page
+    """
     pagelimit = current_user.slide_per_page
     thumbnail = current_user.thumbnail
     table = request.args.get('table',None)
