@@ -1,8 +1,6 @@
 from app import db
-from flask_login import UserMixin, current_user
-from flask import current_app
 import json
-from sqlalchemy import Column, String, ForeignKey, DateTime, func, ForeignKey
+from sqlalchemy import Column, String, ForeignKey,ForeignKey
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
 
