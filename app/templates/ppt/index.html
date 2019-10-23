@@ -175,7 +175,7 @@ function slide_add_flag(event,mode) {
               display_flash_message(result.html, 1000);
           };
           if (action == 'delete') {
-            $(`.slide_container[name=${slide_id}]`).fadeOut(500, () => { $(this).remove() });
+            $(`.slide_container[name=${slide_id}]`).fadeOut(500, function(){ $(this).remove() });
           };
           let count = result.count;
           if (mode=='slide_cart') { 
