@@ -8,9 +8,9 @@ from app import db
 from app.utils.analysis import KnownSeq
 
 """
-import known_sequence from csv to known_sequence table; run from ngs_server folder.
+import known_sequence from csv to known_sequence table; run from ngs_server folder; use venv
 """
-knownseq_file_path = "/Users/hui/Documents/ngs_data/known_seq.csv"
+knownseq_file_path = "/home/hui/AptitudeUsers/R&D/Users/Hui Kang/known_seq.csv"
 
 
 app = create_app(keeplog=False)

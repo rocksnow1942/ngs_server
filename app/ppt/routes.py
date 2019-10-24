@@ -54,7 +54,7 @@ def index():
                     target.date.desc()).paginate(page, pagelimit, False)
             elif table == 'slide':
                 entries = target.query.filter_by(ppt_id=id).order_by(
-                    target.id.desc()).paginate(page, pagelimit, False)
+                    target.date.desc(),target.page.desc()).paginate(page, pagelimit, False)
             else:
                 entries = target.query.order_by(
                     target.date.desc()).paginate(page, pagelimit, False)
@@ -107,7 +107,7 @@ def user_follow_slides():
             return redirect(url_for('ppt.index',table='slide',id=ppt_id))
     else:
         slides_id = [i for k in current_user.follow_ppt_update().values() for i in k]
-    entries = Slide.query.filter(Slide.id.in_(slides_id)).order_by(Slide.id.desc()).paginate(page, pagelimit, False)
+    entries = Slide.query.filter(Slide.id.in_(slides_id)).order_by(Slide.date.desc(),Slide.page.desc()).paginate(page, pagelimit, False)
     totalpages = entries.total
     start, end = pagination_gaps(page, totalpages, pagelimit, gap=15)
 
