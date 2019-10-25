@@ -17,15 +17,35 @@ from app.utils.analysis._utils import poolwrapper
 app = create_app(keeplog=False)
 app.app_context().push()
 
-def _set_task_progress(progress):
-    job = get_current_job()
-    if job:
-        task = Task.query.get(job.get_id())
-        task.progress = round(progress,2)
-        if progress >= 100:
-            task.complete = True
-        db.session.commit()
-       
+class ProgressHandler():
+    def __init__(self,):
+        self.job = get_current_job()
+        self.currentprogress = -1
+
+
+    def __call__(self,progress,start=0,end=100):
+        if self.job:
+            progress = progress/100*(end-start) + start
+            if progress - self.currentprogress> 0.2:
+                task = Task.query.get(self.job.get_id())
+                task.progress = round(progress,2)
+                if progress >= 100:
+                    task.complete = True
+                db.session.commit()
+                self.currentprogress = progress
+
+_set_task_progress = ProgressHandler()
+
+#
+# def _set_task_progress(progress):
+#     job = get_current_job()
+#     if job:
+#         task = Task.query.get(job.get_id())
+#         task.progress = round(progress,2)
+#         if progress >= 100:
+#             task.complete = True
+#         db.session.commit()
+
 
 class NGS_Sample_Process:
     """
@@ -64,18 +84,21 @@ class NGS_Sample_Process:
                 line=line.strip()
                 rev=rev.strip()
                 self.total+=1
-                if line == reverse_comp(rev):
-                    self.revcomp+=1
-                    yield line
+                # if line == reverse_comp(rev):
+                    # self.revcomp+=1
+                yield line,rev
 
-    def process_seq(self,seq):
+    def process_seq(self,f_r_seq):
         nomatch = True
+        seq,rseq=f_r_seq
         for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
             matched = self.match_pattern(seq,primers,patterns)
             if matched:
                 nomatch = False
                 self.success +=1
-                self.collection[(rdid,matched)]+=1
+                if reverse_comp(matched) in (rseq):
+                    self.revcomp+=1
+                    self.collection[(rdid,matched)]+=1
         if nomatch: self.log_unmatch(seq)
 
     def match_pattern(self,seq,primers,patterns):
@@ -141,7 +164,7 @@ class NGS_Sample_Process:
         print('*** total read:', self._totalread)
         for seq in self.file_generator():
             counter += 1
-            _set_task_progress(counter/(self._totalread+10)*100)
+            _set_task_progress(counter/(self._totalread)*100,start=0,end=99)
             self.process_seq(seq)
             if counter % 52345 == 0:
                 self.commit()
@@ -152,8 +175,8 @@ class NGS_Sample_Process:
 
     def results(self):
         ttl = self.total
-        smry = "Total reads: {} / 100%\nPass reverse-complimentary: {} / {:.2%}\nPass primers match: {} / {:.2%}\n".format(
-            ttl, self.revcomp,self.revcomp/ttl, self.success,self.success/ttl)
+        smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
+            ttl, self.success,self.success/ttl,self.revcomp,self.revcomp/ttl, )
         leftover = len(self.collection)
         smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count=1): {} / {:.2%}\n".format(
             self.success-leftover, (self.success-leftover)/ttl, leftover,leftover/ttl)
@@ -346,20 +369,19 @@ def dynamic_lev_distance(seq,fix_seq="",diff_ratio=0.4):
     cutoff = abs(len(seq)-query_length)+query_length*diff_ratio
     dis = lev_distance(seq, fix_seq, cutoff)
     if dis<cutoff:
-        return dis 
+        return dis
     return None
-    
+
 
 def lev_distance_search(query,table):
     #table can be sequence, primer, known_sequence
     query=query.strip()
-    query_length = len(query)
     target = models_table_name_dictionary.get(table)
     seq_atr_name = dict(primer='sequence', known_sequence='rep_seq',
                    sequence='aptamer_seq').get(table)
     result = []
     total = target.query.count()
-    have_more=True 
+    have_more=True
     page = 0
     pagelimit = 10000
     task = partial(dynamic_lev_distance,fix_seq=query,diff_ratio=0.3)
@@ -372,7 +394,7 @@ def lev_distance_search(query,table):
         searchcontent = searchcontent.items
         tempresult = poolwrapper(task,[i[1] for i in searchcontent],callback=_set_task_progress,
                                  progress_gap=((page-1)*pagelimit / total * 99, min(99, page*pagelimit / total * 99)))
-       
+
         for _dis, (_id, _s) in zip(tempresult, searchcontent):
             if _dis != None:
                 result.append((_id, _dis))
