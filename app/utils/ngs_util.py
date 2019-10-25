@@ -48,9 +48,11 @@ def file_blocks(files, size=65536):
 def check_file_reverse_comp(f1,f2):
     nonrevcount = 0
     for l1,l2 in islice(zip(f1,f2),1,800,4):
-        l1_ = l1.decode('utf-8')
-        l2_=l2.decode('utf-8')
-        if reverse_comp(l1_.strip())!=l2_.strip():
+        l1_ = l1.decode('utf-8').strip()
+        l2_=l2.decode('utf-8').strip()
+        l1_mid =max(len(l1_)//2,10)
+        mid20 = l1_[l1_mid-10:l1_mid+10]
+        if reverse_comp(mid20) not in l2_:
             nonrevcount+=1
     if nonrevcount>50:
         return False
