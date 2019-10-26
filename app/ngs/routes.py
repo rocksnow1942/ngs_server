@@ -498,7 +498,7 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
-    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=True)
+    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=False)
 
 
 @bp.route('/get_bar_progress', methods=['POST'])
