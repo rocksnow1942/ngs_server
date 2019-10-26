@@ -342,15 +342,15 @@ def align_clustered_seq(data,**kwargs):
     cluster = dict.fromkeys(data)
     # w = len(cluster.keys())
     data = list(data.items())
-    print("Starting in cluster align ...")
-    print('Current time: {}'.format(datetime.datetime.now()))
+    # print("Starting in cluster align ...")
+    # print('Current time: {}'.format(datetime.datetime.now()))
     # percentcounter=0.05
     starttime=time.time()
     callback=kwargs.pop('callback')
     wrapper = partial(_cluster_align,kwargs=kwargs)
     z=poolwrapper(wrapper,data,callback=callback,progress_gap=(80,95))
     cluster = dict(z)
-    print("In cluster alignment finished. Time Elapsed: {:.2f}s.".format(time.time()-starttime))
+    # print("In cluster alignment finished. Time Elapsed: {:.2f}s.".format(time.time()-starttime))
     return cluster
 
 

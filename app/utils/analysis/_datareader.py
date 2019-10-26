@@ -279,7 +279,7 @@ class DataReader(Reader):
         self.processing_para.update({'align_para':align_para})
         if save:self.save()
 
-    def lazy_build(self,mode='default',save=False):
+    def lazy_build(self,mode='default',save=False): # not used in this version.
         para={'default':[{},{},{}],
               'clus':[dict(distance=3,cutoff=(20,60),count_thre=0,clusterlimit=5000),
                       dict(cluster_para={'offset':False,'k':4,'count':True,'gap':4,'gapext':1}),
@@ -288,8 +288,8 @@ class DataReader(Reader):
                      dict(cluster_para={'offset':False,'k':4,'count':True,'gap':4,'gapext':1}),
                      dict(align_para={'offset':False,'k':4,'count':True,'gap':4,'gapext':1,'distance':'nw_distance'})]
                 }
-        self.df_cluster(**para[mode][0],save=save)
-        self.in_cluster_align(**para[mode][1],save=save)
+        self.df_cluster(**para[mode][0])
+        self.in_cluster_align(**para[mode][1])
         self.build_tree_and_align(**para[mode][2],save=save)
         self.df_trim()
 
