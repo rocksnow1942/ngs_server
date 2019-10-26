@@ -812,6 +812,14 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
             return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
         else:
             return None
+    @property 
+    def files(self):
+        if self.datafile:
+            uf = current_app.config['UPLOAD_FOLDER'] + '/'
+            r = json.loads(self.datafile)
+            return uf+r.get('file1',""),uf+r.get('file2',"")
+        return []
+
 
     @property
     def processed(self):
@@ -899,7 +907,6 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         assert revcomp>0,('Too Many non reverse-complimentary sequences.')
         assert match > 0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:
-            
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']
             self.datafile = json.dumps(datadict, separators=(',', ':'))
