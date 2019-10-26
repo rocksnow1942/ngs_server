@@ -131,3 +131,14 @@
 15. setup PLOJO app .env files 
     in ngs_server/app/APPS/.env
     BOKEH_ALLOW_WS_ORIGIN=www.ams.com,localhost:5006,ams.com,h-kang.com,www.h-kang.com,ams.c,www.ams.c,ams
+
+
+16. to upload large files, gunicorn and nginx have to set a long timeout. default value is 30s.
+    in Nginx:
+        server { client_max_body_size 0;
+        location / {proxy_read_timeout 1200s}}
+    in supervisor gunicorn start up: change command to
+        command=/home/hui/ngs_server/venv/bin/gunicorn -b localhost:8000 -w 4 --timeout 1200 Aptitude_NGS:app
+
+        
+        
