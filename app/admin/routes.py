@@ -40,7 +40,7 @@ def clear_trash():
     for f in fastq:
         if f not in nsgfiles:
             # delete fastq file
-            # os.remove(f)
+            os.remove(f)
             msg.append('Delete fastq: {}'.format(f))
     
     # clean up analysis files:
@@ -50,7 +50,7 @@ def clear_trash():
     for i in ana_cf:
         if i not in ana_folder:
             # delete folder  
-            # shutil.rmtree(i)
+            shutil.rmtree(i)
             msg.append('Delete analysis folder: {}'.format(i))
     return render_template('admin/result.html', content=msg)
 
