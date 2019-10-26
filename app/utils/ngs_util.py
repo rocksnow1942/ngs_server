@@ -54,7 +54,7 @@ def check_file_reverse_comp(f1,f2):
         mid20 = l1_[l1_mid-10:l1_mid+10]
         if reverse_comp(mid20) not in l2_:
             nonrevcount+=1
-    if nonrevcount>50:
+    if nonrevcount>100:
         return False
     return True
 

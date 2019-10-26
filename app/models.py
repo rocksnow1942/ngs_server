@@ -873,7 +873,9 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
             for line in islice(r,1,2000,4):
                 reverse.append(line.strip())
         for _f,_r in zip(forward,reverse):
-            if _f==reverse_comp(_r):
+            _f_mid =max(len(_f)//2,10)
+            mid20 = _f[_f_mid-10:_f_mid+10]
+            if reverse_comp(mid20) in _r:#_f==reverse_comp(_r):
                 revcomp+=1
                 findmatch = -1
                 if needtoswap > 0:
@@ -894,7 +896,6 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
                 match += findmatch
             else:
                 revcomp-=1
-       
         assert revcomp>0,('Too Many non reverse-complimentary sequences.')
         assert match > 0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:

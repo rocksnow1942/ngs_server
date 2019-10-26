@@ -73,12 +73,15 @@ class PPT_Indexer():
 
     def create(self, file):
         with self.app.app_context():
-            if self.create_by_path(file):
-                self.write_log(f" Update by path {file}")
-            elif self.create_by_md5((file)):
-                self.write_log(f" Update by md5 {file}")
-            else:
-                self.create_new(file)
+            try:
+                if self.create_by_path(file):
+                    self.write_log(f" Update by path {file}")
+                elif self.create_by_md5((file)):
+                    self.write_log(f" Update by md5 {file}")
+                else:
+                    self.create_new(file)
+            except Exception as e:
+                self.write_log(f" Create error:{file} - {e}")
 
 
             # self.clean_up
@@ -125,7 +128,7 @@ class PPT_Indexer():
             db.session.commit()
             self.write_log(f" Create new {file}")
         except Exception as e:
-            self.write_log(f" Create New error:{e}")
+            self.write_log(f" Create New {file} Error:{e}")
             raise e
 
     def parse_ppt(self,file):
@@ -166,7 +169,6 @@ class PPT_Indexer():
 
     def sync_slides(self,ppt,file):
         slides = self.parse_ppt(file)
-        slides.sort(key=lambda x: (x['date'],x['page']))
         oldslides=ppt.slides
         cur_slides = []
         for s in slides:
@@ -231,7 +233,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
             t2=time.time()
             print("Create {} Done in {:.1f}".format(event.src_path,t2-t1))
         except Exception as e:
-            self.logger.write_log(f" Create error:{e}")
+            
             print(f" Create Error {event.src_path}:{e}")
 
 

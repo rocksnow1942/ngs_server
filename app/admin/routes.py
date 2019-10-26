@@ -115,3 +115,11 @@ def reindex_ppt():
         flash(str(e),'danger')
         msg=['This is not implemented yet.']
     return render_template('admin/result.html', content=msg)
+
+
+@bp.route('/test', methods=['GET', 'POST'])
+def test():
+    import time
+    time.sleep(40)
+    msg=['This is a tests']
+    return render_template('admin/result.html', content=msg)
