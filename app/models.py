@@ -831,9 +831,9 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         l4 = f"Processed : {bool(self.processingresult)}"
         return l1,l2,l3,l4
 
-    def launch_task(self):
+    def launch_task(self,commit):
         job = current_app.task_queue.enqueue(
-            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, job_timeout=3600)
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit, job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()

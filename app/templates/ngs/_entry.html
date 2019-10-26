@@ -40,8 +40,11 @@
              </div>
             </div>
             {% elif entry.datafile %}
-            <a class="btn btn-default" href="{{url_for('ngs.ngs_data_processing',id=entry.id)}}" role="button">
-            <span class="glyphicon glyphicon-qrcode" aria-hidden="true"></span> Process NGS Data</a>
+            <a class="btn btn-default" href="{{url_for('ngs.ngs_data_processing',id=entry.id,commit='true')}}" role="button">
+            <span class="glyphicon glyphicon-qrcode" aria-hidden="true"></span> Process And Commit</a>
+            <a class="btn btn-default" href="{{url_for('ngs.ngs_data_processing',id=entry.id,)}}" 
+            onclick="return confirm('Sure want to process without commit to database?')" role="button">
+                <span class="glyphicon glyphicon-barcode" aria-hidden="true" ></span> Process No Commit</a>
             {% endif %}
         </td>
         {% endif %}

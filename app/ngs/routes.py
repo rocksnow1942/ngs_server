@@ -272,12 +272,13 @@ def get_known_as_sequence():
 @bp.route('/ngs_data_processing', methods=['GET', 'POST'])
 @login_required
 def ngs_data_processing():
+    commit = request.args.get('commit',False)
     id = request.args.get('id',0,type=int)
     sg = NGSSampleGroup.query.get(id)
     if sg and sg.can_start_task():
         try:
             sg.files_validation()
-            sg.launch_task()
+            sg.launch_task(commit=commit)
         except Exception as e:
             flash(f"Validation Failed. ID:<{id}>, resaon:<{e}>.",'danger')
     else:

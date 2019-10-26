@@ -131,27 +131,36 @@ class NGS_Sample_Process:
             totalread = sum(bl.count("\n") for bl in fb1)
         return totalread/4
 
-    def commit(self):
-        for k in list(self.collection.keys()):
-            rd_id,seq = k
-            count = self.collection[k]
-            if count > 2: # only over 2 count sequence will be committed.
-                self.collection.pop(k)
-                self.length_count[len(seq)]+=count
-                sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
-                if sequence:
-                    seqround = SeqRound.query.filter_by(sequence=sequence,rounds_id=rd_id).first()
-                    if seqround:
-                        seqround.count += count
+    def commit(self, commit='true'):
+        if commit =='true':
+            for k in list(self.collection.keys()):
+                rd_id,seq = k
+                count = self.collection[k]
+                if count > 2: # only over 2 count sequence will be committed.
+                    self.collection.pop(k)
+                    self.length_count[len(seq)]+=count
+                    sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
+                    if sequence:
+                        seqround = SeqRound.query.filter_by(sequence=sequence,rounds_id=rd_id).first()
+                        if seqround:
+                            seqround.count += count
+                        else:
+                            seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
+                            db.session.add(seqround)
                     else:
+                        sequence = Sequence(aptamer_seq=seq,known_sequence_id=self.ks.get(seq,None))
+                        db.session.add(sequence)
                         seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
                         db.session.add(seqround)
-                else:
-                    sequence = Sequence(aptamer_seq=seq,known_sequence_id=self.ks.get(seq,None))
-                    db.session.add(sequence)
-                    seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
-                    db.session.add(seqround)
-        db.session.commit()
+            db.session.commit()
+        else:
+            for k in list(self.collection.keys()):
+                rd_id, seq = k
+                count = self.collection[k]
+                if count > 2:  # only over 2 count sequence will be committed.
+                    self.collection.pop(k)
+                    self.length_count[len(seq)] += count 
+
 
     def finnal_commit(self):
         rds = [Rounds.query.get(k) for k, *_ in self.sampleinfo]
@@ -159,7 +168,7 @@ class NGS_Sample_Process:
             r.totalread = sum([i.count for i in r.sequences ])
         db.session.commit()
 
-    def process(self):
+    def process(self, commit):
         counter = 0
         print('*** total read:', self._totalread)
         for seq in self.file_generator():
@@ -167,9 +176,9 @@ class NGS_Sample_Process:
             _set_task_progress(counter/(self._totalread)*100,start=0,end=99)
             self.process_seq(seq)
             if counter % 52345 == 0:
-                self.commit()
+                self.commit(commit)
         print('*** ending total read:', counter)
-        self.commit()
+        self.commit(commit)
         self.finnal_commit()
         return self.results()
 
@@ -286,10 +295,10 @@ def generate_sample_info(nsg_id):
         sampleinfo.append((round_id,fpindex,reverse_comp(rpindex),fp,reverse_comp(rp)))
     return f1,f2,sampleinfo
 
-def parse_ngs_data(nsg_id):
+def parse_ngs_data(nsg_id,commit):
     f1,f2,sampleinfo=generate_sample_info(nsg_id)
     NSProcessor = NGS_Sample_Process(f1,f2,sampleinfo)
-    result = NSProcessor.process()
+    result = NSProcessor.process(commit)
     # processing file1 and file2 and add to database
     nsg = NGSSampleGroup.query.get(nsg_id)
     nsg.processingresult=result
