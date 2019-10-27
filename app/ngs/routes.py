@@ -166,8 +166,6 @@ def addsample():
         edit_redirect_url = request.args.get('edit_redirect_url','/')
     else:
         edit_redirect_url = request.form.get('edit_redirect_url', '/')
-       
-
     datalist={}
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
@@ -212,7 +210,8 @@ def addsample():
             return redirect(edit_redirect_url)
         else:
             return redirect(url_for('ngs.addsample'))
-    return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
+    return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', 
+                           table='ngs_sample_group', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/add_extrasample', methods=[ 'POST'])
@@ -269,21 +268,41 @@ def get_known_as_sequence():
 
 
 
+# @bp.route('/ngs_data_processing', methods=['GET', 'POST'])
+# @login_required
+# def ngs_data_processing():
+#     commit = request.json.get('commit',False)
+#     id = request.json.get('id')
+#     threshold = int(request.json.get('threshold'))
+#     sg = NGSSampleGroup.query.get(id)
+#     if sg and sg.can_start_task():
+#         try:
+#             sg.files_validation()
+#             sg.launch_task(commit=commit)
+#         except Exception as e:
+#             flash(f"Validation Failed. ID:<{id}>, resaon:<{e}>.",'danger')
+#     else:
+#         flash(f'Cannot Process Data of Sample ID: <{id}>.','danger')
+#     return redirect(request.referrer)
+
 @bp.route('/ngs_data_processing', methods=['GET', 'POST'])
 @login_required
 def ngs_data_processing():
-    commit = request.args.get('commit',False)
-    id = request.args.get('id',0,type=int)
+    commit = request.json.get('commit', False)
+    id = request.json.get('id')
+    threshold = int(request.json.get('threshold'))
     sg = NGSSampleGroup.query.get(id)
+    reload=False
     if sg and sg.can_start_task():
         try:
             sg.files_validation()
-            sg.launch_task(commit=commit)
+            sg.launch_task(commit,threshold)
+            reload=True
         except Exception as e:
-            flash(f"Validation Failed. ID:<{id}>, resaon:<{e}>.",'danger')
+            messages=[('danger' , f"Validation Failed. ID:<{id}>, resaon:<{e}>." )]
     else:
-        flash(f'Cannot Process Data of Sample ID: <{id}>.','danger')
-    return redirect(request.referrer)
+        messages = [('danger', f'Cannot Process Data of Sample ID: <{id}>.', )]
+    return jsonify(html=render_template('flash_messages.html', messages=messages),reload=reload)
 
 
 

@@ -36,3 +36,27 @@
 
 {% endblock %}
 
+{% block scripts %}
+{{super()}}
+
+<script>
+  function start_ngs_data_parsing(id,commit,) {
+      let threshold = $(`#commit_threshold_${id}`).val() || 2;
+      if (!parseInt(threshold) && (commit!='retract')) {
+        alert('Enther a valid threshold, must be integer.')
+        return
+      };
+      $.ajax({
+        url: "{{url_for('ngs.ngs_data_processing')}}",
+        type: "POST",
+        data: JSON.stringify({ id: id,commit:commit, threshold: parseInt(threshold) }),
+        contentType: 'application/json',
+        success: function (result) {
+          if (result.reload) {location.reload();};
+          display_flash_message(result.html, 1000);
+        }
+      })
+  };
+  
+</script>
+{% endblock %}

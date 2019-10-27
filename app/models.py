@@ -785,7 +785,8 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     def sequence_rc(self):
         return reverse_comp(self.sequence)
 
-class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
+
+class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __tablename__ = 'ngs_sample_group'
     __searchable__ = ['name', 'note']
     __searablemethod__ = ['display']
@@ -798,13 +799,20 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
     datafile = Column(String(200))
     processingresult = Column(db.Text)
     task_id = Column(db.String(36), ForeignKey('task.id', ondelete='SET NULL'),nullable=True)
+    data_string = Column(mysql.TEXT, default="{}")
+    commit_threshold = data_string_descriptor('commit_threshold',2)()
+    commit_result = data_string_descriptor('commit_result',{})()
+
 
     def __repr__(self):
         return f"NGS Sample <{self.name}>, ID:{self.id}"
 
     def haschildren(self):
-        return bool(self.datafile)
+        return self.processed
     
+    def get_commit_result(self,round_id):
+        return self.commit_result.get(str(round_id),None)
+
     @property
     def showdatafiles(self):
         if self.datafile:
@@ -839,9 +847,10 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         l4 = f"Processed : {bool(self.processingresult)}"
         return l1,l2,l3,l4
 
-    def launch_task(self,commit):
+    def launch_task(self, commit, commit_threshold):
+        if commit == 'retract': commit_threshold=self.commit_threshold
         job = current_app.task_queue.enqueue(
-            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit, job_timeout=3600)
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit, commit_threshold,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()

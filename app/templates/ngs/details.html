@@ -7,35 +7,39 @@
 <h3>Rounds in this sample:</h3>
 <table class="table table-hover">
     <tr>
-        <th width = "200px" >
+        <th width = "160px" >
             Round Name
         </th>
-        <th width = "200px">
+        <th width = "160px">
             Round FP
         </th>
-        <th width = "200px">
+        <th width = "160px">
             Round RP
         </th>
-        <th width = "200px">
+        <th width = "160px">
             NGS Index FP
         </th>
-        <th width = "200px">
+        <th width = "160px">
             NGS Index RP
+        </th>
+        <th width="160px">
+            Unique / Total
         </th>
     </tr>
     {% for sample in entry.samples %}
         <tr>
             {% for col,table,id in sample.info() %}
-                    <td width="75px">
+                    <td>
                         {% if col %}
                             <a href="{{url_for('ngs.details',table=table,id=id)}}">{{col}}</a>
                         {% else %}
                             {{col}}
                         {% endif %}
-                        
-                       
                     </td>
             {% endfor %}
+            <td >
+               {{entry.get_commit_result(sample.round_id)}}
+            </td>
         </tr>
     {% endfor %}  
 </table> 
@@ -212,16 +216,16 @@
         <th width="25px">
             ID
         </th>
-        <th width="300px">
+        <th width="250px">
             Sequence
         </th>
-        <th width="25px">
+        <th width="20px">
             Length
         </th>
-        <th width="25px">
+        <th width="120px">
            Percentage
         </th>
-        <th width="50px">
+        <th width="30px">
             A.K.A.
         </th>
         <th width="200px">
@@ -238,7 +242,7 @@
         </td>
         <td>{{seq.length}}</td>
         <td>
-            {{seq.percentage}}%
+         {{seq.count}} / {{seq.percentage}}%
         </td>
         <td>
             {% if seq.aka %}
@@ -417,6 +421,7 @@
 
 
 {% if table=='selection' %}
+
 {% block scripts %}
 {{super()}}
 <script src="http://d3js.org/d3.v3.min.js"></script>

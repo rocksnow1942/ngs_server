@@ -52,14 +52,17 @@ class NGS_Sample_Process:
     process files into database commits. assuming files are already validated.
     """
 
-    def __init__(self,f1,f2,sampleinfo):
+    def __init__(self, f1, f2, sampleinfo, commit_threshold):
         self.f1 = f1
         self.f2 = f2
         self.sampleinfo = sampleinfo
+        self.commit_threshold = commit_threshold
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
-        self.length_count=Counter()
+        self.length_count=Counter() # log sequence length
+        self.commit_result = Counter() # log commit , key is (round_id, sequence) 
+       
         self.failure = 0 # log other un explained.
         self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
@@ -136,9 +139,10 @@ class NGS_Sample_Process:
             for k in list(self.collection.keys()):
                 rd_id,seq = k
                 count = self.collection[k]
-                if count > 2: # only over 2 count sequence will be committed.
+                if count > self.commit_threshold:  # only over 2 count sequence will be committed.
                     self.collection.pop(k)
                     self.length_count[len(seq)]+=count
+                    self.commit_result[k]+=count
                     sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
                     if sequence:
                         seqround = SeqRound.query.filter_by(sequence=sequence,rounds_id=rd_id).first()
@@ -153,11 +157,25 @@ class NGS_Sample_Process:
                         seqround = SeqRound(sequence=sequence, rounds_id=rd_id, count=count)
                         db.session.add(seqround)
             db.session.commit()
+        elif commit=='retract':
+            for k in list(self.collection.keys()):
+                rd_id, seq = k
+                count = self.collection[k]
+                if count > self.commit_threshold:
+                    self.collection.pop(k)
+                    sequence = Sequence.query.filter_by(
+                        aptamer_seq=seq).first()                    
+                    seqround = SeqRound.query.filter_by(
+                        sequence=sequence, rounds_id=rd_id).first()                    
+                    seqround.count -= count
+                    if seqround.count == 0:
+                        db.session.delete(seqround)                   
+            db.session.commit()
         else:
             for k in list(self.collection.keys()):
                 rd_id, seq = k
                 count = self.collection[k]
-                if count > 2:  # only over 2 count sequence will be committed.
+                if count > self.commit_threshold:  # only over 2 count sequence will be committed.
                     self.collection.pop(k)
                     self.length_count[len(seq)] += count 
 
@@ -180,15 +198,23 @@ class NGS_Sample_Process:
         print('*** ending total read:', counter)
         self.commit(commit)
         self.finnal_commit()
-        return self.results()
+        return self.results(), self.commit_result_dict()
+
+    def commit_result_dict(self):
+        unique = Counter()
+        total = Counter()
+        for (rd_id,seq),count in Counter().items():
+            unique[rd_id]+=1
+            total[rd_id]+=count
+        return {i: f"{unique[i]}/{total[i]}" for i in unique.keys()}
 
     def results(self):
         ttl = self.total
         smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
             ttl, self.success,self.success/ttl,self.revcomp,self.revcomp/ttl, )
         leftover = len(self.collection)
-        smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count=1): {} / {:.2%}\n".format(
-            self.success-leftover, (self.success-leftover)/ttl, leftover,leftover/ttl)
+        smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count < {}): {} / {:.2%}\n".format(
+            self.success-leftover, (self.success-leftover)/ttl, self.commit_threshold+1, leftover, leftover/ttl)
         length = self.length_count.most_common(4)
         total = sum([i for i in self.length_count.values()])
         length = '; '.join(["{:.1%} {}nt".format(j/total,i) for i, j in length])
@@ -295,13 +321,22 @@ def generate_sample_info(nsg_id):
         sampleinfo.append((round_id,fpindex,reverse_comp(rpindex),fp,reverse_comp(rp)))
     return f1,f2,sampleinfo
 
-def parse_ngs_data(nsg_id,commit):
+
+def parse_ngs_data(nsg_id, commit, commit_threshold):
     f1,f2,sampleinfo=generate_sample_info(nsg_id)
-    NSProcessor = NGS_Sample_Process(f1,f2,sampleinfo)
-    result = NSProcessor.process(commit)
+    NSProcessor = NGS_Sample_Process(f1, f2, sampleinfo, commit_threshold)
+    result, commit_result = NSProcessor.process(commit)
     # processing file1 and file2 and add to database
     nsg = NGSSampleGroup.query.get(nsg_id)
-    nsg.processingresult=result
+    if commit=='retract':
+        nsg.processingresult=""
+        nsg.commit_threshold = 0
+        nsg.comit_result ={}
+    else:
+        nsg.processingresult=result
+        nsg.commit_threshold = commit_threshold
+        nsg.commit_result = commit_result
+    nsg.save_data()
     nsg.task_id = None
     db.session.commit()
     _set_task_progress(100)

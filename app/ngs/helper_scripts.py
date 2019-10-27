@@ -17,8 +17,6 @@ app = create_app(keeplog=False)
 app.app_context().push()
 
 
-
-
 def add_known_sequence_to_database(filepath):
     ks = KnownSeq(filepath)
     for name in ks.names:
