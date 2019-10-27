@@ -695,7 +695,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
             if r.parent and r.parent not in sr:
                 sr.append(r.parent)
         result = {'name': f"ID-{self.id}", 'note': self.note,'color':'black',
-                  'url': 'javascript:void(0)', 'children': []}
+                  'url': '', 'children': []}
         todel = []
         for r in sr:
             if (not r.parent) or (not (r in self.rounds)):

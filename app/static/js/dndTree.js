@@ -449,7 +449,7 @@ function draw_d3_tree (treeData) {
                 return d.name; //`<a href="${d.url}"> ${d.name} </a>`
             })
             .style('fill',function(d){return d.color})
-            .on('click',function(d){window.open(d.url)} );
+            .on('click',function(d){if (d.url) { window.open(d.url)}} );
 
         // Change the circle fill depending on whether it has children and is collapsed
         node.select("circle.nodeCircle")
