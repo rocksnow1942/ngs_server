@@ -141,7 +141,7 @@ class DataReader(Reader):
 
     def save_json(self):
         with open(self.saveas(self.name+'.json'),'wt') as f:
-            json.dump(self.jsonify(),f)
+            json.dump(self.jsonify(), f, separators=(',', ':'))
 
     @classmethod
     def load_json(cls,file):
