@@ -58,11 +58,9 @@
         </div>
         
         <div class="col-xs-6 col-md-4">
-            <div class="thumbnail alert-default well-md">
-                {% if entry.temp_result%}
-                <h5 class="card-title">Temp Result</h5>
-                <p class="card-text-light" style="white-space:pre-wrap;">{{entry.temp_result}}</p>
-                {% endif %}
+            <div class="thumbnail alert-default well-md">                
+                <h5 class="card-title">Temp Result</h5>                
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.temp_result%}{{entry.temp_result}}{%else%}No temp result.{% endif %}</p>
             </div>
         </div>
 
