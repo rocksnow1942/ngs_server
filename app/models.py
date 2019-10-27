@@ -563,11 +563,11 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     children = relationship("Rounds")
     def __repr__(self):
         return f"Round <{self.round_name}>, ID:{self.id}"
-    @property
-    def tree_name(self):
-        return self.round_name + '\n' + self.note
 
-
+    @property 
+    def tree_color(self):
+        return 'red' if self.totalread else 'black'
+   
     @property
     def name(self):
         return self.round_name
@@ -694,24 +694,22 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         for r in self.rounds:
             if r.parent and r.parent not in sr:
                 sr.append(r.parent)
-        result = {'name': f"ID-{self.id}", 'note': self.note,
+        result = {'name': f"ID-{self.id}", 'note': self.note,'color':'black',
                   'url': 'javascript:void(0)', 'children': []}
         todel = []
         for r in sr:
             if (not r.parent) or (not (r in self.rounds)):
-                result['children'].append({'name': r.round_name,'note':r.note,
+                result['children'].append({'name': r.round_name,'note':r.note, 'color':r.tree_color,
             'url': url_for('ngs.details', table='round', id=r.id), 'children': []})
                 todel.append(r)
         for i in todel: sr.remove(i)
        
         while sr:
-          
             toremove = []
             for i in sr:
                 p = self.search_tree(i.parent.round_name, result)
-               
                 if p:
-                    p['children'].append({'name': i.round_name, 'note': i.note,
+                    p['children'].append({'name': i.round_name, 'note': i.note, 'color': i.tree_color,
                     'url': url_for('ngs.details', table='round', id=i.id),'children':[]})
                     toremove.append(i)
             for i in toremove:
