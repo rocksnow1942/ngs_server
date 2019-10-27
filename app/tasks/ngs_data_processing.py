@@ -243,9 +243,9 @@ class NGS_Sample_Process:
         bins = [1,2,4,8,12,20]
         for val in self.collection.values():
             for b in bins:
-                if val>b:
+                if val<b+1:
                     temp_counter[b]+=val
-        smry+="\n% Read: "+"; ".join("{:.2%}>{}".format(i/ttl,k) for k,i in temp_counter.items())
+        smry+="\n% Read: "+"; ".join("{:.2%}<{}".format(i/ttl,k+1) for k,i in temp_counter.items())
             
         return smry
 
