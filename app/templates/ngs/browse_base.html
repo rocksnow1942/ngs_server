@@ -10,7 +10,7 @@
           <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}">
             {% if table !='ngs_sample_group' %}
             Samples
-            {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Samples</b></span>
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Samples</b></span>
             {% endif %}
             </a>
         </li>
@@ -18,42 +18,42 @@
           <a href="{{url_for('ngs.browse',table='primer')}}">
             {% if table!='primer' %}
             Primers
-            {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Primers</b></span>
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Primers</b></span>
             {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
           <a href="{{url_for('ngs.browse',table='known_sequence')}}">
           {% if table!='known_sequence' %}
           Aptamers
-          {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Aptamers</b></span>
+          {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Aptamers</b></span>
           {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
           <a href="{{url_for('ngs.browse',table='selection')}}">
             {% if table!='selection' %}
             Selection
-            {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Selection</b></span>
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Selection</b></span>
             {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
           <a href="{{url_for('ngs.browse',table='round')}}">
             {% if table!='round' %}
             Rounds
-            {% else %} <span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Round</b></span>
+            {% else %} <span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Round</b></span>
             {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
           <a href="javascript:void(0)">
             {% if table!='sequence_round' %}
             Sequence
-            {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Sequence</b></span>
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Sequence</b></span>
             {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
           <a href="{{url_for('ngs.browse',table='analysis')}}">
           {% if table!='analysis' %}
           Analysis
-          {% else %}<span style="color:rgb(0, 26, 255);background-color: rgb(86, 229, 240);"><b>Analysis</b></span>
+          {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Analysis</b></span>
           {% endif %}</a>
         </li>
       </ol>

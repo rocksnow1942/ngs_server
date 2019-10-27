@@ -435,7 +435,7 @@ def analysis():
         active_tab='cluster'
     else:
         active_tab = 'load'
-    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab)
+    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab,table='analysis')
 
 
 @bp.route('/analysis/cluster', methods=['POST', 'GET'])
@@ -519,7 +519,9 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
-    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=False)
+    
+    as_attachment =  filename.endswith('.json')
+    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
 
 
 @bp.route('/get_bar_progress', methods=['POST'])
