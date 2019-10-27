@@ -398,15 +398,15 @@ function draw_d3_tree (treeData) {
             .attr("class", "node")
             .attr("transform", function (d) {
                 return "translate(" + source.y0 + "," + source.x0 + ")";
-            })
-            .on('click', click);
+            });
 
         nodeEnter.append("circle")
             .attr('class', 'nodeCircle')
             .attr("r", 0)
             .style("fill", function (d) {
                 return d._children ? "lightsteelblue" : "#fff";
-            });
+            })
+            .on('click', click);
 
         nodeEnter.append("text")
             .attr("x", function (d) {
@@ -445,7 +445,7 @@ function draw_d3_tree (treeData) {
                 return d.children || d._children ? "end" : "start";
             })
             .attr('title', function (d) { return d.note; })
-            .html(function (d) {
+            .text(function (d) {
                 return d.name; //`<a href="${d.url}"> ${d.name} </a>`
             })
             .style('fill',function(d){return d.color})
