@@ -14,6 +14,7 @@ from app.utils.analysis._alignment import lev_distance
 from functools import partial
 from app.utils.analysis._utils import poolwrapper
 
+
 app = create_app(keeplog=False)
 app.app_context().push()
 
@@ -61,8 +62,10 @@ class NGS_Sample_Process:
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
         self.length_count=Counter() # log sequence length
-        self.commit_result = Counter() # log commit , key is (round_id, sequence) 
-       
+        # self.commit_result = Counter() # log commit , key is (round_id, sequence) 
+        self.unique_commit = Counter()
+        self.total_commit = Counter()
+
         self.failure = 0 # log other un explained.
         self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
@@ -140,9 +143,10 @@ class NGS_Sample_Process:
                 rd_id,seq = k
                 count = self.collection[k]
                 if count > self.commit_threshold:  # only over 2 count sequence will be committed.
-                    self.collection.pop(k)
+                    # self.collection.pop(k)
                     self.length_count[len(seq)]+=count
-                    self.commit_result[k]+=count
+                    # self.commit_result[k]+=count
+                    self.set_commit_result(rd_id, count)
                     sequence = Sequence.query.filter_by(aptamer_seq=seq).first()
                     if sequence:
                         seqround = SeqRound.query.filter_by(sequence=sequence,rounds_id=rd_id).first()
@@ -162,7 +166,7 @@ class NGS_Sample_Process:
                 rd_id, seq = k
                 count = self.collection[k]
                 if count > self.commit_threshold:
-                    self.collection.pop(k)
+                    # self.collection.pop(k)
                     sequence = Sequence.query.filter_by(
                         aptamer_seq=seq).first()                    
                     seqround = SeqRound.query.filter_by(
@@ -173,13 +177,12 @@ class NGS_Sample_Process:
                             db.session.delete(seqround)                   
             db.session.commit()
         else:
-            for k in list(self.collection.keys()):
-                rd_id, seq = k
-                count = self.collection[k]
+            for (rd_id, seq), count in self.collection.items():
                 if count > self.commit_threshold:  # only over 2 count sequence will be committed.
-                    self.collection.pop(k)
+                    # self.collection.pop(k)
                     self.length_count[len(seq)] += count 
-                    self.commit_result[k] += count
+                    # self.commit_result[k] += count
+                    self.set_commit_result(rd_id,count)
 
 
     def finnal_commit(self):
@@ -190,28 +193,27 @@ class NGS_Sample_Process:
 
     def process(self, commit):
         counter = 0
-        print('*** total read:', self._totalread)
+        # print('*** total read:', self._totalread)
         for seq in self.file_generator():
             counter += 1
-            _set_task_progress(counter/(self._totalread)*100,start=0,end=99)
+            _set_task_progress(counter/(self._totalread)*100,start=0,end=95)
             self.process_seq(seq)
-            if counter % 52345 == 0:
-                self.commit(commit)
-        print('*** ending total read:', counter)
+            # if counter % 52345 == 0:
+            #     self.commit(commit)
+        # print('*** ending total read:', counter)
         self.commit(commit)
         self.finnal_commit()
-        result = self.results
-        return self.results(), self.commit_result_dict()
+        return self.results(commit), self.commit_result_dict()
 
+    def set_commit_result(self, round_id, count):
+        self.unique_commit[round_id]+=1
+        self.total_commit[round_id]+=count
+       
     def commit_result_dict(self):
-        unique = Counter()
-        total = Counter()
-        for (rd_id,seq),count in self.commit_result.items():
-            unique[rd_id]+=1
-            total[rd_id]+=count
-        return {i: f"{unique[i]}/{total[i]}" for i in unique.keys()}
+        return {i: f"{self.unique_commit[i]}/{self.total_commit[i]}" for i in self.unique_commit.keys()}
 
-    def results(self):
+
+    def results(self,commit):
         ttl = self.total
         smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
             ttl, self.success,self.success/ttl,self.revcomp,self.revcomp/ttl, )
@@ -236,6 +238,15 @@ class NGS_Sample_Process:
         for i, j in index[0:5]:
             smry += "{}-{} ".format(i, j)
         smry+="\nFailures: {} / {:.2%}".format(self.failure,self.failure/ttl)
+    
+        temp_counter = Counter()
+        bins = [1,2,4,8,12,20]
+        for val in self.collection.values():
+            for b in bins:
+                if val>b:
+                    temp_counter[b]+=val
+        smry+="\n% Read: "+"; ".join("{:.2%}>{}".format(i/ttl,k) for k,i in temp_counter.items())
+            
         return smry
 
 class NGS_Sample_Process_Tester(NGS_Sample_Process):
