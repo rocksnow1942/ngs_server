@@ -63,13 +63,13 @@ class NGS_Sample_Process:
         self.index_collection=Counter() # log wrong index
         self.length_count=Counter() # log sequence length
         # self.commit_result = Counter() # log commit , key is (round_id, sequence) 
-        self.unique_commit = Counter()
-        self.total_commit = Counter()
+        self.unique_commit = Counter() # log unique sequence commited count in round
+        self.total_commit = Counter() # log total commit in rounds
 
         self.failure = 0 # log other un explained.
         self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
-        self.success = 0 # find match
+        self.success = 0 # find match primers in one strand
         self.pattern = [(re.compile(j+'[AGTCN]{0,3}'+l) , re.compile(m+'[AGTCN]{0,3}'+k) ) for i,j,k,l,m in self.sampleinfo]
         self._totalread = self.totalread()
         ngsprimer = [(i.name, i.sequence)
@@ -101,7 +101,7 @@ class NGS_Sample_Process:
             matched = self.match_pattern(seq,primers,patterns)
             if matched:
                 nomatch = False
-                self.success +=1
+                self.success += 1
                 if reverse_comp(matched) in (rseq):
                     self.revcomp+=1
                     self.collection[(rdid,matched)]+=1
@@ -173,7 +173,7 @@ class NGS_Sample_Process:
                         sequence=sequence, rounds_id=rd_id).first()
                     if seqround:                    
                         seqround.count -= count
-                        if seqround.count == 0:
+                        if seqround.count < 1:
                             db.session.delete(seqround)                   
             db.session.commit()
         else:
@@ -215,15 +215,16 @@ class NGS_Sample_Process:
 
     def results(self,commit):
         ttl = self.total
+        
+        _total_commit = sum(self.total_commit.values())
         smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
-            ttl, self.success,self.success/ttl,self.revcomp,self.revcomp/ttl, )
+            ttl, self.success, self.success/ttl, self.revcomp, self.revcomp/ttl, )
         smry = smry + f"Commit threshold: {self.commit_threshold}\n"
-        leftover = len(self.collection)
+        leftover = self.revcomp - _total_commit
         smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count < {}): {} / {:.2%}\n".format(
-            self.success-leftover, (self.success-leftover)/ttl, self.commit_threshold+1, leftover, leftover/ttl)
+            _total_commit, _total_commit/ttl, self.commit_threshold+1, leftover, leftover/ttl)
         length = self.length_count.most_common(4)
-        total = sum([i for i in self.length_count.values()])
-        length = '; '.join(["{:.1%} {}nt".format(j/total,i) for i, j in length])
+        length = '; '.join(["{:.1%} {}nt".format(j/_total_commit,i) for i, j in length])
         smry = smry + "Length Distribution: {}\n".format(length)
         primers = sorted([i for i in self.primer_collection.items()],key=lambda x: x[1],reverse=True)
         sumprimers = sum([i[1] for i in primers])
