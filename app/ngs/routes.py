@@ -298,6 +298,7 @@ def ngs_data_processing():
             sg.files_validation()
             sg.launch_task(commit,threshold)
             reload=True
+            messages=[]
         except Exception as e:
             messages=[('danger' , f"Validation Failed. ID:<{id}>, resaon:<{e}>." )]
     else:

@@ -32,12 +32,18 @@
             {% include 'upload/uploadwidget.html'%}
             {% if entry.processed %}
             <div class='row'>
-                <div class='col-md-4'>
-            <button class="btn btn-default disabled" type="button"><span class="glyphicon glyphicon-qrcode" aria-hidden="true"></span> Already Processed</button></div>
             <div class='col-md-4'>
             <a class="btn btn-default" href="javascript:start_ngs_data_parsing('{{entry.id}}','retract')" 
             onclick="return confirm('Sure want to RETRACT the commit? This cannot be undone.')" role="button">
-                <span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Retract Commit</a></div>
+                <span class="glyphicon glyphicon-qrcode" aria-hidden="true"></span> Retract Last Commit</a></div>
+            <div class='col-md-4'>
+                <a class="btn btn-default" href="javascript:start_ngs_data_parsing('{{entry.id}}','false')"
+                    onclick="return confirm('Sure want to process without commit to database?')" role="button">
+                    <span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Process No Commit</a>
+            </div>
+            <div class='col-md-4'><input class="form-control" id="commit_threshold_{{entry.id}}" value=""
+                    placeholder="Threshold, default 2"></div>
+            </div>
             {% elif entry.task_id %}
             <div class="progress ">
                 <div class="progress-bar progress-bar-striped active" id="{{entry.__tablename__+':'+entry.id|string}}" role="progressbar"

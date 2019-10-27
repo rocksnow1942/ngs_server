@@ -802,6 +802,8 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     data_string = Column(mysql.TEXT, default="{}")
     commit_threshold = data_string_descriptor('commit_threshold',2)()
     commit_result = data_string_descriptor('commit_result',{})()
+    temp_result = data_string_descriptor('temp_result', '')()
+    temp_commit_result = data_string_descriptor('temp_commit_result', {})()
 
 
     def __repr__(self):
@@ -812,6 +814,9 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     
     def get_commit_result(self,round_id):
         return self.commit_result.get(str(round_id),None)
+    
+    def get_temp_commit_result(self, round_id):
+        return self.temp_commit_result.get(str(round_id), None)
 
     @property
     def showdatafiles(self):
@@ -831,7 +836,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
 
     @property
     def processed(self):
-        return bool(self.processingresult)
+        return bool(self.processingresult) and (not self.task_id)
 
     @property
     def progress(self):
@@ -844,11 +849,12 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         l1=f"{self.name}  - Date: {self.date}"
         l2 = f"{len(self.samples)} Samples, Note: {self.note}"
         l3 = f"DataFile: {self.datafile}"
-        l4 = f"Processed : {bool(self.processingresult)}"
+        l4 = f"Committed : {bool(self.processingresult)}"
         return l1,l2,l3,l4
 
     def launch_task(self, commit, commit_threshold):
-        if commit == 'retract': commit_threshold=self.commit_threshold
+        if commit == 'retract': 
+            commit_threshold=self.commit_threshold
         job = current_app.task_queue.enqueue(
             'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit, commit_threshold,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")

@@ -17,13 +17,16 @@
             Round RP
         </th>
         <th width = "160px">
-            NGS Index FP
+             Index FP
         </th>
         <th width = "160px">
-            NGS Index RP
+             Index RP
         </th>
         <th width="160px">
-            Unique / Total
+            Commit U/T
+        </th>
+        <th width="160px">
+            Temp U/T
         </th>
     </tr>
     {% for sample in entry.samples %}
@@ -40,30 +43,39 @@
             <td >
                {{entry.get_commit_result(sample.round_id)}}
             </td>
+            <td>
+                {{entry.get_temp_commit_result(sample.round_id)}}
+            </td>
         </tr>
     {% endfor %}  
 </table> 
 <div class="row">
         <div class="col-xs-6 col-md-4">
             <div class="thumbnail alert-default well-md">
-                <h5 class="card-title">Processing Result</h5>
-                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.processingresult %}{{entry.processingresult}}{%else%}None{% endif %}</p>
+                <h5 class="card-title">Committed Result</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.processingresult %}{{entry.processingresult}}{%else%}Data not committed.{% endif %}</p>
             </div>
         </div>
+        
+        <div class="col-xs-6 col-md-4">
+            <div class="thumbnail alert-default well-md">
+                {% if entry.temp_result%}
+                <h5 class="card-title">Temp Result</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{{entry.temp_result}}</p>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="col-xs-6 col-md-4">
             <div class="thumbnail alert-default well-md">
                 <h5 class="card-title">Note</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.note %}{{entry.note}}{%else%}None{% endif %}</p>
                 <h5 class="card-title">Sample Submission Date</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{{entry.date}}</p>
-               <hr>
-                <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'> <b>Edit NGS Sample</b> </a>
-            </div>
-        </div>
-        <div class="col-xs-6 col-md-4">
-            <div class="thumbnail alert-default well-md">
                 <h5 class="card-title">Data files</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{{entry.showdatafiles}}</p>
+               <hr>
+                <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'> <b>Edit NGS Sample</b> </a>
             </div>
         </div>
 </div>

@@ -31,7 +31,7 @@ def process_ngssample_files(file1,file2):
     create_folder_if_not_exist(savefolder)
     f1,f2 = secure_filename(file1.filename),secure_filename(file2.filename)
     f1 = f1.rsplit('.',1)[0]+datetime.now().strftime("_%Y%m%d_%H%M%S")+'-1.'+f1.rsplit('.',1)[1]
-    f2 = f2.rsplit('.',1)[0]+datetime.now().strftime("_$Y%m%d_%H%M%S")+'-2.'+f2.rsplit('.',1)[1]
+    f2 = f2.rsplit('.',1)[0]+datetime.now().strftime("_%Y%m%d_%H%M%S")+'-2.'+f2.rsplit('.',1)[1]
     file1.save(os.path.join(savefolder, f1))
     file2.save(os.path.join(savefolder, f2))
     return f1,f2

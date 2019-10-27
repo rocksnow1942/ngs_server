@@ -8,7 +8,7 @@ $(document).ready(function () {
         perfectmatch.parent().addClass('active')
     } else {
         if (url) {
-            $('ul.nav a[href*="' + url + '"]').filter(function () { return $(this).attr('name') != 'badge_icon' }).parent().addClass('active');
+            $('ul.nav a[href*="' + url + '/"]').filter(function () { return $(this).attr('name') != 'badge_icon' }).parent().addClass('active');
         }
     }
 });

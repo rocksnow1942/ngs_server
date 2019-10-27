@@ -166,10 +166,11 @@ class NGS_Sample_Process:
                     sequence = Sequence.query.filter_by(
                         aptamer_seq=seq).first()                    
                     seqround = SeqRound.query.filter_by(
-                        sequence=sequence, rounds_id=rd_id).first()                    
-                    seqround.count -= count
-                    if seqround.count == 0:
-                        db.session.delete(seqround)                   
+                        sequence=sequence, rounds_id=rd_id).first()
+                    if seqround:                    
+                        seqround.count -= count
+                        if seqround.count == 0:
+                            db.session.delete(seqround)                   
             db.session.commit()
         else:
             for k in list(self.collection.keys()):
@@ -178,6 +179,7 @@ class NGS_Sample_Process:
                 if count > self.commit_threshold:  # only over 2 count sequence will be committed.
                     self.collection.pop(k)
                     self.length_count[len(seq)] += count 
+                    self.commit_result[k] += count
 
 
     def finnal_commit(self):
@@ -198,12 +200,13 @@ class NGS_Sample_Process:
         print('*** ending total read:', counter)
         self.commit(commit)
         self.finnal_commit()
+        result = self.results
         return self.results(), self.commit_result_dict()
 
     def commit_result_dict(self):
         unique = Counter()
         total = Counter()
-        for (rd_id,seq),count in Counter().items():
+        for (rd_id,seq),count in self.commit_result.items():
             unique[rd_id]+=1
             total[rd_id]+=count
         return {i: f"{unique[i]}/{total[i]}" for i in unique.keys()}
@@ -212,6 +215,7 @@ class NGS_Sample_Process:
         ttl = self.total
         smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
             ttl, self.success,self.success/ttl,self.revcomp,self.revcomp/ttl, )
+        smry = smry + f"Commit threshold: {self.commit_threshold}\n"
         leftover = len(self.collection)
         smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count < {}): {} / {:.2%}\n".format(
             self.success-leftover, (self.success-leftover)/ttl, self.commit_threshold+1, leftover, leftover/ttl)
@@ -331,7 +335,10 @@ def parse_ngs_data(nsg_id, commit, commit_threshold):
     if commit=='retract':
         nsg.processingresult=""
         nsg.commit_threshold = 0
-        nsg.comit_result ={}
+        nsg.commit_result = {}
+    elif commit == 'false':
+        nsg.temp_result = result
+        nsg.temp_commit_result = commit_result
     else:
         nsg.processingresult=result
         nsg.commit_threshold = commit_threshold
