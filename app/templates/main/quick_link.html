@@ -5,7 +5,7 @@
         <a href="{{link}}" class='link custom-card'>{{name}}</a>
         <div class='link-hidden-text' id={{loop.index0}} align='center'>
             <a href="javascript: open_modal({{loop.index0}},'{{name}}','{{link}}')" class="label label-info cursor_pointer"><span class="glyphicon glyphicon-edit"></span></a>
-            <a href = "{{url_for('main.edit_link',delete=loop.index0)}}" class="label label-danger cursor_pointer custom-card"><span class="glyphicon glyphicon-minus"></span></a>
+            <a href = "{{url_for('main.edit_link',delete=loop.index0)}}" onclick="return confirm('Sure to delete Quick Link <{{name}}>?')" class="label label-danger cursor_pointer custom-card"><span class="glyphicon glyphicon-minus"></span></a>
         </div>
     </div>
     {% endfor %}
