@@ -3,9 +3,25 @@
 
 {% block app_content %}
     <div class="jumbotron">
-      <h1>Hi, {{ current_user.username }}!</h1>
-      <h2>What do you want to do?</h2>
+      <h1>Good {{greet}}, {{ current_user.username }}!</h1>
     </div>
+
+<div class="panel panel-info">
+  <div class="panel-heading" role="tab" id='headingQuickLink'>
+    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseQuickLink" aria-expanded="true"
+      aria-controls="collapseQuickLink" class="custom-card">
+      <h3 class="panel-title"> Quick Links  </h3>
+    </a>
+  </div>
+  <div id="collapseQuickLink" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingQuickLink">
+    <div class="panel-body">
+
+     {% include "main/quick_link.html" %}
+
+    </div>
+  </div>
+</div>
+
 
     <div class="panel panel-info">
       <div class="panel-heading" role="tab" id='headingOne'>
@@ -20,11 +36,9 @@
             {% endif %}
              </h3></a>
       </div>
-
       <div id="collapseOne" class="panel-collapse collapse {% if current_user.follow_ppt_update_count %}in{%endif%}" role="tabpanel" aria-labelledby="headingOne">
       <div class="panel-body">
       {% if follow_ppt %}
-     
       {% for row in follow_ppt|batch(6) %}
       <div class='row'>
         {% for entry in row %}        
@@ -59,16 +73,29 @@
               {% endfor %}
     </div>
       {% endfor %}
-      </div>
-     
-      </div>
-      
       {% else %}
         <h4>Follow interesting projects on the PPT page, so that you won't miss out the new findings!</h4>
       {% endif %}
+      </div>
       </div>
     </div>
 
     
 {% endblock %}
 
+
+{% block scripts %}
+{{super()}}
+<script>
+// open modal 
+  function open_modal(idx,name,link) {
+    $('#quick_link_name').val(name);
+    $('#quick_link_url').val(link);
+    $('#quick_link_id').val(idx);
+    $('#edit_link').modal('show');
+  }
+
+  
+
+</script>
+{% endblock %}

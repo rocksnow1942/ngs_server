@@ -38,7 +38,14 @@ def before_request():
                 PPT.date.desc()).all()
         g.search_form.search_ppt.choices = [('all', 'All'),]+ result
           
-
+def get_part_of_day(hour):
+    return ("morning" if 5 <= hour <= 11
+    else
+    "afternoon" if 12 <= hour <= 17
+    else
+    "evening" if 18 <= hour <= 22
+    else
+    "night")
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
@@ -46,7 +53,32 @@ def before_request():
 def index():
     follow_ppt = current_user.follow_ppt.keys()
     entries = PPT.query.filter(PPT.id.in_(follow_ppt)).all()
-    return render_template('index.html',title='Home',follow_ppt=entries)
+    greet = get_part_of_day(datetime.now().hour)
+    linkentries = current_user.quick_link
+    return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, linkentries=linkentries)
+
+
+
+@bp.route('/edit_link', methods=['GET', 'POST'])
+@login_required
+def edit_link():
+    form = request.form
+    delete = request.args.get('delete', None)
+    if form and request.method=='POST':
+        idx = int(form.get('id'))
+        if idx == -1:
+            current_user.quick_link.append((form.get('name'), form.get('url')))
+        else:
+            current_user.quick_link[idx] = (form.get('name'), form.get('url'))
+        current_user.save_data()
+        db.session.commit()
+    if delete != None:
+        current_user.quick_link.pop(int(delete))
+        current_user.save_data()
+        db.session.commit()
+    return redirect(url_for('main.index'))
+
+
 
 
 

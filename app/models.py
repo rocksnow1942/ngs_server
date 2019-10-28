@@ -99,6 +99,7 @@ class User(UserMixin,db.Model,DataStringMixin):
     slide_cart = data_string_descriptor('slide_cart',[])()
     follow_ppt = data_string_descriptor('follow_ppt',{})()
     bookmarked_ppt = data_string_descriptor('bookmarked_ppt', [])()
+    quick_link = data_string_descriptor('quick_link',[])() # format is [(name,url)]
    
     def __repr__(self):
         return '<User {}>'.format(self.username)
