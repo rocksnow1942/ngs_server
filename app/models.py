@@ -305,7 +305,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     
     @property
     def clustered(self):
-        return bool(self.cluster_para)
+        return bool(self.cluster_para) and (not self.task_id)
 
     def top_clusters(self):
         # result is list of tuple, in order of: C1/V33.1 , C1, Sequence, similarto ks, distance
