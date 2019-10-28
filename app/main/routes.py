@@ -11,6 +11,7 @@ from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_
 from app.ppt.routes import ppt_search_handler
 from app.utils.analysis._alignment import lev_distance
+from app.utils.common_utils import get_part_of_day, parse_url_path
 
 @bp.before_app_request
 def before_request():
@@ -38,25 +39,18 @@ def before_request():
                 PPT.date.desc()).all()
         g.search_form.search_ppt.choices = [('all', 'All'),]+ result
           
-def get_part_of_day(hour):
-    return ("morning" if 5 <= hour <= 11
-    else
-    "afternoon" if 12 <= hour <= 17
-    else
-    "evening" if 18 <= hour <= 22
-    else
-    "night")
+
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
+    print(request.url_root)
     follow_ppt = current_user.follow_ppt.keys()
     entries = PPT.query.filter(PPT.id.in_(follow_ppt)).all()
     greet = get_part_of_day(datetime.now().hour)
     linkentries = current_user.quick_link
     return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, linkentries=linkentries)
-
 
 
 @bp.route('/edit_link', methods=['GET', 'POST'])
@@ -66,10 +60,12 @@ def edit_link():
     delete = request.args.get('delete', None)
     if form and request.method=='POST':
         idx = int(form.get('id'))
+        name = form.get('name')
+        url = parse_url_path(form.get('url'))
         if idx == -1:
-            current_user.quick_link.append((form.get('name'), form.get('url')))
+            current_user.quick_link.append((name, url))
         else:
-            current_user.quick_link[idx] = (form.get('name'), form.get('url'))
+            current_user.quick_link[idx] = (name, url)
         current_user.save_data()
         db.session.commit()
     if delete != None:
