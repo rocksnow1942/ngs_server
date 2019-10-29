@@ -30,7 +30,7 @@ numpy==1.17.2
 packaging==19.2
 pandas==0.25.1
 pathtools==0.1.2
-Pillow==6.1.0
+Pillow==6.2.1
 psutil==5.6.3
 pycodestyle==2.5.0
 PyJWT==1.7.1
