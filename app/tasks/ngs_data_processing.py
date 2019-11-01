@@ -88,8 +88,9 @@ class NGS_Sample_Process:
         selectionprimer = [(i.name, i.sequence) for i in Primers.query.filter(
                     Primers.role.in_(('PD', 'SELEX'))).all()]
         selectionprimer = selectionprimer + [(i,reverse_comp(j)) for i,j in selectionprimer]
-        ssp = {i[j] for i in self.sampleinfo for j in [3,4] }
-        self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
+        # ssp = {i[j] for i in self.sampleinfo for j in [3,4] }
+        self.selectionprimer = [
+            i for i in selectionprimer]  # if i[1] not in ssp
         self.ks = {i.rep_seq:i.id for i in KnownSequence.query.all()}
 
     def filter_display(self):
