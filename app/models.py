@@ -937,8 +937,8 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
                 else:
                     continue
             match += findmatch
-        assert revcomp>=0,('Too Many non reverse-complimentary sequences.')
-        assert match >=0, ('Too many index primers and slection primers don\'t match.')
+        # assert revcomp>=0,('Too Many non reverse-complimentary sequences.')
+        # assert match >=0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']
