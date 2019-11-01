@@ -354,8 +354,7 @@ class NGS_Sample_Process:
         smry = smry + "Aberrant selection primers found in {} / {:.2%} reads\n".format(self.aberrant_primers, self.aberrant_primers/ttl)
         smry += "Most common selection - NGS combinations are:\n"
         # primers[0:5]:
-        smry += "\n".join(["<{:<12}:{:>12}> - {:>6}".format(str(i[0]), str(i[1]), j)
-                           for i, j in self.primer_collection.most_common(8)])
+        smry += "\n".join(["<{}:{}> - {}".format(i[0], i[1], j) for i, j in self.primer_collection.most_common(8)])
         # smry +="\nAbberant NGS sequencing primers found in {} / {:.2%} reads\n".format(sumindex,sumindex/ttl)
         # smry +="Most common ones are: "
         # for i, j in index[0:5]:
