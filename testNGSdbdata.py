@@ -322,4 +322,4 @@ a.most_common(100)
 "{:<9}".format(4)
 
 from datetime import datetime
-datetime.now().strftime('%Y%M%D%H%M')
+datetime.now().strftime('%Y/%m/%d %H:%M')
