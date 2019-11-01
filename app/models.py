@@ -790,7 +790,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __searchable__ = ['name', 'note']
     __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
-    name = Column(String(50))
+    name = Column(String(500))
     note = Column(mysql.VARCHAR(500))
     date = Column(DateTime(), default=datetime.now)
     samples = relationship(
