@@ -304,7 +304,7 @@ class NGS_Sample_Process:
             f.write(f'Processing files: \nFile1:{self.f1}\nFile2:{self.f2}\nDate:{datetime.now().strftime("%Y/%m/%d %H:%M")}\n')
             f.write('Top 100 failure sequences:\n')
             for i,j in self.failure_collection.most_common(100):
-                f.write("{:<9}{}\n".format(i,j))
+                f.write("{:<9}{}\n".format(j,i))
 
 
 
