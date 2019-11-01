@@ -31,7 +31,6 @@ def load_shelve_to_sql(filepath):
                     new.data=item
                     db.session.add(new)
                     db.session.commit()
-                    print('added-{}'.format(key))
 
 
 class Data():
@@ -91,9 +90,8 @@ class Data():
                 self.experiment_load_hist.append(i)
             
     def save_data(self):
-       
         for k, i in self.index_to_save.items():
-            print('index saves <{}> <{}>'.format(k,i))
+            # print('index saves <{}> <{}>'.format(k,i))
             if i == 'sync':
                 Plojo_Project.sync_obj(k, data=list(self.index[k]))
             elif i == 'del':
@@ -106,7 +104,7 @@ class Data():
                 print(k, i, "this is not found in experiment operation.")
         self.index_to_save = {}
         for key, item in self.experiment_to_save.items():
-            print('Experiment saves <{}> <{}>'.format(key, item))
+            # print('Experiment saves <{}> <{}>'.format(key, item))
             if item == 'sync':
                 Plojo_Data.sync_obj(key, data=self.experiment[key])
             elif item == 'del':

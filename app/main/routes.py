@@ -45,7 +45,6 @@ def before_request():
 @bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
-    print(request.url_root)
     follow_ppt = current_user.follow_ppt.keys()
     entries = PPT.query.filter(PPT.id.in_(follow_ppt)).all()
     greet = get_part_of_day(datetime.now().hour)
@@ -113,6 +112,8 @@ def ngs_serach_handler(form):
                    sequence='aptamer_seq')
     if method == 'text':
         entries, total = target.search(form.q.data,page,pagelimit)
+    elif method == 'name':
+        pass
     elif method == 'sequence':
         seq = form.q.data
         if not validate_sequence(seq): 

@@ -290,13 +290,19 @@ def get_known_as_sequence():
 def ngs_data_processing():
     commit = request.json.get('commit', False)
     id = request.json.get('id')
-    threshold = int(request.json.get('threshold'))
+    temp_filter = request.json.get('filters')
+    filters = [0]*5 
     sg = NGSSampleGroup.query.get(id)
     reload=False
+    # if 0:
     if sg and sg.can_start_task():
         try:
+            for i in temp_filter:
+                k, v = i['name'], i['value']
+                filters[int(k)] = int(v) if v.isnumeric() else 1
+          
             sg.files_validation()
-            sg.launch_task(commit,threshold)
+            sg.launch_task(commit,filters)
             reload=True
             messages=[]
         except Exception as e:

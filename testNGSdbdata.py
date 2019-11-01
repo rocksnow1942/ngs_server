@@ -50,8 +50,8 @@ def totalread(f1):
 totalread(f)
 totalread(r)
 
-f="/Users/hui/Downloads/miseq_data/7_R1.fastq"
-r="/Users/hui/Downloads/miseq_data/7_R2.fastq"
+f="/Users/hui/Downloads/N8A-C-R8CDF_S1_L001_R1_001.fastq"
+r="/Users/hui/Downloads/N8A-C-R8CDF_S1_L001_R2_001.fastq"
 
 fg = file_generator_raw(f,r)
 
@@ -60,18 +60,23 @@ len(itfp)
 
 count = 0
 revcomp = 0
-for i in range(1000):
+for i in range(100):
     l1,l2 = next(fgs)
     l2r = reverse_comp(l2)
     itfpindex = (itfp in l1) and l1.index(itfp)
     krpcindex = (krpc in l1) and l1.index(krpc)
     itfpindex1 = (itfp in l2r) and l2r.index(itfp)
     krpcindex1 = (krpc in l2r) and l2r.index(krpc)
-    if not itfpindex:
-        count += 1
-        l1_p = l1[2:10]
-        if reverse_comp(l1_p) not in l2r:
-            revcomp +=1
+    Fstrand = l1[itfpindex+len(itfp):krpcindex]
+    Rstrandrc = l2r[itfpindex1+len(itfp):krpcindex1]
+    print(Fstrand)
+    print(Rstrandrc)
+    print('+++++++++++'*3)
+    # if not itfpindex:
+    #     count += 1
+    #     l1_p = l1[2:10]
+    #     if reverse_comp(l1_p) not in l2r:
+    #         revcomp +=1
 
 
 
@@ -265,3 +270,40 @@ AGGTTACTGAGGAGGTTAGCCCGGGTGCGCGCGAGATTCACGGTAGCACGCATAGGCATCGTCACACACTCACATCTTCT
 CCCBCGGGGFGGGGGGGGGGGGGGGGGGGGGGGGGDGEFFGGGGGGGGGGGGGGGGGGGGGGGDGFGGGGGGGGGGGGGGGGGGGGGGGGGGEGGGGGFGGGGGGGGEGGGGGDGGGGGGGGGGGGGFGGGGGGGGEEDDGFGGGGGFFG
 @M06673:6:000000000-CMWK5:1:1101:15049:1008 1:N:0:1
 @M06673:6:000000000-CMWK5:1:1101:15049:1008 2:N:0:1
+
+
+from itertools import islice,zip_longest
+
+for i in zip_longest([1,2],[]):
+    print(i)
+tuple(i for i in range(4))
+f1 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R1_001.fastq"
+f2 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R2_001.fastq"
+
+def fgen(f1,f2):
+    f= open(f1,'rt')
+    for fw,fs,  in zip(islice(f, 1, None, 2), islice(f, 1, None, 2), ):
+        fw=fw.strip()
+            # if line == reverse_comp(rev):
+               # self.revcomp+=1
+        yield fw,fs
+    f.close()
+g = fgen(f1,f2)
+for _ in g:
+    continue
+_
+
+for i in zip_longest(islice([1,2,3],1,None,1),islice([],1,None,1)):
+    print(i)
+
+
+next(g)
+
+
+a='a'
+b=None
+
+if a or b:
+    print(a,b)
+else:
+    print('here')

@@ -10,7 +10,7 @@ class SearchNGSForm(FlaskForm):
     field = [('selection', 'Selection'), ('round', 'Rounds'),
              ('known_sequence', 'Aptamers'), ('analysis', 'Analysis'), ('ngs_sample_group', 'NGS Samples'),('primer','Primers'),('sequence','Sequence')]
     search_field = SelectField('Search In', choices=field, validators=[DataRequired()])
-    method = [('text','Text Match'),('sequence','bp Match/Rev Comp'),('distance','Levenshtein Distance')]
+    method = [('text','Text Match'),('name','Name Match'),('sequence','bp Match/Rev Comp'),('distance','Levenshtein Distance')]
     search_method= SelectField('Search Method', choices=method,validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):

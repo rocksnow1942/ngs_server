@@ -5,7 +5,7 @@ from app import create_app
 import os
 from flask import current_app
 import json
-from itertools import islice
+from itertools import islice, zip_longest
 from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist,lev_distance
 from collections import Counter
 import re
@@ -47,17 +47,23 @@ _set_task_progress = ProgressHandler()
 #             task.complete = True
 #         db.session.commit()
 
+def illumina_nt_score(n):
+    return """!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI""".index(n)
 
 class NGS_Sample_Process:
     """
     process files into database commits. assuming files are already validated.
+    possible filters: primer filter, F-R equal match filter, rev-comp filter, Q score filter, read filter
+    filters: [F-R equal match length filter, rev-comp filter, Qscore filter; Qscore threshold, read threshold filter]
     """
 
-    def __init__(self, f1, f2, sampleinfo, commit_threshold):
+    def __init__(self, f1, f2, sampleinfo,filters):
         self.f1 = f1
         self.f2 = f2
         self.sampleinfo = sampleinfo
-        self.commit_threshold = commit_threshold
+        self.filters = filters
+        *_,self.score_threshold,self.commit_threshold = filters
+
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
@@ -67,11 +73,13 @@ class NGS_Sample_Process:
         self.total_commit = Counter() # log total commit in rounds
 
         self.failure = 0 # log other un explained.
-        self.total = 0 # total reads
+        self.score_filter = 0 
+        self.length_filter = 0
+        # self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
         self.success = 0 # find match primers in one strand
-        self.pattern = [(re.compile(j+'[AGTCN]{0,3}'+l) , re.compile(m+'[AGTCN]{0,3}'+k) ) for i,j,k,l,m in self.sampleinfo]
-        self._totalread = self.totalread()
+        self.pattern = [(re.compile(j+'[AGTCN]{0,2}'+l) , re.compile(m+'[AGTCN]{0,2}'+k) ) for i,j,k,l,m in self.sampleinfo]
+        self.total = self.totalread()
         ngsprimer = [(i.name, i.sequence)
                      for i in Primers.query.filter_by(role='NGS').all()]
         ngsprimer = ngsprimer + [(i,reverse_comp(j)) for i,j in ngsprimer]
@@ -84,30 +92,101 @@ class NGS_Sample_Process:
         self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
         self.ks = {i.rep_seq:i.id for i in KnownSequence.query.all()}
 
+    def filter_display(self):
+        return " & ".join(i for i in ["Eq-Len"*bool(self.filters[0]),"Rev-Comp"*bool(self.filters[1]) ,
+                f"Q-score>{self.score_threshold}"*bool(self.filters[2]) , 
+                f"Count>{self.commit_threshold}"*bool(self.commit_threshold) ] if i)
+
     def file_generator(self):
-        with open(self.f1,'rt') as f, open(self.f2,'rt') as r:
-            for line,rev in zip(islice(f,1,None,4),islice(r,1,None,4)):
-                line=line.strip()
-                rev=rev.strip()
-                self.total+=1
-                # if line == reverse_comp(rev):
-                    # self.revcomp+=1
-                yield line,rev
+        f=open(self.f1,'rt') if self.f1 else []
+        r = open(self.f2,'rt') if self.f2 else []
+        for fw_fs_rev_rs in zip_longest(islice(f, 1, None, 2), islice(f, 1, None, 2), islice(r, 1, None, 2), islice(r, 1, None, 2)):
+            fw_fs_rev_rs = tuple(i.strip() if i else i for i in fw_fs_rev_rs)
+            yield fw_fs_rev_rs
+        if self.f1: f.close()
+        if self.f2: r.close()
 
-    def process_seq(self,f_r_seq):
+    def _fr_equal_length_filter(self,f,r):
+        if len(f) == len(r):
+            self.length_filter += 1
+            return f
+        else:
+            return False
+    
+    def _rev_comp_filter(self,f,r):
+        if f == r:
+            self.revcomp+=1
+            return f 
+        else: return False 
+    
+    def _q_score_filter(self, forward, forward_score, reverse, reverse_score):
+        best_score_nts = [(f, fs) if fs >= rs else (r, rs) for f, fs, r, rs in zip_longest(
+            forward, forward_score, reverse, reverse_score,fillvalue=-1)]
+        if min([i[1] for i in best_score_nts]) >= self.score_threshold:
+            self.score_filter += 1
+            return "".join(i[0] for i in best_score_nts)
+        else:
+            return False
+
+    
+    # def reverse_compliment_filter(self,f,fs,r,rs):
+
+
+
+    def result_filter(self, fmatch,rmatch):
+        forward, forward_score = fmatch or ['',[0]]
+        reverse, reverse_score = rmatch or ['',[0]]
+        fr_eq = self._fr_equal_length_filter(forward,reverse)
+        rev_com = self._rev_comp_filter(forward,reverse)
+        q_score = self._q_score_filter(forward, forward_score, reverse, reverse_score)
+        filter_result = [r for r, f in zip((fr_eq, rev_com, q_score), self.filters) if f]
+        if all(filter_result):
+            if filter_result:
+                return filter_result[-1] # the final result is after passing Q score filter, if it passes rev comp filter, the same sequence will pass q score. 
+            else:
+                return forward or reverse
+        else:
+            return None
+
+        # if len(forward)!=len(reverse):
+        #     minf,minr = min(forward_score),min(reverse_score)           
+        #     matchresult, matchscore = (forward, minf )if minf>=minr else (reverse, minr)
+        #     if matchscore >= self.score_threshold:
+        #         self.score_filter += 1
+        #         return matchresult
+        #     else:
+        #         return None
+        # else:
+        #     self.length_filter += 1
+        #     assb = [(f,fs) if fs >= rs else (r,rs) for f, fs, r, rs in zip(
+        #         forward, forward_score, reverse, reverse_score)]
+        #     if forward == reverse:
+        #         self.revcomp += 1
+        #     if min([i[1] for i in assb]) >= self.score_threshold:
+        #         self.score_filter += 1
+        #         return "".join(i[0] for i in assb)
+        #     else:
+        #         return None
+                       
+
+    def process_seq(self, fw_fs_rev_rs):
         nomatch = True
-        seq,rseq=f_r_seq
+        fw, fs,rev,rs = fw_fs_rev_rs
         for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
-            matched = self.match_pattern(seq,primers,patterns)
-            if matched:
+            fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
+            rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
+            if fmatch or rmatch:
                 nomatch = False
-                self.success += 1
-                if reverse_comp(matched) in (rseq):
-                    self.revcomp+=1
-                    self.collection[(rdid,matched)]+=1
-        if nomatch: self.log_unmatch(seq)
+                self.success+=1
+                matchresult = self.result_filter(fmatch,rmatch)
+                if matchresult:  
+                    self.collection[(rdid,matchresult)]+=1
+                break
+        if nomatch:    
+            self.log_unmatch(fw or rev)
+              
 
-    def match_pattern(self,seq,primers,patterns):
+    def match_pattern(self,seq,primers,patterns,score):
         match = False
         if all([i in seq for i in primers]):
             ffind = patterns[0].search(seq)
@@ -117,7 +196,10 @@ class NGS_Sample_Process:
                 if rfind:
                     rindex = rfind[-1].span()[0]
                     match = seq[findex:rindex]
-        return match
+        if match:
+            return match, [illumina_nt_score(i) for i in score[findex:rindex]]
+        else:
+            return None
 
     def log_unmatch(self,seq):
         ab = True
@@ -129,13 +211,15 @@ class NGS_Sample_Process:
                 for n2, p2 in self.ngsprimer:
                     if p2 in seq[idx-3-len(p2): idx] or p2 in seq[idx+len(p):idx+len(p)+3 + len(p2)]:
                         self.index_collection[n2]+=1
-        if ab: self.failure+=1
+        if ab:
+            self.failure+=1
 
     def totalread(self):
-        with open(self.f1, 'rt') as f:
+        toread = self.f1 or self.f2
+        with open(toread, 'rt') as f:
             fb1 = file_blocks(f)
             totalread = sum(bl.count("\n") for bl in fb1)
-        return totalread/4
+        return totalread//4
 
     def commit(self, commit='true'):
         if commit =='true':
@@ -184,7 +268,6 @@ class NGS_Sample_Process:
                     # self.commit_result[k] += count
                     self.set_commit_result(rd_id,count)
 
-
     def finnal_commit(self):
         rds = [Rounds.query.get(k) for k, *_ in self.sampleinfo]
         for r in rds:
@@ -194,10 +277,10 @@ class NGS_Sample_Process:
     def process(self, commit):
         counter = 0
         # print('*** total read:', self._totalread)
-        for seq in self.file_generator():
+        for fw_fs_rev_rs in self.file_generator():
             counter += 1
-            _set_task_progress(counter/(self._totalread)*100,start=0,end=95)
-            self.process_seq(seq)
+            _set_task_progress(counter/(self.total)*100,start=0,end=95)
+            self.process_seq(fw_fs_rev_rs)
             # if counter % 52345 == 0:
             #     self.commit(commit)
         # print('*** ending total read:', counter)
@@ -215,13 +298,22 @@ class NGS_Sample_Process:
 
     def results(self,commit):
         ttl = self.total
-        
+        total_pass_filter = sum(self.collection.values())
         _total_commit = sum(self.total_commit.values())
-        smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass reverse-complimentary: {} / {:.2%}\n".format(
-            ttl, self.success, self.success/ttl, self.revcomp, self.revcomp/ttl, )
-        smry = smry + f"Commit threshold: {self.commit_threshold}\n"
-        leftover = self.revcomp - _total_commit
-        smry = smry + "Total commited: {} / {:.2%}\nUncommited (total count < {}): {} / {:.2%}\n".format(
+        smry = "Total reads: {} / 100%\nPass primers match: {} / {:.2%}\nPass F-R equal length filter: {} / {:.2%}\nPass Q-score filter (Q>{}): {} / {:.2%}\nPass reverse-complement filter: {} / {:.2%}\n".format(
+            ttl, self.success, self.success/ttl, self.length_filter, self.length_filter/ttl, self.score_threshold ,self.score_filter, self.score_filter/ttl, self.revcomp, self.revcomp/ttl, )
+        smry = smry+ "Filters used: {}\n".format(self.filter_display())
+
+        temp_counter = Counter()
+        bins = [1,2,4,8,12,20]
+        for val in self.collection.values():
+            for b in bins:
+                if val<b+1:
+                    temp_counter[b]+=val
+        smry+="Post non-Count filters Count break points: \n"+"; ".join("{:.2%}<{}".format(temp_counter[k]/ttl,k+1) for k in bins) + "\n"
+        # smry = smry + f"Count threshold used: {self.commit_threshold}\n"
+        leftover = total_pass_filter - _total_commit
+        smry = smry + "Total commit after all filters: {} / {:.2%}\nUncommited (total count < {}): {} / {:.2%}\n".format(
             _total_commit, _total_commit/ttl, self.commit_threshold+1, leftover, leftover/ttl)
         length = self.length_count.most_common(4)
         length = '; '.join(["{:.1%} {}nt".format(j/_total_commit,i) for i, j in length])
@@ -238,15 +330,9 @@ class NGS_Sample_Process:
         smry +="Most common ones are: "
         for i, j in index[0:5]:
             smry += "{}-{} ".format(i, j)
-        smry+="\nFailures: {} / {:.2%}".format(self.failure,self.failure/ttl)
+        smry+="\nNo match failures: {} / {:.2%}".format(self.failure,self.failure/ttl)
     
-        temp_counter = Counter()
-        bins = [1,2,4,8,12,20]
-        for val in self.collection.values():
-            for b in bins:
-                if val<b+1:
-                    temp_counter[b]+=val
-        smry+="\n% Read: "+"; ".join("{:.2%}<{}".format(temp_counter[k]/ttl,k+1) for k in bins)
+        
             
         return smry
 
@@ -261,12 +347,11 @@ class NGS_Sample_Process_Tester(NGS_Sample_Process):
         self.primer_collection = Counter()  # log wrong primers
         self.index_collection = Counter()  # log wrong index
         self.failure = 0  # log other un explained.
-        self.total = 0  # total reads
         self.revcomp = 0  # passed rev comp reads
         self.success = 0  # find match
         self.pattern = [(re.compile(j+'[AGTCN]{0,3}'+l), re.compile(
             m+'[AGTCN]{0,3}'+k)) for i, j, k, l, m in self.sampleinfo]
-        self._totalread = self.totalread()
+        self.total = self.totalread()
         ngsprimer = [("i701",	"CGAGTAAT"),
                      ("i702",	"TCTCCGGA"),
                      ("i703",	"AATGAGCG"),
@@ -324,8 +409,10 @@ def generate_sample_info(nsg_id):
     """
     nsg = NGSSampleGroup.query.get(nsg_id)
     savefolder = current_app.config['UPLOAD_FOLDER']
-    f1 = os.path.join(savefolder, json.loads(nsg.datafile)['file1'])
-    f2 = os.path.join(savefolder, json.loads(nsg.datafile)['file2'])
+    f1 = json.loads(nsg.datafile)['file1']
+    f2 = json.loads(nsg.datafile)['file2']
+    if f1: f1 = os.path.join(savefolder, f1)
+    if f2: f2 = os.path.join(savefolder, f2)
     sampleinfo = []
     for sample in nsg.samples:
         round_id = sample.round_id
@@ -338,23 +425,28 @@ def generate_sample_info(nsg_id):
     return f1,f2,sampleinfo
 
 
-def parse_ngs_data(nsg_id, commit, commit_threshold):
+def parse_ngs_data(nsg_id, commit, filters):
     f1,f2,sampleinfo=generate_sample_info(nsg_id)
-    NSProcessor = NGS_Sample_Process(f1, f2, sampleinfo, commit_threshold)
+    
+    NSProcessor = NGS_Sample_Process(f1, f2, sampleinfo, filters)
     result, commit_result = NSProcessor.process(commit)
     # processing file1 and file2 and add to database
     nsg = NGSSampleGroup.query.get(nsg_id)
     if commit=='retract':
         nsg.processingresult=""
-        nsg.commit_threshold = 0
+        # nsg.commit_threshold = 0
+        # nsg.score_threshold = 0
+        nsg.filters = []
         nsg.commit_result = {}
     elif commit == 'false':
         nsg.temp_result = result
         nsg.temp_commit_result = commit_result
     else:
         nsg.processingresult=result
-        nsg.commit_threshold = commit_threshold
+        # nsg.commit_threshold = commit_threshold
+        nsg.filters = filters
         nsg.commit_result = commit_result
+        # nsg.score_threshold = score_threshold
     nsg.save_data()
     nsg.task_id = None
     db.session.commit()

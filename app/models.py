@@ -800,10 +800,16 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     task_id = Column(db.String(36), ForeignKey('task.id', ondelete='SET NULL'),nullable=True)
     data_string = Column(mysql.TEXT, default="{}")
     commit_threshold = data_string_descriptor('commit_threshold',2)()
+    
     commit_result = data_string_descriptor('commit_result',{})()
     temp_result = data_string_descriptor('temp_result', '')()
     temp_commit_result = data_string_descriptor('temp_commit_result', {})()
 
+    filters = data_string_descriptor('filters',[0,1,0,30,2])() # processing filter, list, in the order of: equal-match-length; rev-comp ; Q score; Qscore threshold; count threshold
+
+    @property
+    def _filters(self):
+        return self.filters or [0, 1, 0, 30, 2]
 
     def __repr__(self):
         return f"NGS Sample <{self.name}>, ID:{self.id}"
@@ -851,11 +857,13 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         l4 = f"Committed : {bool(self.processingresult)}"
         return l1,l2,l3,l4
 
-    def launch_task(self, commit, commit_threshold):
+    def launch_task(self, commit,filters):
         if commit == 'retract': 
-            commit_threshold=self.commit_threshold
+            filters = self.filters
+            if not filters:
+                filters = [0,1,0,30,self.commit_threshold]
         job = current_app.task_queue.enqueue(
-            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit, commit_threshold,job_timeout=3600)
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()
@@ -877,49 +885,60 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         self._check_primers_match(f1,f2,sampleinfo)
 
     def _check_equal_file_length(self,f1,f2):
-        with open(f1,'rt') as f, open(f2,'rt') as r:
-            fb1 = file_blocks(f)
-            fb2 = file_blocks(r)
-            fb1length = sum(bl.count("\n") for bl in fb1)
-            fb2length = sum(bl.count("\n") for bl in fb2)
-        assert fb1length==fb2length, ("Files are not of the same length.")
+        """
+        don't check if there is no file2.
+        """
+        if f2:
+            with open(f1,'rt') as f, open(f2,'rt') as r:
+                fb1 = file_blocks(f)
+                fb2 = file_blocks(r)
+                fb1length = sum(bl.count("\n") for bl in fb1)
+                fb2length = sum(bl.count("\n") for bl in fb2)
+            assert fb1length==fb2length, ("Files are not of the same length.")
 
     def _check_primers_match(self,f1,f2,sampleinfo):
         forward ,reverse = [],[]
         needtoswap = 0
         match = 0
         revcomp=0
-        with open(f1,'rt') as f, open(f2,'rt') as r:
+        with open(f1,'rt') as f:
             for line in islice(f,1,2000,4):
                 forward.append(line.strip())
-            for line in islice(r,1,2000,4):
-                reverse.append(line.strip())
-        for _f,_r in zip(forward,reverse):
-            _f_mid =max(len(_f)//2,10)
-            mid20 = _f[_f_mid-10:_f_mid+10]
-            if reverse_comp(mid20) in _r:#_f==reverse_comp(_r):
-                revcomp+=1
-                findmatch = -1
-                if needtoswap > 0:
-                    totest,totest_r,vote = _r,_f,1
+        if f2:
+            with open(f2, 'rt') as r:
+                for line in islice(r, 1, 2000, 4):
+                    reverse.append(line.strip())
+        for idx,_f in enumerate(forward):
+            if reverse:
+                _r = reverse[idx]
+                _f_mid =max(len(_f)//2,10)
+                mid20 = _f[_f_mid-10:_f_mid+10]
+                if reverse_comp(mid20) in _r:#_f==reverse_comp(_r):
+                    revcomp+=1
                 else:
-                    totest,totest_r,vote = _f,_r,-1
-                for _,*primers in sampleinfo:
-                    if all([i in totest for i in primers]):
-                        needtoswap+=vote
-                        findmatch = 1
-                        break
-                    elif all([i in totest_r for i in primers]):
-                        needtoswap-=vote
-                        findmatch = 1
-                        break
-                    else:
-                        continue
-                match += findmatch
+                    revcomp-=1
             else:
-                revcomp-=1
-        assert revcomp>0,('Too Many non reverse-complimentary sequences.')
-        assert match > 0, ('Too many index primers and slection primers don\'t match.')
+                _r = reverse_comp(_f)
+
+            findmatch = -1
+            if needtoswap > 0:
+                totest, totest_r, vote = _r, _f, 1
+            else:
+                totest, totest_r,vote = _f,_r,-1
+            for _, *primers in sampleinfo:
+                if all([i in totest for i in primers]):
+                    needtoswap += vote
+                    findmatch = 1
+                    break
+                elif all([i in totest_r for i in primers]):
+                    needtoswap -= vote
+                    findmatch = 1
+                    break
+                else:
+                    continue
+            match += findmatch
+        assert revcomp>=0,('Too Many non reverse-complimentary sequences.')
+        assert match >=0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']

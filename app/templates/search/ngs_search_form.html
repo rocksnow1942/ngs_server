@@ -76,7 +76,7 @@ $(document).ready(function () {
 function change_search_field(method) {
     let sequence = ['known_sequence', 'primer', 'sequence'];
     let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
-    if (method != 'text') {
+    if (method != 'text' && method != 'name') {
         $('#ngs_search_revcomp_container').css('display','block');
         $("#search_field option").each(function () {
             if (sequence.includes($(this).val())) { $(this).removeAttr('disabled') }

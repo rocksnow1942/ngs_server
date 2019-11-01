@@ -1079,8 +1079,6 @@ def upload_file_source_cb(attr,old,new):
 
 
 def sd_save_data_cb():
-    print(raw_data.experiment_to_save)
-    print(raw_data.index_to_save)
     tosave = len(raw_data.experiment_to_save)
     exptosave = len(raw_data.index_to_save)
     raw_data.save_data()

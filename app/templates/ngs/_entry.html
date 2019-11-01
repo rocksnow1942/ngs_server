@@ -41,8 +41,11 @@
                     onclick="return confirm('Sure want to process without commit to database?')" role="button">
                     <span class="glyphicon glyphicon-barcode" aria-hidden="true"></span> Process No Commit</a>
             </div>
-            <div class='col-md-4'><input class="form-control" id="commit_threshold_{{entry.id}}" value=""
-                    placeholder="Threshold, default 2"></div>
+            <div class='col-md-4'><a class="btn btn-default" data-toggle="modal"
+                    data-target="#ngs_sample_group_para_{{entry.id}}"><span class="glyphicon glyphicon-cog"
+                        aria-hidden="true"></span> Process Para</a></div>
+            <!-- <div class='col-md-4'><input class="form-control" id="commit_threshold_{{entry.id}}" value=""
+                    placeholder="Threshold, default 2"></div> -->
             </div>
             {% elif entry.task_id %}
             <div class="progress ">
@@ -61,10 +64,88 @@
             onclick="return confirm('Sure want to process without commit to database?')" role="button">
                 <span class="glyphicon glyphicon-barcode" aria-hidden="true" ></span> Process No Commit</a>
                 </div>
-                <div class='col-md-4'><input class="form-control" id="commit_threshold_{{entry.id}}" value="" placeholder="Threshold, default 2"></div>
+                <!-- <div class='col-md-4'><input class="form-control" id="commit_threshold_{{entry.id}}" value="" placeholder="Threshold, default 2"></div> -->
+                
+                <div class='col-md-4'><a class="btn btn-default" data-toggle="modal" data-target="#ngs_sample_group_para_{{entry.id}}"><span class="glyphicon glyphicon-cog"
+                        aria-hidden="true"></span> Process Para</a></div>
             </div>
             {% endif %}
         </td>
+
+        <div class="modal fade" id="ngs_sample_group_para_{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                                aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="myModalLabel">" {{entry.name}} " - Process Settings</h4>
+                    </div>
+                    
+                        <div class="modal-body">
+                            <h4>Step 1:</h4>
+                            <b>Extract F/R aptamer sequences flanked by correct index & selection primers.</b>
+                            <form action="" class = "form" id="ngs_form_{{entry.id}}">
+                            <h4>Step 2: (Optional) <span class="glyphicon glyphicon-question-sign question_tooltip" aria-hidden="true" data-toggle="tooltip" data-placement='right' title = "Equal Length filter: pass if the F/R fragments have equal length. If one of the strand doesn't have matching primers, considerred fail."></span></h4>
+                            <div class="checkbox">
+                                <label >
+                                    <input name='0' type="checkbox" {% if entry._filters[0] %}checked{% endif %}> <b>Apply Forward-Reverse match Equal Length filter</b>
+                                </label>
+                            </div>
+                            <h4>Step 3: (Optional) <span class="glyphicon glyphicon-question-sign question_tooltip" aria-hidden="true" data-toggle="tooltip"
+                                data-placement='right' title="Reverse-Complement filter: pass if F/R fragments are reverse complement."></span></h4>
+                            <div class="checkbox">
+                                <label>
+                                    <input name='1' type="checkbox" {% if entry._filters[1] %}checked{% endif %}>  <b>Apply Reverse Complement filter</b> 
+                                </label>
+                            </div>
+                            <h4>Step 4: (Optional) <span class="glyphicon glyphicon-question-sign question_tooltip" aria-hidden="true" data-toggle="tooltip"
+                                data-placement='right' title="Q-score filter: Best-Q-score fragment is assembled using the bases with higher Q-score in F/R fragment. Pass if lowest Q-score of the best-Q-score fragment >= Q-score threshold."></span></h4>
+                            
+                                <div class="checkbox">
+                                    <label>
+                                        <input name='2' type="checkbox" {% if entry._filters[2] %}checked{% endif %}> <b>Apply Q-score filter</b> 
+                                    </label>
+                                </div>  
+                                <div class="form-group" style="width: 30%;">
+                                    <label>Q-score Threshold (0-40)</label>
+                                    <input type="text" class="form-control" name="3" placeholder="Threshold" value="{{entry._filters[3]}}">
+                                </div>
+                           
+                            <h4>Step 5: Commit to database <span class="glyphicon glyphicon-question-sign question_tooltip" aria-hidden="true" data-toggle="tooltip"
+                                data-placement='right' title="Count filter: After applying selected filters, sequences with copy number > count threshold are committed."></span></h4>
+                            <div class="form-group"  style="width: 30%;">
+                                <label>Commit Count Threshold</label>
+                                <input type="text" class="form-control" name="4" placeholder="Threshold" value="{{entry._filters[4]}}">
+                            </div>                           
+                            </form>
+                            
+                        </div>
+        
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Save Para</button>
+                            <!-- <input class="btn btn-primary" id="submit" name="submit" type="submit" value="Save Edit"> -->
+                            
+                        </div>
+                        <!-- <div class="modal-body">
+                            
+                            <p><b>Equal Length filter</b>: pass if the F/R fragments have equal length. If one of the strand doesn't have
+                                matching primers, considerred fail.</p>
+                            <p><b>Reverse-Complement filter</b>: pass if F/R fragments are reverse complement.</p>
+                            <p><b>Q-score filter</b>: Best-Q-score fragment is assembled using the bases with higher Q-score in F/R fragment.
+                                Pass if lowest Q-score of the best-Q-score fragment >= Q-score threshold.</p>
+                            <p><b>Count filter</b>: After applying selected filters, sequences with copy number > count threshold are committed.
+                            </p>
+                        </div> -->
+                   
+        
+                </div>
+            </div>
+        </div>
+
+
+
+
         {% endif %}
 
         <td width = '70px'>
@@ -88,4 +169,5 @@
     </tr>
     {% endfor %}
 </table>
+
 
