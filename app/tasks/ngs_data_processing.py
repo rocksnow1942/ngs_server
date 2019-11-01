@@ -13,7 +13,7 @@ from app.utils.analysis import DataReader
 from app.utils.analysis._alignment import lev_distance
 from functools import partial
 from app.utils.analysis._utils import poolwrapper
-
+from datetime import datetime
 
 app = create_app(keeplog=False)
 app.app_context().push()
@@ -71,7 +71,7 @@ class NGS_Sample_Process:
         # self.commit_result = Counter() # log commit , key is (round_id, sequence) 
         self.unique_commit = Counter() # log unique sequence commited count in round
         self.total_commit = Counter() # log total commit in rounds
-
+        self.failure_collection = Counter()
         self.failure = 0 # log other un explained.
         self.score_filter = 0 
         self.length_filter = 0
@@ -213,6 +213,7 @@ class NGS_Sample_Process:
                         self.index_collection[n2]+=1
         if ab:
             self.failure+=1
+            self.failure_collection[seq] += 1
 
     def totalread(self):
         toread = self.f1 or self.f2
@@ -295,6 +296,17 @@ class NGS_Sample_Process:
     def commit_result_dict(self):
         return {i: f"{self.unique_commit[i]}/{self.total_commit[i]}" for i in self.unique_commit.keys()}
 
+    def write_failures(self):
+        tosave = current_app.config['UPLOAD_FOLDER'] + '/processing_failuresequences.txt'
+        fail = list(self.failure_collection.items()) 
+        with open(tosave,'a') as f:
+            f.write("="*100+'\n'+"="*100+'\n')
+            f.write(f'Processing files: \nFile1:{self.f1}\nFile2:{self.f2}\nDate:{datetime.now().strftime("%Y/%m/%d %H:%M")}\n')
+            f.write('Top 100 failure sequences:\n')
+            for i,j in self.failure_collection.most_common(100):
+                f.write("{:<9}{}\n".format(i,j))
+
+
 
     def results(self,commit):
         ttl = self.total
@@ -332,75 +344,7 @@ class NGS_Sample_Process:
             smry += "{}-{} ".format(i, j)
         smry+="\nNo match failures: {} / {:.2%}".format(self.failure,self.failure/ttl)
     
-        
-            
         return smry
-
-class NGS_Sample_Process_Tester(NGS_Sample_Process):
-    #TODO: run test on ngs data processing
-    def __init__(self, f1, f2, sampleinfo,save_loc):
-        self.save_loc=save_loc
-        self.f1 = f1
-        self.f2 = f2
-        self.sampleinfo = sampleinfo
-        self.collection = Counter()
-        self.primer_collection = Counter()  # log wrong primers
-        self.index_collection = Counter()  # log wrong index
-        self.failure = 0  # log other un explained.
-        self.revcomp = 0  # passed rev comp reads
-        self.success = 0  # find match
-        self.pattern = [(re.compile(j+'[AGTCN]{0,3}'+l), re.compile(
-            m+'[AGTCN]{0,3}'+k)) for i, j, k, l, m in self.sampleinfo]
-        self.total = self.totalread()
-        ngsprimer = [("i701",	"CGAGTAAT"),
-                     ("i702",	"TCTCCGGA"),
-                     ("i703",	"AATGAGCG"),
-                     ("i704",	"GGAATCTC"),
-                     ("i705",	"TTCTGAAT"),
-                     ("i706",	"ACGAATTC"),
-                     ("i707",	"AGCTTCAG"),
-                     ("i708",	"GCGCATTA"),
-                     ("i709",	"CATAGCCG"),
-                     ("i710",	"TTCGCGGA"),
-                     ("i711",	"GCGCGAGA"),
-                     ("i712",	"CTATCGCT")]
-        ngsprimer = ngsprimer + [(i, reverse_comp(j)) for i, j in ngsprimer]
-        samplengsprimer = {i[j] for i in self.sampleinfo for j in [1, 2]}
-        self.ngsprimer = [i for i in ngsprimer if i[1] not in samplengsprimer]
-        selectionprimer = [('SOMAFP', 'CGCCCTCGTCCCATCTC'),
-                           ('SOMARP', 'CGTTCTCGGTTGGTGTTC'),
-                           ('PatsFP', 'ACATGGAACAGTCGAGAATCT'),
-                           ('PatsRP', 'ATGAGTCTGTTGTTGCTCA'),
-                           ('N2FP', 'TCTGACTAGCGCTCTTCA'),
-                           ('LadderRP', 'CGACTCGACTAAACAGCAC'),
-                           ('LadderRPC', 'GTGCTGTTTAGTCGAGTCG'),
-                           ('IronmanTFP', 'GATGTGAGTGTGTGACGATG'),
-                           ('IronmanRP', 'GGTCTTGTTTCTTCTCTGTG'),
-                           ('IronmanRPC', 'CACAGAGAAGAAACAAGACC'),
-                           ('VEGF33RP1C', 'GAGATCCGACTCACTGG')]
-        selectionprimer = selectionprimer + \
-            [(i, reverse_comp(j)) for i, j in selectionprimer]
-        ssp = {i[j] for i in self.sampleinfo for j in [3, 4]}
-        self.selectionprimer = [i for i in selectionprimer if i[1] not in ssp]
-
-    def commit(self,counter):
-        towrite=[]
-        for k in list(self.collection.keys()):
-            rd_id, seq = k
-            count = self.collection[k]
-            if count > 1:
-                towrite.append(self.collection.pop(k))
-        with open(self.save_loc, 'a') as f:
-            f.write()
-
-    def process(self):
-        import pickle
-        for seq in self.file_generator():
-            self.process_seq(seq)
-        with open(self.save_loc, 'wb') as f:
-            self.collection['result'] = self.results()
-            pickle.dump(self.collection,f)
-        return self.collection
 
 def generate_sample_info(nsg_id):
     """
@@ -430,6 +374,7 @@ def parse_ngs_data(nsg_id, commit, filters):
     
     NSProcessor = NGS_Sample_Process(f1, f2, sampleinfo, filters)
     result, commit_result = NSProcessor.process(commit)
+    NSProcessor.write_failures()
     # processing file1 and file2 and add to database
     nsg = NGSSampleGroup.query.get(nsg_id)
     if commit=='retract':

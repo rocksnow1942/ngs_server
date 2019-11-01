@@ -307,3 +307,19 @@ if a or b:
     print(a,b)
 else:
     print('here')
+
+
+from collections import Counter
+
+a = Counter()
+
+a['a']=3
+a['b']=2
+a['c']=5
+a.most_common(100)
+
+
+"{:<9}".format(4)
+
+from datetime import datetime
+datetime.now().strftime('%Y%M%D%H%M')
