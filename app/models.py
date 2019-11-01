@@ -634,7 +634,8 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         fig = Figure(figsize=(6,4))
         ax = fig.subplots(subplot_kw=dict(aspect="equal"))
         seq = [(i.sequence.aka, i.count/(self.totalread)) for i in self._top_seq(9)]
-        seq = [i for i in seq if i[1]>=0.01]
+        _seq = [i for i in seq if i[1]>=0.01]
+        seq = _seq or seq[0:2]
         seq = seq + [('<{:.1%}'.format(seq[-1][1]), 1-sum([i[1] for i in seq]))]
         data = [i[1] for i in seq]
         start = sum(i for i in data[:-1] if i>0.05)
