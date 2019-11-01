@@ -83,9 +83,9 @@ class NGS_Sample_Process:
         self.total = self.totalread()
         ngsprimer = [(i.name, i.sequence)
                      for i in Primers.query.filter_by(role='NGS').all()]
-        ngsprimer = ngsprimer + [(i,reverse_comp(j)) for i,j in ngsprimer]
-        samplengsprimer = {i[j] for i in self.sampleinfo for j in [1,2]}
-        self.ngsprimer = [i for i in ngsprimer if i[1] not in samplengsprimer]
+        # ngsprimer = ngsprimer + [(i,reverse_comp(j)) for i,j in ngsprimer]
+        # samplengsprimer = {i[j] for i in self.sampleinfo for j in [1,2]}
+        self.ngsprimer = ngsprimer #[i for i in ngsprimer if i[1] not in samplengsprimer]
         selectionprimer = [(i.name, i.sequence) for i in Primers.query.filter(
                     Primers.role.in_(('PD', 'SELEX'))).all()]
         selectionprimer = selectionprimer + [(i,reverse_comp(j)) for i,j in selectionprimer]
@@ -205,14 +205,27 @@ class NGS_Sample_Process:
 
     def log_unmatch(self,seq):
         ab = True
+        # primers = []
         for n,p in self.selectionprimer:
             if p in seq:
                 ab = False
-                self.primer_collection[n]+=1
+                # self.primer_collection[n]+=1
                 idx = seq.index(p)
+                temp=None
                 for n2, p2 in self.ngsprimer:
-                    if p2 in seq[idx-3-len(p2): idx] or p2 in seq[idx+len(p):idx+len(p)+3 + len(p2)]:
-                        self.index_collection[n2]+=1
+                    if p2 in seq[idx-3-len(p2): idx] :
+                        temp = (n2, n)
+                        # self.primer_collection[(n2,n)]+=1
+                        break
+                    elif (p2 in seq[idx+len(p):idx+len(p)+3 + len(p2)]):
+                        temp = (n,n2)
+                        # self.primer_collection[(n, n2)] += 1
+                        break
+                        # self.index_collection[n2]+=1
+                if temp: 
+                    self.primer_collection[temp]+=1
+                else:
+                    self.primer_collection[(n,None)]+=1
         if ab:
             self.failure+=1
             self.failure_collection[seq] += 1
@@ -334,18 +347,18 @@ class NGS_Sample_Process:
         length = self.length_count.most_common(4)
         length = '; '.join(["{:.1%} {}nt".format(j/_total_commit,i) for i, j in length])
         smry = smry + "Length Distribution: {}\n".format(length)
-        primers = sorted([i for i in self.primer_collection.items()],key=lambda x: x[1],reverse=True)
+        # primers = sorted([i for i in self.primer_collection.items()],key=lambda x: x[1],reverse=True)
         # sumprimers = sum([i[1] for i in primers])
-        index = sorted([i for i in self.index_collection.items()],key=lambda x: x[1],reverse=True)
-        sumindex = sum([i[1] for i in index])
+        # index = sorted([i for i in self.index_collection.items()],key=lambda x: x[1],reverse=True)
+        # sumindex = sum([i[1] for i in index])
         smry = smry + "Aberrant selection primers found in {} / {:.2%} reads\n".format(self.aberrant_primers, self.aberrant_primers/ttl)
-        smry += "Most common ones are: "
-        for i,j in primers[0:5]:
-            smry += "{}-{} ".format(i,j)
-        smry +="\nAbberant NGS sequencing primers found in {} / {:.2%} reads\n".format(sumindex,sumindex/ttl)
-        smry +="Most common ones are: "
-        for i, j in index[0:5]:
-            smry += "{}-{} ".format(i, j)
+        smry += "Most common selection - NGS combinations are:\n"
+        for i, j in self.primer_collection.most_common(8):# primers[0:5]:
+            smry += "<{}:{}>-{}\n".format(i[0],i[1],j)
+        # smry +="\nAbberant NGS sequencing primers found in {} / {:.2%} reads\n".format(sumindex,sumindex/ttl)
+        # smry +="Most common ones are: "
+        # for i, j in index[0:5]:
+            # smry += "<{}>-{} ".format(i, j)
         smry+="\nNo match failures: {} / {:.2%}".format(self.failure,self.failure/ttl)
     
         return smry
