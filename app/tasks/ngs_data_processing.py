@@ -75,6 +75,7 @@ class NGS_Sample_Process:
         self.failure = 0 # log other un explained.
         self.score_filter = 0 
         self.length_filter = 0
+        self.aberrant_primers = 0
         # self.total = 0 # total reads
         self.revcomp = 0 # passed rev comp reads
         self.success = 0 # find match primers in one strand
@@ -215,6 +216,8 @@ class NGS_Sample_Process:
         if ab:
             self.failure+=1
             self.failure_collection[seq] += 1
+        else:
+            self.aberrant_primers +=1
 
     def totalread(self):
         toread = self.f1 or self.f2
@@ -332,10 +335,10 @@ class NGS_Sample_Process:
         length = '; '.join(["{:.1%} {}nt".format(j/_total_commit,i) for i, j in length])
         smry = smry + "Length Distribution: {}\n".format(length)
         primers = sorted([i for i in self.primer_collection.items()],key=lambda x: x[1],reverse=True)
-        sumprimers = sum([i[1] for i in primers])
+        # sumprimers = sum([i[1] for i in primers])
         index = sorted([i for i in self.index_collection.items()],key=lambda x: x[1],reverse=True)
         sumindex = sum([i[1] for i in index])
-        smry = smry + "Aberrant selection primers found in {} / {:.2%} reads\n".format(sumprimers,sumprimers/ttl)
+        smry = smry + "Aberrant selection primers found in {} / {:.2%} reads\n".format(self.aberrant_primers, self.aberrant_primers/ttl)
         smry += "Most common ones are: "
         for i,j in primers[0:5]:
             smry += "{}-{} ".format(i,j)
