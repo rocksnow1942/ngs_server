@@ -3,39 +3,13 @@ import sys,pathlib
 # filepath = os.path.dirname(__file__)
 filepath = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.append(str(filepath))
+
+
 from app import db
 from app.plojo_models import Plojonior_Data, Plojonior_Index
-from app import create_app
-
-
-
-def load_shelve_to_sql(filepath):
-    import shelve
-    with shelve.open(filepath) as hd:
-        for key,item in hd['index'].items():
-            if Plojonior_Index.query.get(key):
-                pass
-            else:
-                i = Plojonior_Index(exp=key,**item)
-                db.session.add(i)
-            db.session.commit()
-        for key, item in hd.items():
-            if key!='index' and (not key.endswith('raw')):
-                for er,er_item in item.items():
-                    exp,index = er.split('-')
-                    try:
-                        if Plojonior_Data.query.get((exp,index)):
-                            u = Plojonior_Data.query.get((exp, index))
-                            u.meta = er_item 
-                            u.raw = hd[exp+'raw'][er]
-                        else:
-                            new = Plojonior_Data(exp_id=exp, run=index, _meta=json.dumps(
-                                er_item), _data=json.dumps(hd[exp+'raw'][er]))
-                            print("added new {}-{}".format(exp,index))
-                            db.session.add(new)
-                        db.session.commit()
-                    except:
-                        print("*** failed {}".format(er))
+from app import create_app_context
+from app.utils.common_utils import log_error
+from config import Config
 
 # define raw data class and load rawdata.
 class Data():
@@ -67,16 +41,17 @@ class Data():
     raw data is loaded to data.experiment_raw = {'ams39':{}}  !!! caution: 'raw' tag is discarded during loading.
     add sqlalchemy supprot
     """
-
+    @log_error(Config.APP_ERROR_LOG)
     def __init__(self):
-        app = create_app(keeplog=False)
-        app.app_context().push()
         try:
-            db.session.flush()
-            db.session.commit()
-            print('Init database')
+            print(f"Plojo-nior session active: {db.session.is_active}")
         except Exception as e:
-            print(f'Have to Roll back: Reason{e}')
+            print(f'plojo-nior session not active: {e}')
+            create_app_context()
+        try:
+            print(f'Query plojo-nior database success?: {bool(Plojonior_Index.query.first())}')
+        except Exception as e:
+            print(f'Have to roll Plojo-nior back: Reason{e}')
             db.session.rollback()
         self.index = { i.exp:i.jsonify for i in Plojonior_Index.query.all()}
         self.experiment = {}  # {ams0:{ams0-run1:{date: ,time: , A:{}}}}
@@ -122,6 +97,7 @@ class Data():
         e, r = key.split('-')
         return self.experiment_raw.get(e, {}).get(key, {})
 
+    @log_error(Config.APP_ERROR_LOG)
     def load_experiment(self, new):
         if self.max_load < len(self.experiment.keys()):
             to_delete = []
@@ -141,6 +117,7 @@ class Data():
                 self.experiment_raw[i] = {d.index: d.raw for d in data}
                 self.experiment_load_hist.append(i)
 
+    @log_error(Config.APP_ERROR_LOG)
     def save_data(self):
         for k,i in self.index_to_save:
             if i == 'sync':
@@ -168,3 +145,30 @@ class Data():
         self.experiment_to_save=[]
 
       
+def load_shelve_to_sql(filepath):
+    import shelve
+    with shelve.open(filepath) as hd:
+        for key, item in hd['index'].items():
+            if Plojonior_Index.query.get(key):
+                pass
+            else:
+                i = Plojonior_Index(exp=key, **item)
+                db.session.add(i)
+            db.session.commit()
+        for key, item in hd.items():
+            if key != 'index' and (not key.endswith('raw')):
+                for er, er_item in item.items():
+                    exp, index = er.split('-')
+                    try:
+                        if Plojonior_Data.query.get((exp, index)):
+                            u = Plojonior_Data.query.get((exp, index))
+                            u.meta = er_item
+                            u.raw = hd[exp+'raw'][er]
+                        else:
+                            new = Plojonior_Data(exp_id=exp, run=index, _meta=json.dumps(
+                                er_item), _data=json.dumps(hd[exp+'raw'][er]))
+                            print("added new {}-{}".format(exp, index))
+                            db.session.add(new)
+                        db.session.commit()
+                    except:
+                        print("*** failed {}".format(er))

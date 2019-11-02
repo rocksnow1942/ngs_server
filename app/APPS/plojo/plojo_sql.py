@@ -4,42 +4,23 @@ sys.path.append(str(filepath))
 
 from app import db
 from app.plojo_models import Plojo_Data, Plojo_Project
-from app import create_app
-
-
-def load_shelve_to_sql(filepath):
-    import shelve
-    with shelve.open(filepath) as hd:
-        for key,item in hd['index'].items():
-            if Plojo_Project.query.get(key):
-                pass
-            else:
-                i = Plojo_Project(index=key)
-                i.data = list(item)
-                db.session.add(i)
-            db.session.commit()
-        for key, item in hd.items():
-            if key!='index':
-                u=Plojo_Data.query.get(key)
-                if u:
-                    pass
-                else:
-                    new = Plojo_Data(index=key)
-                    new.data=item
-                    db.session.add(new)
-                    db.session.commit()
+from app import create_app_context
+from app.utils.common_utils import log_error
+from config import Config
 
 
 class Data():
+    @log_error(Config.APP_ERROR_LOG)
     def __init__(self):
-        app = create_app(keeplog=False)
-        app.app_context().push()
         try:
-            db.session.flush()
-            db.session.commit()
-            print('Init plojo database')
+            print(f"plojo session active : {db.session.is_active}")
         except Exception as e:
-            print(f'Have to Roll back plojo database: Reason{e}')
+            print(f'plojo session not active: {e}')
+            app = create_app_context()
+        try:
+            print(f'Query plojo database success?: {bool(Plojo_Project.query.first())}')
+        except Exception as e:
+            print(f'Have to Roll back plojo database: Reason {e}')
             db.session.rollback()
         # {0-vegf:set(), 1-Ang2:set()}
         self.index = {i.index:set(i.data) for i in Plojo_Project.query.all()}
@@ -49,6 +30,9 @@ class Data():
         self.experiment_load_hist = []
         self.exp_selection = set()
         self.max_load = 2000
+        # db.session.remove()
+       
+        # app.app_context().pop()
     
     @staticmethod
     def all_experiment_index():
@@ -80,6 +64,7 @@ class Data():
                           for i in range(entry_start, entry_start+n)]
         return new_entry_list
 
+    @log_error(Config.APP_ERROR_LOG)
     def load_experiment(self, new):
         if self.max_load < len(self.experiment.keys()):
             to_delete = []
@@ -94,7 +79,8 @@ class Data():
             for i in new_load:
                 self.experiment[i]=Plojo_Data.query.get(i).data
                 self.experiment_load_hist.append(i)
-            
+
+    @log_error(Config.APP_ERROR_LOG)
     def save_data(self):
         for k, i in self.index_to_save.items():
             # print('index saves <{}> <{}>'.format(k,i))
@@ -121,6 +107,28 @@ class Data():
                 print(key, item, 'this is unfound in run operation.')
         self.experiment_to_save = {}
 
+
+def load_shelve_to_sql(filepath):
+    import shelve
+    with shelve.open(filepath) as hd:
+        for key, item in hd['index'].items():
+            if Plojo_Project.query.get(key):
+                pass
+            else:
+                i = Plojo_Project(index=key)
+                i.data = list(item)
+                db.session.add(i)
+            db.session.commit()
+        for key, item in hd.items():
+            if key != 'index':
+                u = Plojo_Data.query.get(key)
+                if u:
+                    pass
+                else:
+                    new = Plojo_Data(index=key)
+                    new.data = item
+                    db.session.add(new)
+                    db.session.commit()
 
 # class Data():
 #     def __init__(self,data_index):
