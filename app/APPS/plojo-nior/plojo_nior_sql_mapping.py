@@ -8,10 +8,13 @@ sys.path.append(str(filepath))
 from app import db
 from app.plojo_models import Plojonior_Data, Plojonior_Index
 from app import create_app_context
-from app.utils.common_utils import log_error
+from app.utils.common_utils import log_error,app_context_wrapper
 from config import Config
 
 # define raw data class and load rawdata.
+
+app = create_app_context()
+
 class Data():
     """
     class to interact with shelve data storage.
@@ -42,16 +45,17 @@ class Data():
     add sqlalchemy supprot
     """
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def __init__(self):
+        # try:
+        #     print(f"Plojo-nior session active: {db.session.is_active}")
+        # except Exception as e:
+        #     print(f'plojo-nior session not active: {e}')
+        #     create_app_context()
         try:
-            print(f"Plojo-nior session active: {db.session.is_active}")
+            print(f'Query plojo-nior database success: {bool(Plojonior_Index.query.first())}')
         except Exception as e:
-            print(f'plojo-nior session not active: {e}')
-            create_app_context()
-        try:
-            print(f'Query plojo-nior database success?: {bool(Plojonior_Index.query.first())}')
-        except Exception as e:
-            print(f'Have to roll Plojo-nior back: Reason{e}')
+            print(f'PLOJO-NIOR roll back: Reason{e}')
             db.session.rollback()
         self.index = { i.exp:i.jsonify for i in Plojonior_Index.query.all()}
         self.experiment = {}  # {ams0:{ams0-run1:{date: ,time: , A:{}}}}
@@ -98,6 +102,7 @@ class Data():
         return self.experiment_raw.get(e, {}).get(key, {})
 
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def load_experiment(self, new):
         if self.max_load < len(self.experiment.keys()):
             to_delete = []
@@ -118,6 +123,7 @@ class Data():
                 self.experiment_load_hist.append(i)
 
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def save_data(self):
         for k,i in self.index_to_save:
             if i == 'sync':

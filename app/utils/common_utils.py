@@ -34,3 +34,13 @@ def log_error(location):
                 raise Exception  
         return wrapped 
     return decorator
+
+
+def app_context_wrapper(app):
+    def decorator(func):
+        def wrapped(*args,**kwargs):
+            with app.app_context():
+                return func(*args,**kwargs)
+        return wrapped       
+    return decorator
+

@@ -32,7 +32,7 @@ def create_app_context():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
-    app.app_context().push()
+    # app.app_context().push()
     return app
 
 

@@ -36,6 +36,7 @@ info_change_keep = dict.fromkeys(
     ['name','author', 'date','tag', 'note', 'fit_method', 'assay_type','flag'], False)
 current_time = datetime.datetime.now()
 upload_file_source = ColumnDataSource({'file_contents':[],'file_name':[]})
+temp_data_to_save = None 
 
 raw_data=Data()
 
@@ -1294,3 +1295,20 @@ display_layout = layout([plot_login], [login_info, column(login_text, login_user
 # run
 # curdoc().add_periodic_callback(refresh_time_cb, 1000)
 curdoc().add_root(display_layout)
+
+
+def session_destroy(session_context):
+    global bounds_temp_saver, copyed_items, info_change_keep, raw_data, current_time, info_deque_holder, plot_scale, plot_format, temp_data_to_save
+    del raw_data 
+    del bounds_temp_saver 
+    del copyed_items 
+    del info_change_keep 
+    del info_deque_holder 
+    del plot_scale
+    del plot_format 
+    del temp_data_to_save 
+  
+    print('PLOJO*******cleared trash.') 
+
+
+curdoc().on_session_destroyed(session_destroy)

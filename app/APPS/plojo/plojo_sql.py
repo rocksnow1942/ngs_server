@@ -5,22 +5,27 @@ sys.path.append(str(filepath))
 from app import db
 from app.plojo_models import Plojo_Data, Plojo_Project
 from app import create_app_context
-from app.utils.common_utils import log_error
+from app.utils.common_utils import log_error,app_context_wrapper
 from config import Config
 
 
+app = create_app_context()
+
 class Data():
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def __init__(self):
+       
+
+        # try:
+        #     print(f"plojo session active : {db.session.is_active}")
+        # except Exception as e:
+        #     print(f'plojo session not active: {e}')
+        #     app = create_app_context()
         try:
-            print(f"plojo session active : {db.session.is_active}")
+            print(f'Query plojo database success: {bool(Plojo_Project.query.first())}')
         except Exception as e:
-            print(f'plojo session not active: {e}')
-            app = create_app_context()
-        try:
-            print(f'Query plojo database success?: {bool(Plojo_Project.query.first())}')
-        except Exception as e:
-            print(f'Have to Roll back plojo database: Reason {e}')
+            print(f'PLOJO to Roll back database: Reason {e}')
             db.session.rollback()
         # {0-vegf:set(), 1-Ang2:set()}
         self.index = {i.index:set(i.data) for i in Plojo_Project.query.all()}
@@ -32,9 +37,12 @@ class Data():
         self.max_load = 2000
         # db.session.remove()
        
-        # app.app_context().pop()
     
+    def __repr__(self):
+        return f"PLOJO Mapping: <{len(self.experiment)} experiment loaded>"
+
     @staticmethod
+    @app_context_wrapper(app)
     def all_experiment_index():
         return [i[0] for i in db.session.query(Plojo_Data.index).all()]
 
@@ -65,6 +73,7 @@ class Data():
         return new_entry_list
 
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def load_experiment(self, new):
         if self.max_load < len(self.experiment.keys()):
             to_delete = []
@@ -81,6 +90,7 @@ class Data():
                 self.experiment_load_hist.append(i)
 
     @log_error(Config.APP_ERROR_LOG)
+    @app_context_wrapper(app)
     def save_data(self):
         for k, i in self.index_to_save.items():
             # print('index saves <{}> <{}>'.format(k,i))

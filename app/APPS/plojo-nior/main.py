@@ -23,6 +23,7 @@ global info_change_keep,data_index,info_deque_holder,current_time,temp_data_to_s
 box_select_source = ColumnDataSource(data=dict(x=[], y=[], width=[], height=[]))
 info_change_keep = dict.fromkeys(['exp_name','run_extcoef','exp_tag','run_name','run_speed','run_date','run_note'],False)
 analysis_temp_keep = {}
+temp_data_to_save = None
 user_pwd = {'hui':['h']}
 axis_label_dict = {'A': 'DAD signal / mA.U.', 'B':'Solvent B Gradient %' ,'P': 'Pressure / bar', 'default': 'Arbitrary Unit' }
 current_time = datetime.datetime.now()
@@ -30,7 +31,9 @@ info_deque_holder = ['Welcome!']*3
 upload_file_source = ColumnDataSource({'file_contents':[],'file_name':[]})
 curve_type_options = ['A','B','P','A1','A2','A3']
 copyed_runs = []
+data_index = None
 raw_data = Data()
+
 
 _updatenote="""
 Updates 20190602:
@@ -1498,3 +1501,17 @@ curdoc().add_root(display_layout)#display_layout
 
 
 # mode_selection.active = 0
+
+def session_destroy(session_context):
+    global info_change_keep,data_index,info_deque_holder,temp_data_to_save,raw_data,axis_label_dict,copyed_runs,analysis_temp_keep
+    del info_change_keep
+    del data_index
+    del info_deque_holder
+    del temp_data_to_save
+    del raw_data
+    del axis_label_dict
+    del copyed_runs
+    del analysis_temp_keep
+    print('PLOJO-NIOR*******cleared trash.')
+
+curdoc().on_session_destroyed(session_destroy)
