@@ -19,6 +19,7 @@ from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.analysis import DataReader,Alignment
 from app.utils.search import add_to_index, remove_from_index, query_index
+import os
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -786,6 +787,33 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
         return reverse_comp(self.sequence)
 
 
+def generate_sample_info(nsg_id):
+    """
+    sample info is a list consist of [ () ()]
+    (round_id, fpindex, rpcindex, fp, rpc)
+    """
+    nsg = NGSSampleGroup.query.get(nsg_id)
+    savefolder = current_app.config['UPLOAD_FOLDER']
+    f1 = json.loads(nsg.datafile)['file1']
+    f2 = json.loads(nsg.datafile)['file2']
+    if f1:
+        f1 = os.path.join(savefolder, f1)
+    if f2:
+        f2 = os.path.join(savefolder, f2)
+    sampleinfo = []
+    for sample in nsg.samples:
+        round_id = sample.round_id
+        fpindex = Primers.query.get(sample.fp_id or 1).sequence
+        rpindex = Primers.query.get(sample.rp_id or 1).sequence
+        rd = Rounds.query.get(round_id)
+        fp = Primers.query.get(rd.forward_primer or 1).sequence
+        rp = Primers.query.get(rd.reverse_primer or 1).sequence
+        sampleinfo.append(
+            (round_id, fpindex, reverse_comp(rpindex), fp, reverse_comp(rp)))
+    return f1, f2, sampleinfo
+
+
+
 class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __tablename__ = 'ngs_sample_group'
     __searchable__ = ['name', 'note']
@@ -1101,5 +1129,5 @@ def load_user(id):
 models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
 'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
-from app.tasks.ngs_data_processing import generate_sample_info
+# from app.tasks.ngs_data_processing import 
 from app.utils.ngs_util import reverse_comp,file_blocks

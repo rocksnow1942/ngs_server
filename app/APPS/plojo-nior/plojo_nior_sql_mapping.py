@@ -8,8 +8,6 @@ from app.plojo_models import Plojonior_Data, Plojonior_Index
 from app import create_app
 
 
-app = create_app(keeplog=False)
-app.app_context().push()
 
 def load_shelve_to_sql(filepath):
     import shelve
@@ -71,7 +69,15 @@ class Data():
     """
 
     def __init__(self):
-
+        app = create_app(keeplog=False)
+        app.app_context().push()
+        try:
+            db.session.flush()
+            db.session.commit()
+            print('Init database')
+        except Exception as e:
+            print(f'Have to Roll back: Reason{e}')
+            db.session.rollback()
         self.index = { i.exp:i.jsonify for i in Plojonior_Index.query.all()}
         self.experiment = {}  # {ams0:{ams0-run1:{date: ,time: , A:{}}}}
         self.experiment_to_save = []

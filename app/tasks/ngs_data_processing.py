@@ -1,10 +1,10 @@
 from rq import get_current_job
 from app import db
-from app.models import models_table_name_dictionary,NGSSampleGroup,Primers,Rounds,Sequence,KnownSequence,Task,SeqRound,Analysis
+from app.models import models_table_name_dictionary, NGSSampleGroup, Primers, Rounds, Sequence, KnownSequence, Task, SeqRound, Analysis, generate_sample_info
 from app import create_app
 import os
 from flask import current_app
-import json
+
 from itertools import islice, zip_longest
 from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist,lev_distance
 from collections import Counter
@@ -362,28 +362,6 @@ class NGS_Sample_Process:
         smry+="\nNo match failures: {} / {:.2%}".format(self.failure,self.failure/ttl)
     
         return smry
-
-def generate_sample_info(nsg_id):
-    """
-    sample info is a list consist of [ () ()]
-    (round_id, fpindex, rpcindex, fp, rpc)
-    """
-    nsg = NGSSampleGroup.query.get(nsg_id)
-    savefolder = current_app.config['UPLOAD_FOLDER']
-    f1 = json.loads(nsg.datafile)['file1']
-    f2 = json.loads(nsg.datafile)['file2']
-    if f1: f1 = os.path.join(savefolder, f1)
-    if f2: f2 = os.path.join(savefolder, f2)
-    sampleinfo = []
-    for sample in nsg.samples:
-        round_id = sample.round_id
-        fpindex = Primers.query.get(sample.fp_id or 1).sequence
-        rpindex = Primers.query.get(sample.rp_id or 1).sequence
-        rd = Rounds.query.get(round_id)
-        fp = Primers.query.get(rd.forward_primer or 1).sequence
-        rp = Primers.query.get(rd.reverse_primer or 1).sequence
-        sampleinfo.append((round_id,fpindex,reverse_comp(rpindex),fp,reverse_comp(rp)))
-    return f1,f2,sampleinfo
 
 
 def parse_ngs_data(nsg_id, commit, filters):

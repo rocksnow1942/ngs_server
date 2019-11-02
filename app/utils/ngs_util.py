@@ -2,6 +2,7 @@ from itertools import islice
 import os
 
 
+
 def pagination_gaps(page, total, pagelimit, gap=9):
     """return the start, end, of current page.
     """
@@ -128,3 +129,4 @@ def lev_distance(s1, s2, threshold=1000):
             return currentmin
         horizontal = newhorizontal
     return horizontal[-1]
+

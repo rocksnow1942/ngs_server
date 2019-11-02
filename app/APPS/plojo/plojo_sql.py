@@ -7,9 +7,6 @@ from app.plojo_models import Plojo_Data, Plojo_Project
 from app import create_app
 
 
-app = create_app(keeplog=False)
-app.app_context().push()
-
 def load_shelve_to_sql(filepath):
     import shelve
     with shelve.open(filepath) as hd:
@@ -35,6 +32,15 @@ def load_shelve_to_sql(filepath):
 
 class Data():
     def __init__(self):
+        app = create_app(keeplog=False)
+        app.app_context().push()
+        try:
+            db.session.flush()
+            db.session.commit()
+            print('Init plojo database')
+        except Exception as e:
+            print(f'Have to Roll back plojo database: Reason{e}')
+            db.session.rollback()
         # {0-vegf:set(), 1-Ang2:set()}
         self.index = {i.index:set(i.data) for i in Plojo_Project.query.all()}
         self.experiment = {}  # {ams0:{},ams1:{}}

@@ -113,7 +113,12 @@ def ngs_serach_handler(form):
     if method == 'text':
         entries, total = target.search(form.q.data,page,pagelimit)
     elif method == 'name':
-        pass
+        q = form.q.data 
+        namedict = dict(analysis="name", known_sequence='sequence_name', selection='selection_name', primer='name', ngs_sample_group='name')
+        result = target.query.filter(getattr(target,namedict[table]).contains(q)).order_by(target.id.desc())
+        result = result.paginate(page, pagelimit, False)
+        total = result.total
+        entries = result.items
     elif method == 'sequence':
         seq = form.q.data
         if not validate_sequence(seq): 

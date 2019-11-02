@@ -28,7 +28,7 @@ def fetch_job_from_queue(rdqueue):
     return wrapped
 
 
-def create_app(config_class = Config,keeplog=True):
+def create_app(config_class = Config,keeplog=True):   
     app = Flask(__name__)
     app.config.from_object(config_class)
     db.init_app(app)
