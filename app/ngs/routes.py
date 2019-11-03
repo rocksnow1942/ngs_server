@@ -525,7 +525,6 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
-    
     as_attachment =  filename.endswith('.json')
     return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
 

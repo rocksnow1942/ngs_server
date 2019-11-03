@@ -11,7 +11,6 @@ import datetime
 from ._twig import Tree,Clade
 from ._alignment import Alignment,lev_distance
 import time
-import tqdm
 import psutil
 import platform
 
@@ -86,8 +85,6 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     sequence is inserted to the existing cluster.
     """
    
-
-
     print('Start clustering with levenshtein distance...')
     print('Current time: {}'.format(datetime.datetime.now()))
     seq = dict(zip(list_of_seq,apt_count))
@@ -245,7 +242,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
         if min_i==min_j:min_i+=1 # this is when full zero dm_new, shift joining to 0 and 1.
         clade1 = clades[min_i]
         clade2 = clades[min_j]
-        inner_count += 1
+        inner_count += 1 
         temp_name =  "J" + str(inner_count) if record_path else None
         inner_clade = Clade(None,temp_name)
         inner_clade.clades.append(clade1)
@@ -304,7 +301,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
     else:
         dict_align = list_align[0].align(list_align[1],offset=offset,gap=gap,gapext=gapext,count=count,**kwargs)
     print('Build tree and align done. Elapsed time: {:.2f}s.'.format(time.time()-starttime))
-    return Tree(root, rooted=False,name='root'),dict_align
+    return Tree(root, name='root'),dict_align
 
 # @registor_function
 def align_clustered_seq_with_CLUSTAL(data,offset=True,k=4,count=True,gap=7,gapext=2,**kwargs):

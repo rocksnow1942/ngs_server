@@ -2,6 +2,7 @@ from ._twig import Tree,draw,Clade
 import json,copy,os,math
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -12,6 +13,7 @@ from itertools import product
 from functools import partial
 from ._utils import mapdistance,poolwrapper
 import textwrap
+from inspect import signature
 
 """
 Note:
@@ -24,6 +26,19 @@ Modified for NGS_server use
 """
 # TODO
 # add count distribution / length distribution /
+
+datareader_API = []
+
+def register_API(func):
+    sig = signature(func)
+    datareader_API.append({'name': func.__name__,'doc':func.__doc__.strip(),'signature':str(sig)})
+    def wrapper(*args,**kwargs):
+        return func(*args,**kwargs)
+    wrapper.__signature__ = sig
+    return wrapper
+
+
+
 
 class Reader(object):
     def ifexist(self,name):
@@ -102,12 +117,14 @@ class DataReader(Reader):
 
 
     def load_from_ngs_server(self,rounds,callback=None):
-        import time
+        """
+        loads data from ngs server to a dataframe.
+        rounds: list of round names to load 
+        callback: to set progression for display.
+        """
         df = self.read_df_from_round(rounds[0])
         if callback: callback(1/(len(rounds)+1)*100)
         for index,r in enumerate(rounds[1:]):
-            ###
-            time.sleep(5) ###testing
             _df = self.read_df_from_round(r)
             df=df.merge(_df,how='outer',on=['id','aptamer_seq']).fillna(0)
             if callback:
@@ -115,43 +132,80 @@ class DataReader(Reader):
         self.df=df
         df['sum_count'] = df[[i for i in self.list_all_rounds()]].sum(axis=1)
         df['sum_per'] = df[[i+'_per' for i in self.list_all_rounds()]].sum(axis=1)
-
         return self
 
     def read_df_from_round(self,r):
+        """
+        helper method for load_from_ngs_server
+        """
         data=[(i.sequence.id,i.sequence.aptamer_seq,i.count,i.count/r.totalread*100) for i in r.sequences]
         df=pd.DataFrame(data,columns=['id','aptamer_seq',r.round_name,r.round_name+'_per'])
         return df
 
-    def jsonify(self):
+    @staticmethod
+    def revive_tree(name,data):
+        """
+        rebuild tree from json file
+        """
+        def revive(data, parent=None):
+            tree = Clade(branch_length=data['branch_length'], name=data['name'])
+            tree.parent = parent
+            for i in data['children']:
+                tree.clades.append(revive(i, parent=tree))
+            return tree
+        return Tree(name=name, root=revive(data))
+
+
+    def serialize_tree(self):
+        """
+        jsonify tree into dictonary
+        """
+        def serialize(tree, result={}):
+            for k, i in tree.__dict__.items():
+                if isinstance(i, list):
+                    result['children'] = []
+                    for ele in i:
+                        result['children'].append(serialize(ele, {}))
+                elif isinstance(i, Clade):
+                    pass
+                else:
+                    result[k] = i
+            return result
+        return serialize(self.tree.root)
+
+
+    def jsonify(self,keys='all'):
         todump={}
-        for k,item in self.__dict__.items():
+        keys = self.__dict__.keys() if keys == 'all' else keys 
+        for k in keys:
             if k == 'tree':
-                continue
+                todump[k]=self.serialize_tree()
             elif 'df' in k:
-                todump[k]=item.to_dict()
+                todump[k] = self.__dict__[k].to_dict()
             elif k=='align':
-                todump[k]={k:i.to_dict() for k,i in item.items()}
+                todump[k] = {k: i.to_dict() for k, i in self.__dict__[k].items()}
             else:
-                todump[k]=item
+                todump[k] = self.__dict__[k]
         return todump
 
     def saveas(self,name):
         return os.path.join(self.filepath,name)
 
-    def save_json(self):
-        with open(self.saveas(self.name+'.json'),'wt') as f:
+    def save_json(self,affix=""):
+        with open(self.saveas(self.name+affix+'.json'),'wt') as f:
             json.dump(self.jsonify(), f, separators=(',', ':'))
-
+    
     @classmethod
     def load_json(cls,file):
         with open(file,'rt') as f:
             data=json.load(f)
-        for k in data:
+        for k in list(data.keys()):
             if 'df' in k:
                 data[k] = pd.DataFrame(data[k])
             elif k=='align':
                 data[k] = {j:Alignment.from_dict(l) for j,l in data[k].items()}
+            elif k == 'tree':
+                data[k]=DataReader.revive_tree(name=data['name'],data=data[k])
             else:
                 continue
         a=cls()
@@ -208,8 +262,6 @@ class DataReader(Reader):
             plt.clf()
             return name
 
-
-
     def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True):
         """
         clean up raw df by
@@ -259,13 +311,11 @@ class DataReader(Reader):
         self.processing_para.update({'df_cluster':{'distance':distance,'cutoff':cutoff,
                                 'count_thre':count_thre,'stop_cluster_index':noncluster_count[0],'stop_cluster_count':noncluster_count[1]}})
 
-
     def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None):
         data = self.cluster
         cluster = align_clustered_seq(data,**cluster_para,callback=callback)
         self.align = cluster
         self.processing_para.update({'cluster_para':cluster_para})
-
 
     def build_tree_and_align(self,align_para={'offset':True,'k':4,'count':True,'gap':4,'gapext':1,'distance':'hybrid_distance'},save=True):
         cluster = self.align

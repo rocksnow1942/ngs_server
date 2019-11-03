@@ -352,11 +352,9 @@ class Tree(TreeElement, TreeMixin):
 
     """
 
-    def __init__(self, root=None, rooted=True, id=None, name=None):
+    def __init__(self, root=None,  name=None):
         """Initialize parameter for phylogenetic tree."""
         self.root = root or Clade()
-        self.rooted = rooted
-        self.id = id
         self.name = name
 
     def __repr__(self):
@@ -394,7 +392,7 @@ class Tree(TreeElement, TreeMixin):
 
     # Convention from SeqRecord and Alignment classes
 
-    def __format__(self):
+    def __format__(self,args):
         return str(self)
     # Pretty-printer for the entire tree hierarchy
 
@@ -451,15 +449,11 @@ class Clade(TreeElement, TreeMixin):
 
     """
 
-    def __init__(self, branch_length=None, name=None, clades=None,
-                 confidence=None, color=None, width=None):
+    def __init__(self, branch_length=None, name=None, clades=None):
         """Define parameters for the Clade tree."""
         self.branch_length = branch_length
         self.name = name
         self.clades = clades or []
-        self.confidence = confidence
-        self.color = color
-        self.width = width
         self.parent = None
 
     @property

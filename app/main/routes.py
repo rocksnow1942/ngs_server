@@ -114,7 +114,7 @@ def ngs_serach_handler(form):
         entries, total = target.search(form.q.data,page,pagelimit)
     elif method == 'name':
         q = form.q.data 
-        namedict = dict(analysis="name", known_sequence='sequence_name', selection='selection_name', primer='name', ngs_sample_group='name')
+        namedict = dict(analysis="name", known_sequence='sequence_name', selection='selection_name', round='round_name',primer='name', ngs_sample_group='name')
         result = target.query.filter(getattr(target,namedict[table]).contains(q)).order_by(target.id.desc())
         result = result.paginate(page, pagelimit, False)
         total = result.total
