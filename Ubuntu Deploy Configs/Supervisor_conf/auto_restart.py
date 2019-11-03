@@ -139,8 +139,9 @@ class Memmon:
                 if test:
                     break
                 continue
-            
+            lg(f'current time {datetime.now()}')
             if (not self.time) or (self.time==datetime.now().hour):
+                # lg(f'current time {datetime.now()}')
                 status = []
                 if self.programs:
                     keys = sorted(self.programs.keys())
@@ -353,7 +354,7 @@ def parse_seconds(option, value):
 help_request = object()  # returned from memmon_from_args to indicate --help
 
 def memmon_from_args(arguments):
-    short_args = "hcp:g:a:s:m:n:u:"
+    short_args = "hcp:g:a:s:m:n:u:t:"
     long_args = [
         "help",
         "cumulative",
