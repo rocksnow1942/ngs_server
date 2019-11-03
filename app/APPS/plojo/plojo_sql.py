@@ -15,8 +15,6 @@ class Data():
     @log_error(Config.APP_ERROR_LOG)
     @app_context_wrapper(app)
     def __init__(self):
-       
-
         # try:
         #     print(f"plojo session active : {db.session.is_active}")
         # except Exception as e:
