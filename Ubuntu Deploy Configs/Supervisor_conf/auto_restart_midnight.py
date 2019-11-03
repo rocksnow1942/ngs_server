@@ -80,6 +80,10 @@ A sample invocation:
 memmon.py -p program1=200MB -p theprog:thegroup=100MB -g thegroup=100MB -a 1GB -s "/usr/sbin/sendmail -t -i" -m chrism@plope.com -n "Project 1"
 """
 
+def lg(msg):
+    with open('/home/hui/Desktop/log.txt','a') as f:
+        f.write(msg+'\n')
+
 import getopt
 import os
 import sys
@@ -93,6 +97,7 @@ from supervisor.datatypes import byte_size, SuffixMultiplier
 
 from datetime import datetime
 
+
 def usage(exitstatus=255):
     print(doc)
     sys.exit(exitstatus)
@@ -100,6 +105,8 @@ def usage(exitstatus=255):
 def shell(cmd):
     with os.popen(cmd) as f:
         return f.read()
+
+
 
 class Memmon:
     def __init__(self, cumulative, programs, groups, any, sendmail, email, email_uptime_limit, name, rpc=None):
@@ -155,14 +162,15 @@ class Memmon:
 
             # check current time 
             current_hour = datetime.now().hour  
-
-            if current_hour==23: 
+            lg(f'current time {current_hour}')
+            if current_hour<23: 
                 for info in infos:
+                    
                     pid = info['pid']
                     name = info['name']
                     group = info['group']
                     pname = '%s:%s' % (group, name)
-
+                    
                     if not pid:
                         # ps throws an error in this case (for processes
                         # in standby mode, non-auto-started).
@@ -188,8 +196,12 @@ class Memmon:
                             continue
 
                     if self.any is not None:
-                        self.stderr.write('RSS of %s is %s\n' % (pname, rss))
-                        if rss > self.any:
+                        lg(f'restarting ,{pname}')
+                        if 'restart_all' in pname:
+                            continue 
+                        else:
+                            self.stderr.write('RSS of %s is %s\n' % (pname, rss))
+                            # if rss > self.any:
                             self.restart(pname, rss)
                             continue
 
@@ -197,7 +209,9 @@ class Memmon:
             childutils.listener.ok(self.stdout)
             if test:
                 break
-
+        
+        lg('break out of loop')        
+                
     def restart(self, name, rss):
         info = self.rpc.supervisor.getProcessInfo(name)
         uptime = info['now'] - info['start'] #uptime in seconds
@@ -426,3 +440,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
