@@ -144,3 +144,4 @@
         
 17. to use supervisord eventlistener, install following packages:
     pip install superlance
+    then add supervisor conf.
