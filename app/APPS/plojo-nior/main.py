@@ -6,22 +6,24 @@ from bokeh.models.widgets import Panel, Tabs, Button, TextInput, Select, MultiSe
 from bokeh.layouts import widgetbox, row, column, layout
 from bokeh.palettes import Category10
 from bokeh.events import Tap
-import shelve,os,glob,base64,copy,datetime,time
+import os,glob,base64,copy,datetime
 from io import BytesIO
 import pandas as pd
 import numpy as np
-from utils import file_name,file_path,upload_data_folder,temp_position
+from utils import upload_data_folder
 from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 load_dotenv(os.path.join(basedir, '.env'))
 
+from plojo_nior_sql_mapping import Data
 
 # declare globals
 global info_change_keep,data_index,info_deque_holder,current_time,temp_data_to_save,raw_data,axis_label_dict,user_pwd,copyed_runs,analysis_temp_keep
 box_select_source = ColumnDataSource(data=dict(x=[], y=[], width=[], height=[]))
 info_change_keep = dict.fromkeys(['exp_name','run_extcoef','exp_tag','run_name','run_speed','run_date','run_note'],False)
 analysis_temp_keep = {}
+temp_data_to_save = None
 user_pwd = {'hui':['h']}
 axis_label_dict = {'A': 'DAD signal / mA.U.', 'B':'Solvent B Gradient %' ,'P': 'Pressure / bar', 'default': 'Arbitrary Unit' }
 current_time = datetime.datetime.now()
@@ -29,6 +31,8 @@ info_deque_holder = ['Welcome!']*3
 upload_file_source = ColumnDataSource({'file_contents':[],'file_name':[]})
 curve_type_options = ['A','B','P','A1','A2','A3']
 copyed_runs = []
+data_index = None
+raw_data = Data()
 
 
 _updatenote="""
@@ -43,82 +47,6 @@ updatenote = ColumnDataSource(dict(x=[1]*len(_updatenote),y=[4.7-i*0.35 for i in
 update_ = Text(x='x', y='y', text='text',text_font_size='12pt',text_font='helvetica')
 view_data_plot.add_glyph(updatenote,update_)
 _updatenote
-
-
-# define raw data class and load rawdata.
-class Data():
-    """
-    class to interact with shelve data storage.
-    data stored in shelvs as follows:
-    index : a dict contain experiment information; { ams5:{'name': 'experiment name','date': "20190101",'author':'jones'}, ams23:{}}
-    meta information and raw data of each experiment is under: "amsXX" and "amsXXraw"
-    meta information example:
-            'ams39':{
-            "ams39-run0": {
-                "speed": 1.0,
-                "date": "20190409",
-                "name": "PHENORP YPEGBS3 2-5V1RXN 0-5MMBS3 35C 1UG 5-60 28M 1MM",
-                "A": {
-                    "y_label": "DAD signal / mA.U.",
-                    "extcoef": 33.0
-                },
-                "B": {
-                    "y_label": "Solvent B Gradient %"
-                }
-            },
-            "ams39-run1": { }, "ams39-run2": { }}
-    raw data example:
-        ams39raw:{'ams39-run0':{'A':{'time':[0.0,39.99,6000]},'signal':[0,0.1,...]},'B':{'time':},'ams39-run1'}
-    when load in to Data Class,
-    index is loaded to data.index
-    meta information is loaded to data.experiment = {'ams39':{}}
-    raw data is loaded to data.experiment_raw = {'ams39':{}}  !!! caution: 'raw' tag is discarded during loading.
-    """
-    def __init__(self,data_index):
-        self.index = data_index
-        self.experiment = {} # {ams0:{ams0-run1:{date: ,time: , A:{}}}}
-        self.experiment_to_save = {}
-        self.experiment_raw = {}
-        self.experiment_load_hist = []
-        self.max_load = 200
-        
-    def next_index(self,n):
-        entry = list(self.index.keys())
-        if not entry:
-            entry = ['ams0']
-        entry = sorted(entry, key=lambda x: int(x.split('-')[0][3:]), reverse=True)[0]
-        entry_start = int(entry.split('-')[0][3:])+1
-        new_entry_list=['ams'+str(i) for i in range(entry_start, entry_start+n)]
-        return new_entry_list
-    def next_run(self,index,n):
-        entry = list(self.experiment[index].keys())
-        if not entry:
-            entry_start = 0
-        else:
-            entry = sorted(entry, key=lambda x: int(x.split('-')[1][3:]), reverse=True)[0]
-            entry_start = int(entry.split('-')[1][3:])+1
-        new_entry_list=[index+'-run'+str(i) for i in range(entry_start, entry_start+n)]
-        return new_entry_list
-    def load_experiment(self,new):
-        if self.max_load < len(self.experiment.keys()):
-            to_delete =[]
-            for i in self.experiment_load_hist[0:100]:
-                if i not in self.experiment_to_save.keys():
-                    del self.experiment[i]
-                    del self.experiment_raw[i]
-                    to_delete.append(i)
-            self.experiment_load_hist = [i for i in self.experiment_load_hist if i not in to_delete ]
-        new_load = list(set(new)-raw_data.experiment.keys())
-        if new_load:
-            with shelve.open(os.path.join(file_path,file_name)) as hd:
-                for i in new_load:
-                    raw_data.experiment[i] = hd.get(i,{})
-                    raw_data.experiment_raw[i] = hd.get(i+'raw',{})
-                    self.experiment_load_hist.append(i)
-
-with shelve.open(os.path.join(file_path,file_name),writeback=False) as hd:
-    data_index = hd['index']
-    raw_data = Data(data_index)
 
 
 # define functions
@@ -166,12 +94,12 @@ def generate_cds(run_index,**kwargs):
         label_cordinate_y = curve_integrate.get('label_cordinate_y',[])
         label_ = curve_integrate.get('area',[])
         label = curve_integrate.get('label',[])
-        label_area = ['{:.4g}'.format(i) for i in label_]
-        integrate_percent = ['{:.2f}%'.format(i*100/(sum(label_))) for i in label_]
+        label_area = ['{:.1f}'.format(i) for i in label_]
+        integrate_percent = ['{:.1f}%'.format(i*100/(sum(label_))) for i in label_]
         if x_unit == 'time':
-            label_mass = ['{:.4g}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
+            label_mass = ['{:.1f}ug'.format(i*extinction_coeff*run_speed/1000) for i in label_]
         else:
-            label_mass = ['{:.4g}ug'.format(i*extinction_coeff/1000) for i in label_]
+            label_mass = ['{:.1f}ug'.format(i*extinction_coeff/1000) for i in label_]
         temp_cds = ColumnDataSource( {'time':curve_time,'signal':curve_signal})
         integration_cds = ColumnDataSource({'integrate_percent':integrate_percent,'integrate_gap_x':integrate_gap_x,'integrate_gap_y':integrate_gap_y,'label_cordinate_x':label_cordinate_x,'label_cordinate_y':label_cordinate_y,'label_area':label_area,'label_mass':label_mass,'label':label})
 
@@ -488,7 +416,7 @@ def check_selected_runs():
         _=check_run_analysis(i)
         if _:
             count+=1
-            raw_data.experiment_to_save.update({i.split('-')[0]:'sync'})
+            raw_data.experiment_to_save.append((i,'sync'))
             info_box.text = info_deque('Run {} repaired.'.format(i))
     info_box.text = info_deque('Done! {} runs repaired.'.format(count))
     if count:
@@ -513,7 +441,7 @@ def paste_analysis():
         else:
             target[curve].update(copy.deepcopy(analysis_temp_keep))
             _=check_run_analysis(ri)
-        raw_data.experiment_to_save.update({i:'sync'})
+        raw_data.experiment_to_save.append((ri, 'sync'))
         info_box.text = info_deque('Pasted to {}.'.format(ri))
     sync_plot(run_index,**vd_plot_options_fetcher())
 
@@ -548,8 +476,7 @@ def paste_selected_run():
             exp = i.split('-')[0]
             raw_data.experiment[target].update({j:raw_data.experiment[exp].pop(i)})
             raw_data.experiment_raw[target].update({j:raw_data.experiment_raw[exp].pop(i)})
-            raw_data.experiment_to_save.update({exp:'upload'})
-        raw_data.experiment_to_save.update({target:'upload'})
+            raw_data.experiment_to_save.append((i,j))
         sd_run_list.options = runs_menu_generator([target])
         info_box.text = info_deque('{} runs moved to {}.'.format(len(copyed_runs),target))
         copyed_runs = []
@@ -682,17 +609,16 @@ def sd_data_generator():
                 meta = {'speed':run_speed,'date':data_date,'name':data_name,data_key:{'y_label':axis_label_dict.get(data_key[0],'default')}}
                 if data_key[0]=='A':
                     meta[data_key].update(extcoef=ext_coef)
-                raw = {data_key:{'time':data_range,'signal':data_signal}}
+                raw = {data_key:{'time':data_range,'signal':[round(i,6) for i in data_signal]}}
                 result_dict = {'meta':meta,'raw':raw}
             elif extension.lower()=='xls':
                 toread = BytesIO(file_contents)
                 df = pd.read_excel(toread)
                 result_dict=process_df_upload(df)
-
             else:
                 info_box.text = info_deque('Extension {} not supported.'.format(extension))
-        except:
-            # raise e
+        except Exception as e:
+            raise e
             info_box.text = info_deque('Wrong uploaded.')
             result_dict = 'none'
     return result_dict
@@ -710,10 +636,11 @@ def process_df_upload(df):
         meta['name']=name[8:].strip()
     else:
         meta['date']=sd_date.value
+        meta['name'] = name[8:].strip()
     meta.update(speed=run_speed)
     unit=df.iloc[1,0]
     unit = 'time' if unit=='min' else 'volume'
-    integrate={}
+    integrate=dict(inte_para=[],label=[])
     for _i,_d in zip(df.columns[::2],df.columns[1::2]):
         data=df[_d].dropna().tolist()
         time=df[_i].dropna().tolist()
@@ -737,7 +664,6 @@ def process_df_upload(df):
             curve = 'P'
             y_label = 'Pressure MPa'
         elif 'Fractions' in tag:
-            integrate.update(inte_para=[],label=[])
             puretime=time[2:]
             labels=data[1:-1]
             for i,(t,l) in enumerate(zip(puretime,labels)):
@@ -795,7 +721,7 @@ def data_dict_to_exp(data,index,run_index):
             if raw_data.experiment[index][run_index][curve].get('integrate',None):
                 generate_integration_from_para(run_index,curve)
 
-    raw_data.experiment_to_save.update({index:'upload'})
+    raw_data.experiment_to_save.append((run_index, 'upload'))
     info_box.text = info_deque('Curve {} uploaded to run {}.'.format(curve[0],run_index))
     sd_run_list.options = runs_menu_generator(sd_experiment_list.value)
 
@@ -826,7 +752,7 @@ def load_csv_to_experiment(run_list,index):
         raw_data.experiment[index].update({i:temp_result_dict[j]})
         raw_data.experiment_raw[index].update({i:temp_raw_dict[j]})
         info_box.text = info_deque('Run {} uploaded to experiment {}.'.format(run_entry,index))
-    raw_data.experiment_to_save.update({index:'upload'})
+        raw_data.experiment_to_save.append((i, 'upload'))
     sd_run_list.options = runs_menu_generator([index])
 
 def load_folder_to_experiment(exp_list):
@@ -836,6 +762,7 @@ def load_folder_to_experiment(exp_list):
         raw_data.index.update({j:{'date':exp_date,'name':exp_name,'author':sd_author.value}})
         raw_data.experiment.update({j:{}})
         raw_data.experiment_raw.update({j:{}})
+        raw_data.index_to_save.append((j, 'sync'))
         run_list = glob.glob(os.path.join(i,'*.[cC][sS][vV]'))
         load_csv_to_experiment(run_list,j)
     sd_experiment_list.options=experiment_menu_generator(raw_data.index.keys())
@@ -915,7 +842,7 @@ def _it_add_button_cb(run_index):
         target['integrate']['inte_para'].append(inte_para)
         target['integrate']['label'].append(label)
     generate_integration_from_para(run_index,curve)
-    raw_data.experiment_to_save.update({index:'sync'})
+    raw_data.experiment_to_save.append((run_index, 'sync'))
 
 def it_update_button_cb():
     it_delete_button_cb()
@@ -968,7 +895,7 @@ def an_add_button_cb():
     sync_plot([run_index],**plot_para)
     an_list.options = an_list_menu_generator(run_index,curve)
     an_list.value = [an_list.options[-1][0]]
-    raw_data.experiment_to_save.update({index:'sync'})
+    raw_data.experiment_to_save.append((run_index, 'sync'))
 
 def an_delete_button_cb():
     to_delete=an_list.value
@@ -987,7 +914,7 @@ def an_delete_button_cb():
             pass
     an_list.options = an_list_menu_generator(run_index,curve)
     an_list.value = []
-    raw_data.experiment_to_save.update({index:'sync'})
+    raw_data.experiment_to_save.append((run_index, 'sync'))
     plot_para = vd_plot_options_fetcher()
     plot_para.update(analysis=['annotate'])
     sync_plot([run_index],**plot_para)
@@ -1031,7 +958,7 @@ def it_delete_button_cb():
             pass
     it_integration_list.options = it_integration_list_menu_generator(run_index,curve)
     it_integration_list.value = []
-    raw_data.experiment_to_save.update({index:'sync'})
+    raw_data.experiment_to_save.append((run_index, 'sync'))
     plot_para = vd_plot_options_fetcher()
     plot_para.update(analysis=['integrate-area','integrate-mass','integrate-label'])
     sync_plot([run_index],**plot_para)
@@ -1048,6 +975,7 @@ def vd_save_info_button_cb():
                 if key.split('_')[0]=='exp':
                     for i in selected_exp:
                         raw_data.index[i].update({key.split('_')[1]:new_input[key]})
+                        raw_data.index_to_save.append((i, 'sync'))
                 else:
                     for j in selected_run:
                         if key == 'run_speed':
@@ -1056,7 +984,7 @@ def vd_save_info_button_cb():
                             raw_data.experiment[j.split('-')[0]][j][curve].update({key.split('_')[1]:float(new_input[key])})
                         else:
                             raw_data.experiment[j.split('-')[0]][j].update({key.split('_')[1]:new_input[key]})
-                        raw_data.experiment_to_save.update({j.split('-')[0]:'sync'})
+                        raw_data.experiment_to_save.append((j, 'sync'))
         sd_save_data_cb()
         info_change_keep = dict.fromkeys(info_change_keep.keys(),False)
     except:
@@ -1154,37 +1082,11 @@ def upload_file_source_cb(attr,old,new):
 
 
 def sd_save_data_cb():
-    cur = time.time()
-    file_list = sorted(glob.glob(os.path.join(temp_position,file_name+'*')))
-
-    if len(file_list)>30:
-        os.remove(file_list[0])
-        os.remove(file_list[1])
-        os.remove(file_list[2])
-    if len(file_list)>1:
-        last_save = os.path.getmtime(file_list[-1])
-    else:
-        last_save = 0.0
-    if cur-last_save> 3600*24:
-        source_1 = os.path.join(file_path,file_name)
-        dest = os.path.join(temp_position,file_name+'_'+datetime.datetime.now().strftime('%Y%m%d%H%M'))
-        with shelve.open(source_1) as old:
-            with shelve.open(dest) as new:
-                for key,item in old.items():
-                    new[key] = old[key]
-    with shelve.open(os.path.join(file_path,file_name),writeback=False) as hd:
-        hd['index'] = raw_data.index
-        for key,item in raw_data.experiment_to_save.items():
-            if item == 'sync':
-                hd[key]=raw_data.experiment[key]
-            elif item == 'del':
-                del hd[key]
-                del hd[key+'raw']
-            elif item == 'upload':
-                hd[key]=raw_data.experiment[key]
-                hd[key+'raw']=raw_data.experiment_raw[key]
-    info_box.text = info_deque('{} experiments have been saved'.format(len(raw_data.experiment_to_save.keys())))
-    raw_data.experiment_to_save = {}
+    tosave = len(raw_data.experiment_to_save)
+    exptosave = len(raw_data.index_to_save)
+    raw_data.save_data()
+    info_box.text = info_deque('Saved {} Experiments, {} Runs.'.format(exptosave,tosave))
+   
 
 def sd_experiment_list_cb(attr,old,new):
     raw_data.load_experiment(new)
@@ -1207,7 +1109,7 @@ def sd_create_new_exp_cb():
     raw_data.index.update(index_update)
     raw_data.experiment.update({new_exp[0]:{}})
     raw_data.experiment_raw.update({new_exp[0]:{}})
-    raw_data.experiment_to_save.update({new_exp[0]:'upload'})
+    raw_data.index_to_save.append((new_exp[0], 'sync'))
     new_exp_opt = experiment_menu_generator(raw_data.index.keys())
     sd_experiment_list.options=new_exp_opt
     sd_experiment_list.value = [new_exp_opt[0][0]]
@@ -1249,7 +1151,7 @@ def vd_delete_data_button_cb():
             exp = i.split('-')[0]
             _ = raw_data.experiment[exp].pop(i,None)
             _ = raw_data.experiment_raw[exp].pop(i,None)
-            raw_data.experiment_to_save.update({exp:'upload'})
+            raw_data.experiment_to_save.append((i,'del'))
             sd_run_list.options = runs_menu_generator(exp_to_del)
             sd_run_list.value = []
     else:
@@ -1257,15 +1159,13 @@ def vd_delete_data_button_cb():
             _= raw_data.index.pop(i,None)
             _= raw_data.experiment.pop(i,None)
             _= raw_data.experiment_raw.pop(i,None)
-            raw_data.experiment_to_save.update({i:'del'})
+            raw_data.index_to_save.append((i,'del'))
             sd_experiment_list.options = experiment_menu_generator(raw_data.index.keys())
             sd_experiment_list.value = []
 
 def load_button_cb():
     global raw_data
-    with shelve.open(os.path.join(file_path,file_name),writeback=False) as hd:
-        data_index = hd['index']
-    raw_data = Data(data_index)
+    raw_data = Data()
     info_box.text = info_deque('Data re-loaded.')
     sd_experiment_list.options = experiment_menu_generator(raw_data.index.keys())
     sd_experiment_list.value = []
@@ -1310,7 +1210,7 @@ def vd_curve_offset_cb(attr,old,new):
     old_offset = curve_dict.get('align_offset',(0,0,1))
     if new != old_offset:
         curve_dict.update(align_offset=new)
-        raw_data.experiment_to_save.update({index:'sync'})
+        raw_data.experiment_to_save.append((run_index,'sync'))
         sync_plot(sd_run_list.value,**vd_plot_options_fetcher())
 
 def vd_auto_align_cb():
@@ -1329,7 +1229,7 @@ def vd_auto_align_cb():
     if len(runindexlist)==1:
         info_box.text = info_deque('Select more than 1 curve to align.')
         return None
-    raw_data.experiment_to_save.update([(i.split('-')[0],'sync') for i in runindexlist])
+    raw_data.experiment_to_save.extend([(i,'sync') for i in runindexlist])
     toalign_run = toalign.split('-')[0]
     time=raw_data.experiment_raw[toalign_run][toalign][curve].get('time',None) or raw_data.experiment_raw[toalign_run][toalign][curve].get('volume',None)
     signal=raw_data.experiment_raw[toalign_run][toalign][curve]['signal']
@@ -1447,7 +1347,7 @@ vd_axis_option_menu = curve_type_options.copy()
 vd_axis_option_menu.append('none')
 vd_primary_axis_option = Select(title='Primary Axis',value='A',options=vd_axis_option_menu,width=170)
 vd_secondary_axis_option = Select(title='Secondary Axis',value='B',options=vd_axis_option_menu,width=170)
-vd_anotation_option = MultiSelect(title='Primary',value=['integrate-area'],options=[('none','None'),('integrate-line','Integrate Line'),('integrate-area','Integrate Area'),('integrate-percent','Integrate Percent'),('integrate-mass','Integrate Mass'),('integrate-label','Integrate Label'),('annotate','Annotation')],size=7,width=150)
+vd_anotation_option = MultiSelect(title='Primary',value=['integrate-mass','integrate-label'],options=[('none','None'),('integrate-line','Integrate Line'),('integrate-area','Integrate Area'),('integrate-percent','Integrate Percent'),('integrate-mass','Integrate Mass'),('integrate-label','Integrate Label'),('annotate','Annotation')],size=7,width=150)
 vd_anotation_option_s = MultiSelect(title='Secondary',value=['none'],options=[('none','None'),('integrate-line','Integrate Line'),('integrate-area','Integrate Area'),('integrate-percent','Integrate Percent'),('integrate-mass','Integrate Mass'),('integrate-label','Integrate Label'),('annotate','Annotation')],size=7,width=150)
 vd_secondary_axis_range = TextInput(title = 'Secondary Axis Range',value='0-100',width=150)
 # vd_div_0 = Div(text='',width=50)
@@ -1601,3 +1501,17 @@ curdoc().add_root(display_layout)#display_layout
 
 
 # mode_selection.active = 0
+
+def session_destroy(session_context):
+    global info_change_keep,data_index,info_deque_holder,temp_data_to_save,raw_data,axis_label_dict,copyed_runs,analysis_temp_keep
+    del info_change_keep
+    del data_index
+    del info_deque_holder
+    del temp_data_to_save
+    del raw_data
+    del axis_label_dict
+    del copyed_runs
+    del analysis_temp_keep
+    print('PLOJO-NIOR*******cleared trash.')
+
+curdoc().on_session_destroyed(session_destroy)

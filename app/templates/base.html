@@ -37,6 +37,7 @@
                     <li><a href="{{ url_for('main.index') }}"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> Home</a></li>
                     <li><a href="{{ url_for('ngs.ngs') }}"><span class="glyphicon glyphicon-link" aria-hidden="true"></span> NGS</a></li>
                     <li><a href="{{ url_for('apps.index') }}"><span class="glyphicon glyphicon-send" aria-hidden="true"></span> APPS</a></li>
+                    <li><a href="{{ url_for('ppt.index') }}"><span class="glyphicon glyphicon-blackboard" aria-hidden="true"></span> PPT</a></li>
                   </ul>
 
                   
@@ -51,10 +52,13 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> {{current_user.username}} <span class="caret"></span></a>
                         <ul class="dropdown-menu">
                           <li><a href="{{url_for('auth.profile')}}">Profile</a></li>
-                          <li><a href="{{url_for('main.analysis_profile')}}">NGS Analysis</a></li>
-                          <li><a href="#">...</a></li>
+                          <li><a href="{{url_for('main.user_settings')}}">Settings</a></li>
                           <li role="separator" class="divider"></li>
-                          <li><a href="#">...</a></li>
+                          <li><a href="{{url_for('main.analysis_profile')}}">NGS Analysis</a></li>
+                          <li><a href="{{url_for('ppt.bookmarked')}}">Bookmarked Slides</a></li>
+                         
+                          
+        
                           {% if current_user.isadmin %}
                               <li role="separator" class="divider"></li>
                               <li><a href="{{url_for('admin.admin')}}">Admin Page</a></li>
@@ -71,12 +75,29 @@
                     {% if not current_user.is_anonymous %}
                   </ul>
                   <ul class="nav navbar-nav navbar-right">
-                    <li id="analysis_cart_count_container" style="visibility:{% if current_user.analysis_cart %}visible{%else%}hidden{%endif%};">
-                      <a href="{{url_for('ngs.analysis_cart')}}">  
-                        <span id='analysis_cart_count' class='badge'><span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>{{current_user.analysis_cart_count()}}</span>
+                    <li id="analysis_cart_count_container" style="display:{% if current_user.analysis_cart %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ngs.analysis_cart')}}"> <span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>
+                        <span id='analysis_cart_count' class='badge'>{{current_user.analysis_cart_count()}}</span>
                       </a>
                     </li>
                   </ul>
+                  <ul class="nav navbar-nav navbar-right">
+                    <li id="slide_cart_count_container"
+                      style="display:{% if current_user.slide_cart %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ppt.slide_cart')}}"><span class="glyphicon glyphicon-folder-close" aria-hidden="true"></span>
+                        <span id='slide_cart_count' class='badge'>{{current_user.slide_cart_count}}</span>
+                      </a>
+                    </li>
+                  </ul>
+                 
+                  <ul class="nav navbar-nav navbar-right">
+                    <li id="follow_ppt_count_container" style="display:{% if current_user.follow_ppt_update_count %}block{%else%}none{%endif%};">
+                      <a name='badge_icon' href="{{url_for('ppt.user_follow_slides')}}"><span class="glyphicon glyphicon-bell" aria-hidden="true"></span>
+                        <span id='follow_ppt_count' class='badge'>{{current_user.follow_ppt_update_count}}</span>
+                      </a>
+                    </li>
+                  </ul>
+                  
                   {% endif %}
                   
 
@@ -95,6 +116,8 @@
           {% include "search/ngs_search_form.html" %}
       {% elif formname=='SearchInventoryForm' %}
           {% include "search/inventory_search_form.html" %}
+      {% elif formname=='SearchPPTForm' %}
+        {% include "search/ppt_search_form.html" %}
       {% else %}
         <h1 align='center'>No Search Available</h1>
       {% endif %}
@@ -107,17 +130,15 @@
 
 {% block content %}
 <div class="container" style="min-height: 100px;" id='main_container'>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-            {% for category, message in messages %}
-                    <div class='alert alert-{{category}} alert-info' role='alert'>
-                        {{ message }}
-                    </div>
-            {% endfor %}
-    {% endif %}
-    {% endwith %}
+  <div class="flash_message_container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  
+  {% include "flash_messages.html" %}
+  {% endwith %}
+</div>
+  
+
     {% block app_content %}{% endblock %}
-    
 </div>
 <!-- footer -->
 <div class='container' style="padding: 20px;">
@@ -128,40 +149,44 @@
 {% endblock %}
 
 {% block scripts %}
-    <script type="text/javascript">
-            $(document).ready(function () {
-              var url = window.location.pathname.split('/')[1];
-              if (url) {
-              $('ul.nav a[href*="'+ url +'"]').parent().addClass('active');
-              $('ul.nav a').filter(function() {
-                   return this.href == url;
-              }).parent().addClass('active');
-              }
-          });
+<script type="text/javascript" src="{{url_for('static',filename='js/base.js')}}"> </script>
+{% if current_user.is_authenticated %}
+<script>
+    // monitor key board  F for search.
+    $(document).ready(function () {
+      $(document).keypress(function (e) {
+        var c = String.fromCharCode(e.which);
+        if (e.target.tagName == 'BODY' && c === 'f') {
+          $('#search_dialog').modal('show');
+        }
+      });
+    });
     
+// follow a powerpoint or unfollow a powerpoint. definded here for index page use as well
+function add_ppt_to_follow(event) {
+  let ppt_id = $(event.target).attr('name');
+  let action = $(event.target).text();
+  $.ajax({
+    url: "{{url_for('ppt.add_ppt_to_follow')}}",
+    type: "POST",
+    data: JSON.stringify({ ppt_id: ppt_id, action: action }),
+    contentType: "application/json",
+    success: function (result) {
+      display_flash_message(result.html, 1000);
+      if (!result.status) {
+        $(event.target).text('Follow');
+        $(event.target).removeClass('label-warning').addClass('label-info')
+      } else {
+        $(event.target).text('Unfollow');
+        $(event.target).removeClass('label-info').addClass('label-warning')
+      }
+    },
+    error: function (xhr, resp, text) { alert(`Save Flag error: ${text}`) },
+  })
+}
 
-          $(document).ready(function () {
-              $(window).resize(function () {
-                var bodyheight = $(this).height();
-               
-                $("#main_container").css('min-height',bodyheight-150);
-              }).resize();
-            });
+</script>
+{% endif %}
 
-      // monitor key board.
-      {% if current_user.is_authenticated %}
-          $(document).ready(function () {
-              $(document).keypress(function (e) {
-                var c = String.fromCharCode(e.which);
-                if (e.target.tagName == 'BODY' && c === 'f') {
-                  $('#search_dialog').modal('show');
-                }
-              });
-            });
-      {% endif %}
-      
-      
-        
-      
-    </script>
+
 {% endblock %}

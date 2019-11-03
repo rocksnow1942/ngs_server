@@ -2,11 +2,13 @@ server {
     # listen on port 80 (http)
     listen 80;
     server_name _;
+    client_max_body_size 0;
     access_log /var/log/ngs_server_access.log;
     error_log /var/log/ngs_server_error.log;
     location / {
         # forward application requests to the gunicorn server
         proxy_pass http://localhost:8000;
+        proxy_read_timeout 1200s
         proxy_redirect off;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

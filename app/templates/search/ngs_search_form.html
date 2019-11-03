@@ -13,6 +13,10 @@
     {{ g.search_form.q(size=20, class='form-control',placeholder=g.search_form.q.label.text,value=g.search_form.q.data) }}                                    
     </div>
 </div>
+<div class='row' style="display:none; margin-left:2%;margin-right:2%;" id="ngs_search_revcomp_container">
+    <h5>Reverse-Complement Sequence:</h5>
+    <p id="ngs_search_revcomp_seq" style="overflow-wrap: break-word;"></p>
+</div>
     <div class="row" style="padding: 10px;">
         <div class="col-md-6">
             {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data)}}
@@ -31,45 +35,77 @@
 
 
 <script type="text/javascript">
-    // update search menu. id=search_field value = 
-    $(document).ready(function () {
-        let table = "{{table}}";
-        let option = [];
-        $("#search_field option").each(function () { option.push($(this).val()) });
-        if (option.includes(table)) {
-            $("#search_field").val(table);
-        };
-    });
+// update search menu's search in field based on current display page.
+$(document).ready(function () {
+    let table = "{{table}}";
+    let option = [];
+    $("#search_field option").each(function () { option.push($(this).val()) });
+    if (option.includes(table)) {
+        $("#search_field").val(table);
+    };
+});
 
-    function change_search_field(method) {
-        let sequence = ['known_sequence', 'primer', 'sequence'];
-        let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
-        if (method != 'text') {
-            $("#search_field option").each(function () {
-                if (sequence.includes($(this).val())) { $(this).removeAttr('disabled') }
-                else { $(this).attr('disabled', "") };
-            });
-            if (!sequence.includes($("#search_field").val())) {
-                $("#search_field").val("sequence") };
-            }
-        else {
-            $("#search_field option").each(function () {
-                if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
-                else { $(this).attr('disabled', "") };
-            });
-            if (!text.includes($("#search_field").val())) {
-                        $("#search_field").val("selection")
-                    }
+// make reversecomp sequence:
+function revcomp(seq) {
+    const bpmap = { A: 'T', C: 'G', G: 'C', T: 'A', U: 'A' };
+    let rev_comp = "";
+    for (var i = seq.length - 1; i >= 0; i--) {
+        revbp = bpmap[seq[i].toUpperCase()]
+        if (revbp) {
+            rev_comp += revbp;
+        } else {
+            rev_comp = "Not a valid sequence.";
+            break
+        };}
+    return rev_comp };
+
+$(document).ready(function () {
+    $('input#q[name="q"]').change(function(event) {
+        let seq = event.target.value;
+        let method = $("#search_method").val(); 
+         seq = seq.split(" ").join("");
+        if (method!='text') {
+            event.target.value = seq;
         }
-    }
-    $(document).ready(function () {
-        let method = $("#search_method").val();
-        change_search_field(method);
-        $("#search_method").change(function(event) {
-            let method = event.target.value;
-            change_search_field(method);            
-        })
+        let rev_comp =revcomp(seq);
+        $("#ngs_search_revcomp_seq").html(rev_comp);
     });
+});
+
+// update search allowed combinations.
+function change_search_field(method) {
+    let sequence = ['known_sequence', 'primer', 'sequence'];
+    let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
+    if (method != 'text' && method != 'name') {
+        $('#ngs_search_revcomp_container').css('display','block');
+        $("#search_field option").each(function () {
+            if (sequence.includes($(this).val())) { $(this).removeAttr('disabled') }
+            else { $(this).attr('disabled', "") };
+        });
+        if (!sequence.includes($("#search_field").val())) {
+            $("#search_field").val("known_sequence") };
+        }
+    else {
+        $('#ngs_search_revcomp_container').css('display', 'none');
+        $("#search_field option").each(function () {
+            if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
+            else { $(this).attr('disabled', "") };
+        });
+        if (!text.includes($("#search_field").val())) {
+                    $("#search_field").val("selection")
+                }
+    }
+}
+
+// change
+$(document).ready(function () {
+    let method = $("#search_method").val();
+    change_search_field(method);
+    $("#search_method").change(function(event) {
+        let method = event.target.value;
+        change_search_field(method);            
+    })
+});
 
 </script>
 

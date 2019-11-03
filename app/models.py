@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib.figure import Figure
+from collections import Counter
 from app import db,login
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -7,7 +8,7 @@ from flask_login import UserMixin, current_user
 from hashlib import md5
 from time import time
 import jwt
-from flask import current_app
+from flask import current_app, url_for
 from itertools import islice
 import json
 from sqlalchemy import Column, String,ForeignKey,DateTime,func
@@ -16,8 +17,9 @@ from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
-from app.utils.analysis import DataReader
+from app.utils.analysis import DataReader,Alignment
 from app.utils.search import add_to_index, remove_from_index, query_index
+import os
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -43,7 +45,7 @@ class DataStringMixin():
             return {}
 
     def save_data(self):
-        self.data_string = json.dumps(self.data)
+        self.data_string = json.dumps(self.data, separators=(',', ':'))
 
 class SearchableMixin():
     @classmethod 
@@ -63,7 +65,6 @@ class SearchableMixin():
         
     @classmethod 
     def after_commit(cls,session,*args,**kwargs):
-        print('***added',session._changes)
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
                 add_to_index(obj.__tablename__, obj)
@@ -92,15 +93,78 @@ class User(UserMixin,db.Model,DataStringMixin):
     email= db.Column(db.String(120), index=True, unique=True)
     privilege = db.Column(db.String(10),default='user')
     password_hash = db.Column(db.String(128))
-    data_string = Column(db.Text,default="{}")
+    data_string = Column(mysql.LONGTEXT, default="{}")
     analysis_cart= data_string_descriptor('analysis_cart')()
+    user_setting = data_string_descriptor('user_setting',{})()
     analysis = relationship('Analysis',backref='user')
-
+    slide_cart = data_string_descriptor('slide_cart',[])()
+    follow_ppt = data_string_descriptor('follow_ppt',{})()
+    bookmarked_ppt = data_string_descriptor('bookmarked_ppt', [])()
+    quick_link = data_string_descriptor('quick_link',[])() # format is [(name,url)]
+   
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
     def set_password(self,password):
         self.password_hash=generate_password_hash(password)
+    
+    def is_following_ppt(self,ppt_id):
+        return str(ppt_id) in self.follow_ppt
+    
+    @property
+    def follow_ppt_update_count(self): 
+        update = self.follow_ppt_update()
+        return sum(len(i) for i in update.values()) 
+    
+    def remove_dead_ppt_link(self):
+        slide_cart,bookmarked_ppt = [],[]
+        for i in self.slide_cart:
+            if Slide.query.get(i):
+                slide_cart.append(i)
+        for i in self.bookmarked_ppt:
+            if Slide.query.get(i):
+                bookmarked_ppt.append(i)
+        self.slide_cart ,self.bookmarked_ppt = slide_cart,bookmarked_ppt
+        for key in list(self.follow_ppt.keys()):
+            ppt = PPT.query.get(key)
+            if ppt:
+                slides = [i.id for i in ppt.slides]
+                self.follow_ppt[key] = list(set(self.follow_ppt[key]) & set(slides))
+            else:
+                self.follow_ppt.pop(key)
+
+
+
+    def single_ppt_update_count(self,ppt_id):
+        if str(ppt_id) in self.follow_ppt:
+            slides = [i.id for i in PPT.query.get(int(ppt_id)).slides]
+            new = set(slides) - set(self.follow_ppt[str(ppt_id)])
+            return len(new)
+        else:
+            return 0
+
+    def follow_ppt_update(self):
+        update={}
+        for k in list(self.follow_ppt.keys()):
+            ppt = PPT.query.get(k)
+            if ppt:
+                slides = [i.id for i in ppt.slides]
+                new = set(slides) - set(self.follow_ppt[k])
+                if new:
+                    update[k]=list(new)     
+        return update
+
+    @property 
+    def ngs_per_page(self):
+        return self.user_setting.get('ngs_per_page', 10)
+
+    @property 
+    def thumbnail(self):
+        return self.user_setting.get('thumbnail', 'small')
+    
+    @property
+    def slide_per_page(self):
+        return self.user_setting.get('slide_per_page', 40)
 
     def check_password(self,password):
         if self.password_hash:
@@ -110,6 +174,15 @@ class User(UserMixin,db.Model,DataStringMixin):
         digest=md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
+
+    @property
+    def slide_cart_count(self):
+        return len(self.slide_cart)
+    
+    @property
+    def follow_ppt_count(self):
+        return len(self.follow_ppt)
+
 
     def analysis_cart_count(self):
         return len(self.analysis_cart)
@@ -127,11 +200,22 @@ class User(UserMixin,db.Model,DataStringMixin):
         return User.query.get(id)
         
     def test_task(self,n):
-        job=current_app.task_queue.enqueue("app.tasks.ngs_data_processing.test_worker",n)
+        job = current_app.task_queue.enqueue(
+            "app.tasks.ngs_data_processing.test_worker", n, job_timeout=3600)
     
     @property
     def isadmin(self):
         return self.privilege=='admin'
+
+    def launch_search(self,seq,table):
+        job = current_app.task_queue.enqueue(
+            'app.tasks.ngs_data_processing.lev_distance_search', seq, table, job_timeout=3600)
+        t = Task(id=job.get_id(), name=f"Lev distance search in <{table}>.")
+        db.session.add(t)
+        db.session.commit()
+        return t.id
+
+
 
 class BaseDataModel():
     @property
@@ -186,7 +270,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             return DataReader.load_json(self.analysis_file)
             
     def load_rounds(self):
-        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id)
+        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Load analysis {self}.")
         self.task_id=t.id 
         self.save_data()
@@ -222,7 +306,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     
     @property
     def clustered(self):
-        return bool(self.cluster_para)
+        return bool(self.cluster_para) and (not self.task_id)
 
     def top_clusters(self):
         # result is list of tuple, in order of: C1/V33.1 , C1, Sequence, similarto ks, distance
@@ -292,9 +376,15 @@ class SeqRound(db.Model):
         if ks:
             ks = 'A.K.A. : '+ks.sequence_name+'\n'
         l1= self.sequence_display
-        l2=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
-        l3=f"Length: {len(self.sequence.aptamer_seq)} n.t."
+        l3=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
+        l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         return l1,l2,l3
+    
+    def align(self,query):
+        align = Alignment(self.sequence.aptamer_seq)
+        align=align.align(query,offset=False)
+        return align.format(link=True,maxlength=95).split('\n')
+   
     @property
     def aka(self):
         ks = self.sequence.knownas or ''
@@ -315,7 +405,7 @@ class SeqRound(db.Model):
         return self.round.RP
 
     
-    @property
+    @lazyproperty
     def sequence_display(self):
         return f"{self.sequence.aptamer_seq}"
 
@@ -361,6 +451,11 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     target = Column(mysql.VARCHAR(50))
     note = Column(mysql.VARCHAR(500))
     sequence_variants =  relationship('Sequence',backref='knownas')
+
+    def align(self, query):
+        align = Alignment(self.rep_seq)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
 
     @property
     def name(self):
@@ -408,6 +503,12 @@ class Sequence(db.Model,BaseDataModel):
     known_sequence_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('known_sequence.id'))
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
+
+    def align(self, query):
+        align = Alignment(self.aptamer_seq)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
+
 
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
@@ -465,6 +566,10 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     def __repr__(self):
         return f"Round <{self.round_name}>, ID:{self.id}"
 
+    @property 
+    def tree_color(self):
+        return 'red' if self.totalread else 'black'
+   
     @property
     def name(self):
         return self.round_name
@@ -530,7 +635,8 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         fig = Figure(figsize=(6,4))
         ax = fig.subplots(subplot_kw=dict(aspect="equal"))
         seq = [(i.sequence.aka, i.count/(self.totalread)) for i in self._top_seq(9)]
-        seq = [i for i in seq if i[1]>=0.01]
+        _seq = [i for i in seq if i[1]>=0.01]
+        seq = _seq or seq[0:2]
         seq = seq + [('<{:.1%}'.format(seq[-1][1]), 1-sum([i[1] for i in seq]))]
         data = [i[1] for i in seq]
         start = sum(i for i in data[:-1] if i>0.05)
@@ -576,6 +682,64 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
     def __repr__(self):
         return f"Selection <{self.selection_name}>, ID: {self.id}"
 
+    def json_tree_notes(self):
+        sr = [i for i in self.rounds]
+        for r in self.rounds:
+            if r.parent and r.parent not in sr:
+                sr.append(r.parent)
+        result = [(i.round_name, i.note,url_for('ngs.details',table='round',id=i.id)) for i in sr]
+        result.append((self.selection_name, self.note, "#"))
+        return result
+
+    def json_tree(self):
+        """return tree json"""
+        sr = [ i for i in self.rounds]
+        for r in self.rounds:
+            if r.parent and r.parent not in sr:
+                sr.append(r.parent)
+        result = {'name': f"ID-{self.id}", 'note': self.note,'color':'black',
+                  'url': '', 'children': []}
+        todel = []
+        for r in sr:
+            if (not r.parent) or (not (r in self.rounds)):
+                result['children'].append({'name': r.round_name,'note':r.note, 'color':r.tree_color,
+            'url': url_for('ngs.details', table='round', id=r.id), 'children': []})
+                todel.append(r)
+        for i in todel: sr.remove(i)
+       
+        while sr:
+            toremove = []
+            for i in sr:
+                p = self.search_tree(i.parent.round_name, result)
+                if p:
+                    p['children'].append({'name': i.round_name, 'note': i.note, 'color': i.tree_color,
+                    'url': url_for('ngs.details', table='round', id=i.id),'children':[]})
+                    toremove.append(i)
+            for i in toremove:
+                
+                sr.remove(i)
+        return result 
+
+    def search_tree(self,ele,tree):
+        def dfs(tree):
+            yield tree 
+            for v in tree['children']:
+                for u in dfs(v):
+                    yield u 
+        for i in dfs(tree):
+            if i['name'] == ele:
+                return i 
+        return False
+
+        # TODO why this is wrong?
+        # if ele == tree['name']:
+        #     return tree
+        # else:
+        #     for i in tree['children']:
+        #         return self.search_tree(ele,i)
+        
+
+
     def display(self):
         line1 = f"{self.selection_name}"
         line2=f"Target: {self.target}, Sequenced Rounds: {len(self.rounds)}, Date: {self.date}"
@@ -603,6 +767,12 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
 
+    def align(self, query):
+        align = Alignment(self.sequence)
+        align = align.align(query)
+        return align.format(link=True, maxlength=95).split('\n')
+
+
     def display(self):
         l1 = f"{self.name}"
         l2 = f"{self.sequence}"
@@ -616,26 +786,72 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     def sequence_rc(self):
         return reverse_comp(self.sequence)
 
-class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
+
+def generate_sample_info(nsg_id):
+    """
+    sample info is a list consist of [ () ()]
+    (round_id, fpindex, rpcindex, fp, rpc)
+    """
+    nsg = NGSSampleGroup.query.get(nsg_id)
+    savefolder = current_app.config['UPLOAD_FOLDER']
+    f1 = json.loads(nsg.datafile)['file1']
+    f2 = json.loads(nsg.datafile)['file2']
+    if f1:
+        f1 = os.path.join(savefolder, f1)
+    if f2:
+        f2 = os.path.join(savefolder, f2)
+    sampleinfo = []
+    for sample in nsg.samples:
+        round_id = sample.round_id
+        fpindex = Primers.query.get(sample.fp_id or 1).sequence
+        rpindex = Primers.query.get(sample.rp_id or 1).sequence
+        rd = Rounds.query.get(round_id)
+        fp = Primers.query.get(rd.forward_primer or 1).sequence
+        rp = Primers.query.get(rd.reverse_primer or 1).sequence
+        sampleinfo.append(
+            (round_id, fpindex, reverse_comp(rpindex), fp, reverse_comp(rp)))
+    return f1, f2, sampleinfo
+
+
+
+class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __tablename__ = 'ngs_sample_group'
     __searchable__ = ['name', 'note']
     __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
-    name = Column(String(50))
+    name = Column(String(500))
     note = Column(mysql.VARCHAR(500))
     date = Column(DateTime(), default=datetime.now)
     samples = relationship(
         'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
     datafile = Column(String(200))
     processingresult = Column(db.Text)
-    task_id = Column(db.String(36),ForeignKey('task.id'))
+    task_id = Column(db.String(36), ForeignKey('task.id', ondelete='SET NULL'),nullable=True)
+    data_string = Column(mysql.TEXT, default="{}")
+    commit_threshold = data_string_descriptor('commit_threshold',2)()
+    
+    commit_result = data_string_descriptor('commit_result',{})()
+    temp_result = data_string_descriptor('temp_result', '')()
+    temp_commit_result = data_string_descriptor('temp_commit_result', {})()
+
+    filters = data_string_descriptor('filters',[0,1,0,30,2])() # processing filter, list, in the order of: equal-match-length; rev-comp ; Q score; Qscore threshold; count threshold
+
+    @property
+    def _filters(self):
+        return self.filters or [0, 1, 0, 30, 2]
 
     def __repr__(self):
         return f"NGS Sample <{self.name}>, ID:{self.id}"
 
     def haschildren(self):
-        return bool(self.datafile)
+        return self.processed
     
+    def get_commit_result(self,round_id):
+        return self.commit_result.get(str(round_id),None)
+    
+    def get_temp_commit_result(self, round_id):
+        return self.temp_commit_result.get(str(round_id), None)
+
     @property
     def showdatafiles(self):
         if self.datafile:
@@ -643,10 +859,18 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
             return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
         else:
             return None
+    @property 
+    def files(self):
+        if self.datafile:
+            uf = current_app.config['UPLOAD_FOLDER'] + '/'
+            r = json.loads(self.datafile)
+            return uf+r.get('file1',""),uf+r.get('file2',"")
+        return []
+
 
     @property
     def processed(self):
-        return bool(self.processingresult)
+        return bool(self.processingresult) and (not self.task_id)
 
     @property
     def progress(self):
@@ -659,11 +883,16 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         l1=f"{self.name}  - Date: {self.date}"
         l2 = f"{len(self.samples)} Samples, Note: {self.note}"
         l3 = f"DataFile: {self.datafile}"
-        l4 = f"Processed : {bool(self.processingresult)}"
+        l4 = f"Committed : {bool(self.processingresult)}"
         return l1,l2,l3,l4
 
-    def launch_task(self):
-        job=current_app.task_queue.enqueue('app.tasks.ngs_data_processing.parse_ngs_data',self.id)
+    def launch_task(self, commit,filters):
+        if commit == 'retract': 
+            filters = self.filters
+            if not filters:
+                filters = [0,1,0,30,self.commit_threshold]
+        job = current_app.task_queue.enqueue(
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()
@@ -685,53 +914,64 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel):
         self._check_primers_match(f1,f2,sampleinfo)
 
     def _check_equal_file_length(self,f1,f2):
-        with open(f1,'rt') as f, open(f2,'rt') as r:
-            fb1 = file_blocks(f)
-            fb2 = file_blocks(r)
-            fb1length = sum(bl.count("\n") for bl in fb1)
-            fb2length = sum(bl.count("\n") for bl in fb2)
-        assert fb1length==fb2length, ("Files are not of the same length.")
+        """
+        don't check if there is no file2.
+        """
+        if f2:
+            with open(f1,'rt') as f, open(f2,'rt') as r:
+                fb1 = file_blocks(f)
+                fb2 = file_blocks(r)
+                fb1length = sum(bl.count("\n") for bl in fb1)
+                fb2length = sum(bl.count("\n") for bl in fb2)
+            assert fb1length==fb2length, ("Files are not of the same length.")
 
     def _check_primers_match(self,f1,f2,sampleinfo):
         forward ,reverse = [],[]
         needtoswap = 0
         match = 0
         revcomp=0
-        with open(f1,'rt') as f, open(f2,'rt') as r:
+        with open(f1,'rt') as f:
             for line in islice(f,1,2000,4):
                 forward.append(line.strip())
-            for line in islice(r,1,2000,4):
-                reverse.append(line.strip())
-        for _f,_r in zip(forward,reverse):
-            if _f==reverse_comp(_r):
-                revcomp+=1
-                findmatch = -1
-                if needtoswap > 0:
-                    totest,totest_r,vote = _r,_f,1
+        if f2:
+            with open(f2, 'rt') as r:
+                for line in islice(r, 1, 2000, 4):
+                    reverse.append(line.strip())
+        for idx,_f in enumerate(forward):
+            if reverse:
+                _r = reverse[idx]
+                _f_mid =max(len(_f)//2,10)
+                mid20 = _f[_f_mid-10:_f_mid+10]
+                if reverse_comp(mid20) in _r:#_f==reverse_comp(_r):
+                    revcomp+=1
                 else:
-                    totest,totest_r,vote = _f,_r,-1
-                for _,*primers in sampleinfo:
-                    if all([i in totest for i in primers]):
-                        needtoswap+=vote
-                        findmatch = 1
-                        break
-                    elif all([i in totest_r for i in primers]):
-                        needtoswap-=vote
-                        findmatch = 1
-                        break
-                    else:
-                        continue
-                match += findmatch
+                    revcomp-=1
             else:
-                revcomp-=1
-       
-        assert revcomp>0,('Too Many non reverse-complimentary sequences.')
-        assert match > 0, ('Too many index primers and slection primers don\'t match.')
+                _r = reverse_comp(_f)
+
+            findmatch = -1
+            if needtoswap > 0:
+                totest, totest_r, vote = _r, _f, 1
+            else:
+                totest, totest_r,vote = _f,_r,-1
+            for _, *primers in sampleinfo:
+                if all([i in totest for i in primers]):
+                    needtoswap += vote
+                    findmatch = 1
+                    break
+                elif all([i in totest_r for i in primers]):
+                    needtoswap -= vote
+                    findmatch = 1
+                    break
+                else:
+                    continue
+            match += findmatch
+        # assert revcomp>=0,('Too Many non reverse-complimentary sequences.')
+        # assert match >=0, ('Too many index primers and slection primers don\'t match.')
         if needtoswap>0:
-            
             datadict=json.loads(self.datafile)
             datadict['file1'],datadict['file2']=datadict['file2'],datadict['file1']
-            self.datafile = json.dumps(datadict)
+            self.datafile = json.dumps(datadict, separators=(',', ':'))
             db.session.commit()
 
 class NGSSample(db.Model,BaseDataModel):
@@ -762,40 +1002,124 @@ class Task(db.Model,BaseDataModel):
     progress = db.Column(db.Float,default=0)
     complete = db.Column(db.Boolean, default=False)
     date = Column(DateTime(), default=datetime.now)
-
+    ngssample = relationship(
+        'NGSSampleGroup', backref=db.backref('task', passive_deletes=True))
+   
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
 
-# class Slide(SearchableMixin,db.Model):
-#     __tablename__='slide'
-#     __searchable__=['title','body']
+class Slide(SearchableMixin,db.Model):
+    __tablename__='slide'
+    __searchable__=['title','body','tag','note','ppt_id','flag']
+    __searablemethod__ = []
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    title = Column(mysql.TEXT)
+    body = Column(mysql.TEXT)
+    ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
+    note = Column(String(2000))
+    tag = Column(String(900))
+    page = Column(mysql.INTEGER(unsigned=True))
+    date = Column(DateTime(), default=datetime.now)
+    _flag = Column(String(10))
+
+    def __repr__(self):
+        return f"<Slide {self.id}>"
+
+    @property
+    def flag(self):
+        return self._flag if self._flag else ""
+
+    @property
+    def uri(self):
+        return self.ppt.path + f'/Slide{self.page}.PNG'
+
+    @staticmethod
+    def tags_list(n=20,returncount=False):
+        tags = db.session.query(Slide.tag).filter(Slide.tag!=None).all()
+        c = Counter([j.strip() for i in tags for j in i[0].split(',') if j.strip()])
+        c = c.most_common(n)
+        if returncount:
+            return c
+        else:
+            return [i[0] for i in c]
+
+    @classmethod
+    def search_in_id(cls,query,fields, ids , page, per_page):
+        """
+        string, ['all', 'title', 'body'], ['15', '16']
+        """
+        if not query.strip():
+            if 'all' in ids:
+                entries = cls.query.order_by(
+                    cls.date.desc()).paginate(page, per_page, False)
+            else:
+                ids = [int(i) for i in ids]
+                entries = cls.query.filter(cls.ppt_id.in_(ids)).order_by(
+                    cls.date.desc()).paginate(page, per_page, False)
+            return entries.items, entries.total  # just return matching id slides
+
+        if not current_app.elasticsearch:
+            return [], 0
+        if 'all' in fields:
+            fields = ['title', 'body', 'tag', 'note',]
+        base = {'multi_match': {'query': query, 'fields': fields}}
+        if 'all' not in ids:
+            ids = [int(i) for i in ids]
+            base = {'bool': {'must': [base], 'filter':{"terms": {"ppt_id":ids}}}}
+        result = current_app.elasticsearch.search(\
+            index='slide', body={'query': base, 'from': (page - 1) * per_page,'size':per_page})
+        
+        ids = [int(hit['_id']) for hit in result['hits']['hits']]
+        total = result['hits']['total']
+        # to account for difference between elastic search version on mac and ubuntu.
+        if isinstance(total, dict):
+            total = total['value']
+        if total==0:
+            return cls.query.filter_by(id=0),0
+        when = [ (k,i) for i,k in enumerate(ids) ]
+        return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
+        
+
+class PPT(db.Model):
+    __tablename__ = 'powerpoint'
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    name = Column(String(200))
+    note = Column(String(2000))
+    project_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('project.id'))
+    path = Column(String(900),unique=True)
+    md5 = Column(String(200),unique=True)
+    revision = Column(db.Integer)
+    slides = relationship('Slide', backref='ppt', cascade="all, delete-orphan")
+    date = Column(DateTime(), default=datetime.now)
+    def __repr__(self):
+        return f"<PPT {self.id}>"
     
+    @property
+    def uri(self):
+        self.slides.sort(key=lambda x: (x.date,x.page), reverse=True)
+        if self.slides:
+            return self.slides[0].uri
+        else:
+            return 'FolderEmpty.png'
 
-# class Project(SearchableMixin,db.Model):
-#     __tablename__ = 'project'
-#     __searchable__ = ['name', 'note']
-#     __searablemethod__ = []
-#     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
-#     selection_id = Column(mysql.INTEGER(unsigned=True),
-#                           ForeignKey('selection.id'))
-#     round_name = Column(String(50))
-#     sequences = relationship("SeqRound", back_populates="round")
-#     target = Column(String(50))
-#     totalread = Column(mysql.INTEGER(unsigned=True), default=0)
-#     note = Column(String(300))
-#     forward_primer = Column(mysql.INTEGER(unsigned=True),
-#                             ForeignKey('primer.id'))
-#     reverse_primer = Column(mysql.INTEGER(unsigned=True),
-#                             ForeignKey('primer.id'))
-#     samples = relationship('NGSSample', backref='round')
-#     date = Column(DateTime(), default=datetime.now)
-#     parent_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('round.id'))
-#     children = relationship("Rounds")
+class Project(db.Model):
+    __tablename__ = 'project'
+    id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
+    name = Column(String(200),unique=True)
+    note = Column(String(2000))
+    ppts = relationship('PPT', backref='project')
+    date = Column(DateTime(), default=datetime.now)
+    
+    def __repr__(self):
+        return f"<Project {self.id}>"
 
-
-
-
-
+    @property
+    def uri(self):
+        # self.ppts.sort(key=lambda x: x.date, reverse=True)
+        if self.ppts:
+            return self.ppts[0].uri
+        else:
+            return 'FolderEmpty.png'
 
 @login.user_loader
 def load_user(id):
@@ -804,6 +1128,6 @@ def load_user(id):
 
 models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
-'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis}
-from app.tasks.ngs_data_processing import generate_sample_info
+'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
+# from app.tasks.ngs_data_processing import 
 from app.utils.ngs_util import reverse_comp,file_blocks

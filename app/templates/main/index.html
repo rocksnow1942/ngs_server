@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+
+{% block app_content %}
+    <div class="jumbotron">
+      <h1>Good {{greet}}, {{ current_user.username }}!</h1>
+    </div>
+
+<div class="panel panel-info">
+  <div class="panel-heading" role="tab" id='headingQuickLink'>
+    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseQuickLink" aria-expanded="true"
+      aria-controls="collapseQuickLink" class="custom-card">
+      <h3 class="panel-title"> Quick Links  </h3>
+    </a>
+  </div>
+  <div id="collapseQuickLink" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingQuickLink">
+    <div class="panel-body">
+
+     {% include "main/quick_link.html" %}
+
+    </div>
+  </div>
+</div>
+
+
+    <div class="panel panel-info">
+      <div class="panel-heading" role="tab" id='headingOne'>
+        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true"
+          aria-controls="collapseOne" class="custom-card" ><h3 class="panel-title"> 
+            {% if not follow_ppt %}
+            You are not following any projects.
+            {% elif current_user.follow_ppt_update_count %}
+            Your Following Project have {{current_user.follow_ppt_update_count}} Updates:
+            {% else %}
+            You are up to date on the projects you followed. Good job!
+            {% endif %}
+             </h3></a>
+      </div>
+      <div id="collapseOne" class="panel-collapse collapse {% if current_user.follow_ppt_update_count %}in{%endif%}" role="tabpanel" aria-labelledby="headingOne">
+      <div class="panel-body">
+      {% if follow_ppt %}
+      {% for row in follow_ppt|batch(6) %}
+      <div class='row'>
+        {% for entry in row %}        
+            <div class="slide_container col-xs-2 ">
+              <div class="box small {% if current_user.single_ppt_update_count(entry.id) %}
+                  green
+              {% endif %}
+              " style="height:auto;">
+                <div class="slide_title slide_flag"> {{entry.name}}
+                  {% if current_user.is_following_ppt(entry.id) %}
+                  <span onclick="javascript:add_ppt_to_follow(event)" name="{{entry.id}}"
+                    class="label label-warning cursor_pointer">Unfollow</span>
+                  {% else %}
+                  <span onclick="javascript:add_ppt_to_follow(event)" name="{{entry.id}}"
+                    class="label label-info cursor_pointer">Follow</span>
+                  {% endif %}
+                </div>
+                <div class='slide'>
+                  <a href="{{url_for('ppt.user_follow_slides',id=entry.id) }}">
+                    <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                      alt="{{entry.name}}"></a>
+                    {% set sct = current_user.single_ppt_update_count(entry.id) %}
+                    {% if sct %}
+                        <p align='right' style="color:red;"><b> {{sct}} - Update{% if sct>1 %}s{% endif %}</b></p>
+                    {%else%}
+                        <p align='right' >You're up to date.</p>
+                    {% endif %}
+                               
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+    </div>
+      {% endfor %}
+      {% else %}
+        <h4>Follow interesting projects on the PPT page, so that you won't miss out the new findings!</h4>
+      {% endif %}
+      </div>
+      </div>
+    </div>
+
+    
+{% endblock %}
+
+
+{% block scripts %}
+{{super()}}
+<script>
+// open modal 
+  function open_modal(idx,name,link) {
+    $('#quick_link_name').val(name);
+    $('#quick_link_url').val(link);
+    $('#quick_link_id').val(idx);
+    $('#edit_link').modal('show');
+  }
+
+  
+
+</script>
+{% endblock %}

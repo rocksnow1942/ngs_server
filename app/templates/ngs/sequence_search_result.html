@@ -1,0 +1,98 @@
+{% extends "ngs/browse_base.html" %}
+
+
+
+{% block browse_content %}
+{% if entries %}
+
+<nav aria-label="Page navigation">
+    <ul class="pagination ">
+        <li class=" previous {% if not prev_url %} disabled{% endif %}">
+            <a class='page-link' href="{{ prev_url or '#' }}" aria-label="Previous">
+                <span aria-hidden="true">&larr;</span>
+            </a>
+        </li>
+        {% for pn,pu in page_url %}
+
+        <li class="previous {% if pn==active %} active{% endif %}"><a href="{{pu}}">{{pn}}</a></li>
+
+        {% endfor %}
+        <li class=" previous {% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}" aria-label="Next">
+                <span aria-hidden="true">&rarr;</span>
+            </a>
+        </li>
+        {% if table != 'sequence_round' and table!='analysis' %}
+        <li class='disabled'><span aria-hidden="true">&nbsp;&nbsp;|&nbsp;&nbsp;</span> </li>
+        <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
+                    aria-hidden="true"></span> {{table.upper()}}</a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+
+<table class="table table-hover" id="browse_content_table">
+    <tr>
+        <th width="50px">
+            ID
+        </th>
+        <th width="400px">
+            {{ table.upper() }}
+        </th>
+        <th width="50px">
+            Distance
+        </th>
+        <th width="50px">Menu</th>
+    </tr>
+
+    {% for entry in entries %}
+    <tr>
+        <td width="50px">
+            {{entry.id_display}}    
+        </td>
+        <td>
+            <li><a
+                    href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a>
+            </li>
+            {% for line in entry.display()[2:] %}
+            <li>{{line}}</li>
+            {% endfor %}
+          
+            <li style='font-family: Courier New, Courier, monospace;'>Sequence:&nbsp;{{entry.aligndisplay[0]}}</li>
+            <li style='font-family: Courier New, Courier, monospace;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{entry.aligndisplay[1]}}</li>
+            <li style='font-family: Courier New, Courier, monospace;'>Query:&nbsp;&nbsp;&nbsp;&nbsp;{{entry.aligndisplay[2]}}</li>
+           
+        </td>
+        <td width='50px'>
+            {{entry.lev_score}}
+        </td>
+        <td width='50px'>
+            <div class="btn-group">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                    <span class="glyphicon glyphicon-tasks" aria-hidden="true"></span> Option
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}">Details</a>
+                    </li>
+                    <li><a href="{{url_for('ngs.edit',toadd=entry.__tablename__,id=entry.id|string)}}">Edit</a></li>
+                    {% if table=='selection' or table=='round' %}
+                    <li><a href="javascript:add_to_analysis('{{entry.__tablename__}}',{{entry.id}});">Add To
+                            Analysis</a></li>
+                    {% endif %}
+                    <li role="separator" class="divider"></li>
+                    <li><a href="{{url_for('ngs.delete',table=entry.__tablename__,todelete=entry.id)}}"
+                            onclick="return confirm('Sure to delete {{entry.__repr__()}}?')">Delete</a></li>
+                </ul>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+
+
+
+{% endif %}
+
+{% endblock %}

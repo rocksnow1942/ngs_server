@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
 
+
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def ngs():
@@ -20,7 +21,7 @@ def ngs():
 @bp.route('/browse', methods=['GET', 'POST'])
 @login_required
 def browse():
-    pagelimit = current_app.config['PAGE_LIMIT']
+    pagelimit = current_user.ngs_per_page
     table = request.args.get('table')
     id = request.args.get('id',0,type=int)
     page = request.args.get('page',1,type=int)
@@ -32,12 +33,15 @@ def browse():
             elif table=='sequence_round':
                 entries = target.query.filter_by(rounds_id=id).order_by(target.count.desc()).paginate(page,pagelimit,False)
                 # entries = [SequenceDisplay(i.sequence,i.count,i.count/rd.totalread,rd.round_name) for i in r]
+            else:
+                entries = target.query.order_by(
+                    target.id.desc()).paginate(page, pagelimit, False)
         else:
             entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
           
         nextcontent = {'round':'sequence_round','selection':'round'}.get(table)
         kwargs={}
-        if id: kwargs.update(id=id,nextcontent=nextcontent)
+        if id: kwargs.update(id=id)
         totalpages = entries.total
         start,end = pagination_gaps(page,totalpages,pagelimit)
        
@@ -162,8 +166,6 @@ def addsample():
         edit_redirect_url = request.args.get('edit_redirect_url','/')
     else:
         edit_redirect_url = request.form.get('edit_redirect_url', '/')
-       
-
     datalist={}
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
@@ -179,21 +181,22 @@ def addsample():
         f.form.fp_id.choices= plist
         f.form.rp_id.choices= plist
         f.form.round_id.choices = rdlist
-    if request.method == 'POST':
+    # if request.method == 'POST':
         # check if all fp an rp index are unique.
-        
+    # print(request.method, "***=>>", form.validate_on_submit())
+    if form.validate_on_submit():   
         indextuple = []
         for i in form.samples:
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
         if len(set(indextuple)) != len(indextuple):
-            flash('Error: FP RP Index have duplicates. Check Primers.','danger')
+            flash('Error: FP RP Index have duplicates. Check Primers.','warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
-        if form.validate_name():
-            flash('Name < {} > already used.'.format(form.name.data), 'danger')
-            return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
+        # if form.validate_name():
+        #     flash('Name < {} > already used.'.format(form.name.data), 'danger')
+        #     return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         sequenced_round = form.validate_round()
         if sequenced_round:
-            flash('Round {} already sequenced.'.format(', '.join(['<'+i+'>' for i in sequenced_round])))
+            flash('Round {} already sequenced.'.format(', '.join(['<'+i+'>' for i in sequenced_round])),'warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         
         sg = form.populate_obj(NGSSampleGroup,id=id)
@@ -207,7 +210,8 @@ def addsample():
             return redirect(edit_redirect_url)
         else:
             return redirect(url_for('ngs.addsample'))
-    return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
+    return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', 
+                           table='ngs_sample_group', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/add_extrasample', methods=[ 'POST'])
@@ -264,41 +268,55 @@ def get_known_as_sequence():
 
 
 
+# @bp.route('/ngs_data_processing', methods=['GET', 'POST'])
+# @login_required
+# def ngs_data_processing():
+#     commit = request.json.get('commit',False)
+#     id = request.json.get('id')
+#     threshold = int(request.json.get('threshold'))
+#     sg = NGSSampleGroup.query.get(id)
+#     if sg and sg.can_start_task():
+#         try:
+#             sg.files_validation()
+#             sg.launch_task(commit=commit)
+#         except Exception as e:
+#             flash(f"Validation Failed. ID:<{id}>, resaon:<{e}>.",'danger')
+#     else:
+#         flash(f'Cannot Process Data of Sample ID: <{id}>.','danger')
+#     return redirect(request.referrer)
+
 @bp.route('/ngs_data_processing', methods=['GET', 'POST'])
 @login_required
 def ngs_data_processing():
-    id = request.args.get('id',0,type=int)
+    commit = request.json.get('commit', False)
+    id = request.json.get('id')
+    temp_filter = request.json.get('filters')
+    filters = [0]*5 
     sg = NGSSampleGroup.query.get(id)
+    reload=False
+    # if 0:
     if sg and sg.can_start_task():
         try:
+            for i in temp_filter:
+                k, v = i['name'], i['value']
+                filters[int(k)] = int(v) if v.isnumeric() else 1
+          
             sg.files_validation()
-            sg.launch_task()
+            sg.launch_task(commit,filters)
+            reload=True
+            messages=[]
         except Exception as e:
-            flash(f"Validation Failed. ID:<{id}>, resaon:<{e}>.",'danger')
+            messages=[('danger' , f"Validation Failed. ID:<{id}>, resaon:<{e}>." )]
     else:
-        flash(f'Cannot Process Data of Sample ID: <{id}>.','danger')
-    return redirect(request.referrer)
-
-@bp.route('/get_bar_progress', methods=['POST'])
-@login_required
-def get_bar_progress():
-    ids = request.json['barlist']
-    progresses = dict.fromkeys(ids)
-    for id in ids:
-        table,index = id.split(':')
-        if table != 'task': indx=int(index)
-        t = models_table_name_dictionary.get(table, None)
-        if t:
-            progress = t.query.get(index).progress
-            progresses[id] = progress
-    return jsonify(progresses)
+        messages = [('danger', f'Cannot Process Data of Sample ID: <{id}>.', )]
+    return jsonify(html=render_template('flash_messages.html', messages=messages),reload=reload)
 
 
 
 @bp.route('/details', methods=['GET'])
 @login_required
 def details():
-    pagelimit = current_app.config['PAGE_LIMIT']
+    pagelimit = current_user.ngs_per_page
     page = request.args.get('page', 1, type=int)
     table = request.args.get('table','',str)
     id = request.args.get('id')
@@ -367,7 +385,8 @@ def add_to_analysis():
     id = int(id)
     try:
         if table == 'delete':
-            current_user.analysis_cart.remove(id)
+            if (id in current_user.analysis_cart):
+                current_user.analysis_cart.remove(id)
         else:
             if table == 'selection':
                 sele = Selection.query.get(id)
@@ -379,8 +398,9 @@ def add_to_analysis():
         current_user.save_data()
         db.session.commit()
     except:
-        flash('An Error occured. Please refresh page.','warning')
+        flash('An Error occured during editing analysis cart. Please refresh page.','warning')
     return jsonify({'analysis_count':current_user.analysis_cart_count(),'remaining':current_user.analysis_cart})
+
 
 
 @bp.route('/analysis_cart', methods=['POST','GET'])
@@ -421,7 +441,7 @@ def analysis():
         active_tab='cluster'
     else:
         active_tab = 'load'
-    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab)
+    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab,table='analysis')
 
 
 @bp.route('/analysis/cluster', methods=['POST', 'GET'])
@@ -505,4 +525,84 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
-    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=True)
+    as_attachment =  filename.endswith('.json')
+    return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
+
+
+@bp.route('/get_bar_progress', methods=['POST'])
+@login_required
+def get_bar_progress():
+    ids = request.json['barlist']
+    progresses = dict.fromkeys(ids)
+    for id in ids:
+        table, index = id.split(':')
+        if table != 'task':
+            indx = int(index)
+        t = models_table_name_dictionary.get(table, None)
+        if t:
+            progress = t.query.get(index).progress
+            progresses[id] = progress
+    return jsonify(progresses)
+
+
+@bp.route('/lev_search/<table>', methods=['GET'])
+@login_required
+def lev_search(table):
+    task_id = request.args.get('task_id')
+    page = request.args.get('page', 1, type=int)
+    try:
+        jobresult = current_app.fetch_job_result(task_id)
+        result = jobresult['result']
+        query = jobresult['query']
+    except:
+        abort(404)
+    target = {'sequence':SeqRound,'primer':Primers,'known_sequence':KnownSequence}.get(table)
+    entries = []
+    table = "sequence_round" if table =='sequence' else table
+    for _id, _s in result:
+        if table == 'sequence_round':
+            entry = target.query.filter_by(sequence_id=_id).order_by(target.count.desc()).first()
+        else:
+            entry = target.query.get(_id)
+        entry.lev_score = _s
+        entry.aligndisplay = entry.align(query)
+        entries.append(entry)
+    return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
+                           table=table,)
+
+
+@bp.route('/get_selection_tree_json', methods=['POST'])
+@login_required
+def get_selection_tree_json():
+    s_id = request.json.get('id')
+    sele = Selection.query.get(s_id)
+    # notes = sele.json_tree_notes()
+    return jsonify(dict(tree=sele.json_tree(),))
+
+
+
+
+
+@bp.route('/save_tree', methods=['POST'])
+@login_required
+def save_tree():
+    try:
+        tree = request.json['tree']
+        sele = Selection.query.filter_by(id=tree['name'][3:]).first()
+        tree = {'name': 'root', 'children':tree['children']}
+        def dfs(tree):  
+            yield tree     
+            for v in tree.get('children',[]):
+                for u in dfs(v):
+                    yield u
+        for i in dfs(tree):
+            if i['name']!='root':
+                parent = Rounds.query.filter_by(round_name=i['name'],selection_id=sele.id).first()
+                children = Rounds.query.filter(Rounds.round_name.in_([j['name'] for j in  i.get('children', [])])).all()
+                for child in children:
+                    child.parent_id=parent.id
+        db.session.commit()       
+        messages = [('success','Selection tree saved.')]
+    except Exception as e:
+        messages = [('warning',f'Error occured during saving tree: <{e}>')]
+    return jsonify(msg=messages[0])

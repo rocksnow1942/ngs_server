@@ -250,8 +250,6 @@
     // set active tab
     function set_active_tab (name) {
         $("div[role='tabpanel']").each(function(index){
-            console.log(name);
-            console.log(index,$(this).attr('id'));
             let thisid = $(this).attr('id')
             if (thisid==name) {
                 $(this).addClass('active in');
@@ -260,13 +258,10 @@
             else { $(this).removeClass('active in');
         $(`a[href='#${thisid}']`).parent().removeClass('active');};
         });
-        
-
     };
 
 
     $(".glyphicon-trash").on("click", function (event) {
-        console.log(event.target.id);
         let rowid = '#round_'+event.target.id;
         $(rowid).fadeOut();
         $(rowid).attr('id', 'trash' + event.target.id);
@@ -295,7 +290,7 @@
             $(id).html(
                 `<div class="progress ">
                 <div class="progress-bar progress-bar-striped active" id="task:`+ result.id + `" role="progressbar"
-                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0 %">
+                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%;">
                     0%
              </div>
             </div>`)

@@ -4,7 +4,6 @@ import platform
 localmode=False
 
 
-
 systemname = platform.node()
 
 if localmode:

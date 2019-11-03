@@ -1,0 +1,75 @@
+{% import "bootstrap/wtf.html" as wtf %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+            aria-hidden="true">&times;</span></button>
+    <h4 class="modal-title" id="myModalLabel">Search PPT</h4>
+</div>
+
+<form action="{{url_for('main.search')}}" method="get" class="form" role="form">
+    <div class="modal-body">
+
+        <div class="row" style="padding: 10px;">
+            <div class="col-md-12">
+                {{ g.search_form.q(size=20, class='form-control',id='query_input',placeholder=g.search_form.q.label.text,value=g.search_form.q.data) }}
+            </div>
+        </div>
+        <div class="row" style="padding: 2px;">
+            <div class="col-md-6">
+                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data,rows=5)}}
+            </div>
+            <div class="col-md-6">
+                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data,rows=5)}}
+            </div>
+        </div>
+        <div class="row" style="padding: 2px;">
+            <div class="col-md-12">
+                {{wtf.form_field(g.search_form.search_ppt,value=g.search_form.search_ppt.data,rows=8)}}
+            </div>
+            
+        </div>
+
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <input class="btn btn-primary" id="submit" name="submit" type="submit" value="Search PPT">
+    </div>
+</form>
+
+
+<script type="text/javascript">
+ 
+
+$(document).ready(function () {
+        $("#search_project").change(function (event) {
+            let projectid = event.target.value;
+            change_search_ppt(projectid);
+        })
+    });
+
+    function change_search_ppt(projectid) {
+    $.ajax({
+        url:"{{url_for('ppt.get_ppt_by_project')}}",
+        type:'POST',
+        data : JSON.stringify({ project: projectid }), 
+        contentType:"application/json", 
+        success: function (result) {
+            let options = '<option selected value="all">All</option>';
+            for (let opt of result.options) {
+                options += `<option value="${opt[0]}">${opt[1]}</option>`
+            };
+            $('#search_ppt').html(options);
+        }
+    })
+};
+$(document).ready(function () {
+        //change_search_ppt(projectid);
+        $("#search_field").change(function (event) {
+            let field = event.target.value;
+            if (field=='tag') {
+                $('#query_input').attr('list',"tags_list")
+            } else {
+                $('#query_input').removeAttr('list');
+            }
+        })
+    });
+</script>

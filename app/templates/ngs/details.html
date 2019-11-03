@@ -7,59 +7,73 @@
 <h3>Rounds in this sample:</h3>
 <table class="table table-hover">
     <tr>
-        <th width = "200px" >
+        <th width = "160px" >
             Round Name
         </th>
-        <th width = "200px">
+        <th width = "160px">
             Round FP
         </th>
-        <th width = "200px">
+        <th width = "160px">
             Round RP
         </th>
-        <th width = "200px">
-            NGS Index FP
+        <th width = "160px">
+             Index FP
         </th>
-        <th width = "200px">
-            NGS Index RP
+        <th width = "160px">
+             Index RP
+        </th>
+        <th width="160px">
+            Commit U/T
+        </th>
+        <th width="160px">
+            Temp U/T
         </th>
     </tr>
     {% for sample in entry.samples %}
         <tr>
             {% for col,table,id in sample.info() %}
-                    <td width="75px">
+                    <td>
                         {% if col %}
                             <a href="{{url_for('ngs.details',table=table,id=id)}}">{{col}}</a>
                         {% else %}
                             {{col}}
                         {% endif %}
-                        
-                       
                     </td>
             {% endfor %}
+            <td >
+               {{entry.get_commit_result(sample.round_id)}}
+            </td>
+            <td>
+                {{entry.get_temp_commit_result(sample.round_id)}}
+            </td>
         </tr>
     {% endfor %}  
 </table> 
 <div class="row">
         <div class="col-xs-6 col-md-4">
             <div class="thumbnail alert-default well-md">
-                <h5 class="card-title">Processing Result</h5>
-                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.processingresult %}{{entry.processingresult}}{%else%}None{% endif %}</p>
+                <h5 class="card-title">Committed Result</h5>
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.processingresult %}{{entry.processingresult}}{%else%}Data not committed.{% endif %}</p>
             </div>
         </div>
+        
+        <div class="col-xs-6 col-md-4">
+            <div class="thumbnail alert-default well-md">                
+                <h5 class="card-title">Temp Result</h5>                
+                <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.temp_result%}{{entry.temp_result}}{%else%}No temp result.{% endif %}</p>
+            </div>
+        </div>
+
         <div class="col-xs-6 col-md-4">
             <div class="thumbnail alert-default well-md">
                 <h5 class="card-title">Note</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{% if entry.note %}{{entry.note}}{%else%}None{% endif %}</p>
                 <h5 class="card-title">Sample Submission Date</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{{entry.date}}</p>
-               <hr>
-                <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'> <b>Edit NGS Sample</b> </a>
-            </div>
-        </div>
-        <div class="col-xs-6 col-md-4">
-            <div class="thumbnail alert-default well-md">
                 <h5 class="card-title">Data files</h5>
                 <p class="card-text-light" style="white-space:pre-wrap;">{{entry.showdatafiles}}</p>
+               <hr>
+                <a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'> <b>Edit NGS Sample</b> </a>
             </div>
         </div>
 </div>
@@ -103,11 +117,23 @@
         <div class="row">
             <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id)}}" class='btn btn-info btn-block' role='button'>Edit
                 Selection</a></div>
-            <div class="col-sm-6"><a href="" class='btn btn-info btn-block' role='button'>Draw Selection Tree</a></div>
+            <div class="col-sm-6"><a onclick="javascript:display_tree('{{entry.id}}')" class='btn btn-info btn-block' role='button'>Draw Selection Tree</a></div>
         </div>
         </div>
     </div>
 </div>
+<div id="tree-outer-container" style='display:none'>
+    <div class='row'>
+    <div class='col-xs-8 col-xs-offset-2'>
+        <h4 align='center'>{{entry.__repr__()}} - Tree</h4>
+    </div>
+    <div class='col-xs-2' align='right'><a href="javascript:save_tree()" class='btn btn-info'
+            onclick="return confirm('! Make Sure Edited nodes are in expanded position.\nReady to save Tree?')">Save Tree</a></div>
+    </div>
+    
+<div  id="tree-container" ></div>
+</div>
+
 <h4>Round List</h4>
 {% include "ngs/table_pagination.html" %}
 <table class="table table-hover">
@@ -200,16 +226,16 @@
         <th width="25px">
             ID
         </th>
-        <th width="300px">
+        <th width="250px">
             Sequence
         </th>
-        <th width="25px">
+        <th width="20px">
             Length
         </th>
-        <th width="25px">
+        <th width="120px">
            Percentage
         </th>
-        <th width="50px">
+        <th width="30px">
             A.K.A.
         </th>
         <th width="200px">
@@ -226,7 +252,7 @@
         </td>
         <td>{{seq.length}}</td>
         <td>
-            {{seq.percentage}}%
+         {{seq.count}} / {{seq.percentage}}%
         </td>
         <td>
             {% if seq.aka %}
@@ -394,10 +420,56 @@
 </table>
 
 {% else %}
-        blockofcode
+      
     
 {% endif %}
 
 
 
 {% endblock %}
+
+
+
+{% if table=='selection' %}
+
+{% block scripts %}
+{{super()}}
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="{{url_for('static',filename='js/dndTree.js')}}"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script>
+    function display_tree (id) {
+        if ($('#tree-outer-container').css('display') == 'none') {
+            $.ajax({
+                url: "{{url_for('ngs.get_selection_tree_json')}}",
+                type: "POST",
+                data: JSON.stringify({ id: id }),
+                contentType: 'application/json',
+                success: function (result) {
+                    $('#tree-outer-container').css('display', 'block');
+                    draw_d3_tree(result.tree);
+                    $('#tree-container').addClass('row').attr('align', 'center');
+                }
+            })
+        }        
+    };
+
+    function save_tree () {
+        if (general_tree_data) {
+            $.ajax({
+                url: "{{url_for('ngs.save_tree')}}",
+                type : "POST",
+                data: JSON.stringify({tree: general_tree_data}),
+                contentType: 'application/json',
+                success: function (result) {
+                    alert(result.msg[0].toUpperCase()+'!\n'+result.msg[1])
+                    //display_flash_message(result.html, 1000);
+                },
+            })
+        }
+    }
+</script>
+{% endblock %}
+
+{% endif %}

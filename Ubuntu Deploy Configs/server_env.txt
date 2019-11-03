@@ -1,10 +1,10 @@
 SECRET_KEY=998e01010b0247b68b0dbf3fe39752b4
-DATABASE_URL=mysql+pymysql://ngs_server:ngs_server_password@localhost:3306/ngs_server
+DATABASE_URL=mysql+pymysql://ngs_server:ngs_server_password@localhost:3306/ngs_server?charset=utf8mb4
 MAIL_SERVER=smtp.googlemail.com
 MAIL_PORT=587
 MAIL_USE_TLS=1
 MAIL_USERNAME=rocksnow1942@gmail.com
-MAIL_PASSWORD=kanghui06
+MAIL_PASSWORD=*********
 UPLOAD_FOLDER=/home/hui/ngs_server/app/cache/ngs_data_upload
 ALLOWED_EXTENSIONS={'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','csv','sql'}
 PAGE_LIMIT=10
@@ -13,3 +13,7 @@ ELASTICSEARCH_URL=http://localhost:9200
 FOLDOJO_FOLDER=/home/hui/Documents/plojo/foldojo/static/cache
 BOKEH_SECRET_KEY=m8mwcQWXR5bdHIGq3IqeTpMOVje541HieXKWkwhpEHgr
 BOKEH_SIGN_SESSIONS=1
+
+PPT_SOURCE_FOLDER=/home/hui/AptitudeUsers/R&D/Projects
+PPT_TARGET_FOLDER=/home/hui/AptitudeUsers/R&D Backup/Plojo backup/Project_Slide_snap
+PPT_LOG_FILE=/home/hui/AptitudeUsers/R&D Backup/Plojo backup/Project_Slide_snap/PPT_INDEX_LOG.txt

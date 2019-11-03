@@ -1,0 +1,87 @@
+<div class='row' id="sortable">
+
+{% for entry in entries  %}
+<div class="slide_container col-xs-2 ">
+    <div class="box {{entry.flag}}">
+        <div class="thumbnail_title_text">
+        <div class="slide_title outer">{{entry.ppt.name}}</div>
+        <div class="slide_flag">
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-default cursor_pointer">N</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-primary cursor_pointer">B</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-success cursor_pointer">G</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-danger cursor_pointer">R</span>
+            <span onclick="javascript:slide_add_flag(event,'slide_cart')" name="{{entry.id}}" class="label label-info cursor_pointer"><span name="{{entry.id}}" class="glyphicon glyphicon-plus"></span></span>
+        </div>
+        </div>
+        <div class="slide_image_container" >
+            <img data-toggle="modal"  name = "{{loop.index}}" data-target="#modal-slide{{entry.id}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                alt="No Snapshot - {{entry.title}}">
+        </div>
+            <div class='slide_input outer input_container slide_edit_trigger' style="display: none;" id="{{entry.id}}">
+                <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                <p>Note: <span class="slide_note">{{entry.note}}</span></p> 
+            </div>
+            <div class="col-xs-9 thumbnail_list_text" style="display: none;">
+                
+                <div class="slide_flag slide_title ">
+                  {{entry.ppt.name}}
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-default cursor_pointer">N</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-primary cursor_pointer">B</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-success cursor_pointer">G</span>
+                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}"
+                        class="label label-danger cursor_pointer">R</span>
+                    <span onclick="javascript:slide_add_flag(event,'slide_cart')" name="{{entry.id}}" class="label label-info cursor_pointer"><span
+                            name="{{entry.id}}" class="glyphicon glyphicon-plus"></span></span>
+                </div>
+                <div class='slide_input inner input_container slide_edit_trigger'  id="{{entry.id}}">
+                    <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                    <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+                </div>
+                <div  >
+                    <p><b>Title:</b> {{entry.title}}</p>
+                    <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
+                </div>
+            </div>
+            
+        <p align='right' style="padding: 1px;">{{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
+    </div>
+</div>
+{%endfor%}
+
+</div>
+
+
+<!-- modal display -->
+{% for entry in entries %}
+    <div class="modal bs-example-modal-lg"  name = "{{loop.index}}" id="modal-slide{{entry.id}}" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class='row'>
+                    <div class="col-md-12">
+                        <div class="thumbnail ">
+                                    <h5><a href="{{url_for('ppt.index',table='slide',id=entry.ppt_id)}}">{{entry.ppt.name}}</a>
+                                    <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-default cursor_pointer">N</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-primary cursor_pointer">B</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-success cursor_pointer">G</span>
+            <span onclick="javascript:slide_add_flag(event)" name="{{entry.id}}" class="label label-danger cursor_pointer">R</span>
+            <span onclick="javascript:slide_add_flag(event,'slide_cart')" name="{{entry.id}}" class="label label-info cursor_pointer"><span name="{{entry.id}}" class="glyphicon glyphicon-plus"></span></span></h5>
+                                    <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                                    alt="No Snapshot - {{entry.title}}">
+                                <div class="input_container slide_edit_trigger" id="{{entry.id}}">
+                                    <p>Tag: <span class="slide_tag">{{entry.tag}}</span></p>
+                                    <p>Note: <span class="slide_note">{{entry.note}}</span></p>
+                                </div>
+                                <p align='right'>Edit Date: {{entry.date.strftime('%Y-%m-%d')}} | Page-{{entry.page}}</p>
+                                <p><b>Title:</b> {{entry.title}}</p>
+                                <p style="white-space:pre-wrap;"><b>Body:</b> {{entry.body}}</p>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}

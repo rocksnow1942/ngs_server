@@ -108,7 +108,7 @@ class Round_Add(CheckName):
         
         if not rd: rd = Rounds()
         rd.selection_id=selection_id
-        rd.round_name = form.round_name.data
+        rd.round_name = form.round_name.data.strip()
         rd.target = form.target.data
         rd.note = form.note.data
         rd.forward_primer=fpid
@@ -119,9 +119,19 @@ class Round_Add(CheckName):
 
     def validate_parent(self,parent):
         if parent.data.strip():
-            if not Rounds.query.filter_by(round_name=parent.data.strip()).first():
+            par = Rounds.query.filter_by(round_name=parent.data.strip()).first()
+            if not par:
                 raise ValidationError(
                     'Round <{}> is not created.'.format(parent.data))
+            if self.round_name.data.strip() == parent.data.strip():
+                raise ValidationError(
+                    'Round <{}> can\'t be its own parent.'.format(parent.data))
+            if par.parent and par.parent.round_name == self.round_name.data.strip():
+                raise ValidationError(
+                    "Round <{}>'s parent is Round <{}>.".format(parent.data,self.round_name.data))
+
+
+            
 
     def validate_selection(self,selection):
         if not Selection.query.filter_by(selection_name=selection.data).first():
@@ -322,15 +332,17 @@ class Known_Sequence_Edit(Known_Sequence_Add):
 class AddSampleForm(FlaskForm):
     selection = StringField('Selection',validators=[DataRequired()],render_kw={'list':'selections','placeholder':'Selection'})
 
-    round_id = SelectField('Round',choices=[],validators=[DataRequired()],coerce=int,render_kw={'placeholder':'Round'})
+    round_id = SelectField('Round',validators=[DataRequired()],coerce=int,render_kw={'placeholder':'Round'})
 
-    fp_id = SelectField('FP Index',choices=[],validators=[DataRequired()],coerce=int,render_kw={'placeholder':'FP Index'})
-    rp_id = SelectField('RP Index',choices=[],validators=[DataRequired()],coerce=int,render_kw={'placeholder':'RP Index'})
+    fp_id = SelectField('FP Index',validators=[DataRequired()],coerce=int,render_kw={'placeholder':'FP Index'})
+    rp_id = SelectField('RP Index', validators=[DataRequired()],coerce=int,render_kw={'placeholder':'RP Index'})
     class Meta:
         csrf = False
 
     def populate_obj(self,obj):
         return obj(round_id=self.round_id.data,fp_id=self.fp_id.data,rp_id=self.rp_id.data)
+
+
 
 
 @register_add_form
@@ -343,13 +355,14 @@ class NGS_Sample_Group_Add(CheckName):
     ignore_duplicate = BooleanField('Ignore Duplicate')
     add_sample = SubmitField('Add another sample')
     submit = SubmitField('Save Samples')
-    def validate_name(self):
-        if self.name.data != self.old_name:
-            if NGSSampleGroup.query.filter_by(name=self.name.data).first():
-                return True
-        return False
+    def validate_name(self,name=None):
+        if name.data != self.old_name:
+            if NGSSampleGroup.query.filter_by(name=name.data).first():
+                raise ValidationError(
+                    'Name < {} > already used.'.format(name.data))
+                
     
-    def validate_round(self):
+    def validate_round(self,rd=None):
         if (self.ignore_duplicate.data):
             return None
         rounds = [i.form.round_id.data for i in self.samples]

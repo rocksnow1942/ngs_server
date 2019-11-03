@@ -7,46 +7,54 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}">
             {% if table !='ngs_sample_group' %}
-            <a href="{{url_for('ngs.browse',table='ngs_sample_group')}}">Samples</a>
-            {% else %}<b>Samples</b>
+            Samples
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Samples</b></span>
             {% endif %}
+            </a>
         </li>
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='primer')}}">
             {% if table!='primer' %}
-            <a href="{{url_for('ngs.browse',table='primer')}}">Primers</a>
-            {% else %}<b>Primers</b>
-            {% endif %}
+            Primers
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Primers</b></span>
+            {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='known_sequence')}}">
           {% if table!='known_sequence' %}
-          <a href="{{url_for('ngs.browse',table='known_sequence')}}">Aptamers</a>
-          {% else %}<b>Aptamers</b>
-          {% endif %}
+          Aptamers
+          {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Aptamers</b></span>
+          {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='selection')}}">
             {% if table!='selection' %}
-            <a href="{{url_for('ngs.browse',table='selection')}}">Selection</a>
-            {% else %}<b>Selection</b>
-            {% endif %}
+            Selection
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Selection</b></span>
+            {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='round')}}">
             {% if table!='round' %}
-            <a href="{{url_for('ngs.browse',table='round')}}">Rounds</a>
-            {% else %} <b>Round</b>
-            {% endif %}
+            Rounds
+            {% else %} <span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Round</b></span>
+            {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
+          <a href="javascript:void(0)">
             {% if table!='sequence_round' %}
             Sequence
-            {% else %}<b>Sequence</b>
-            {% endif %}
+            {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Sequence</b></span>
+            {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
+          <a href="{{url_for('ngs.browse',table='analysis')}}">
           {% if table!='analysis' %}
-          <a href="{{url_for('ngs.browse',table='analysis')}}">Analysis</a>
-          {% else %}<b>Analysis</b>
-          {% endif %}
+          Analysis
+          {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Analysis</b></span>
+          {% endif %}</a>
         </li>
       </ol>
 </nav>
@@ -58,21 +66,8 @@
 
 {% block scripts %}
 {{super()}}
-
+<script src="{{url_for('static',filename='js/ngs.js')}}"></script>
 <script>
-     
-    // jquery legal id names
-    function jq_id(myid) {
-        return "#" + myid.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1");
-    }
-   // update progressbar
-    function set_bar_progress(barid, progress) {
-        const p = progress + '%';
-        const txt = ((progress==100) ? 'Done.' : p); 
-        console.log(barid,txt);
-        $(jq_id(barid)).css('width', p).attr('aria-valuenow', progress).text(txt);
-      };
-
     function update_progress_bar() {
       let interval=setInterval(function () {
         var barlist = [];
@@ -100,6 +95,8 @@
         });
       }, 500);
     };
+
+    
 // making progressbar when page first load.
   $(document).ready(function () {
       if ($(".progress-bar").length) {
@@ -107,34 +104,33 @@
       };
     });
 
-  
-  
-
-{% if table=='selection' or table=='round' %}
-// ajax to add seleciton or round and update cart information.
-function add_to_analysis(table,id) {
-  $.ajax({
-    url: "{{ url_for('ngs.add_to_analysis')}}",
-    type: "POST",
-    data: JSON.stringify({ data: [table,id] }),
-    contentType: 'application/json',
-    success: function (result) {
-      // update cart rendering.
-      set_analysis_count_badge(result);
-    },
-    error: function (xhr, resp, text) {
-      console.log(xhr, resp, text);
-    }
-  });
-}
-
-{% endif %}
 // set badge count
 function set_analysis_count_badge(result) {
-  $('#analysis_cart_count').html(`<span class="glyphicon glyphicon-shopping-cart" aria-hidden="true"></span>` + result['analysis_count']);
-  $('#analysis_cart_count_container').css('visibility', result['analysis_count'] ? 'visible' : 'hidden');
+  $('#analysis_cart_count').html(result['analysis_count']);
+  $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
 }
 
 </script>
+
+{% if table=='selection' or table=='round' %}
+<script>
+// ajax to add seleciton or round and update cart information.
+function add_to_analysis(table,id) {
+$.ajax({
+url: "{{ url_for('ngs.add_to_analysis')}}",
+type: "POST",
+data: JSON.stringify({ data: [table,id] }),
+contentType: 'application/json',
+success: function (result) {
+// update cart rendering.
+set_analysis_count_badge(result);
+},
+error: function (xhr, resp, text) {
+console.log(xhr, resp, text);
+}
+});
+}
+</script>
+{% endif %}
 
 {% endblock %}

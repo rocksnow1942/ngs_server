@@ -1,21 +1,21 @@
-import os,glob
+import os,json
 from os import path
+from itertools import cycle
 import shelve
 from bokeh.plotting import figure, ColumnDataSource
+from bokeh.models.glyphs import Text
 from bokeh.models import HoverTool,Slider,RangeSlider
-from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,Dropdown
+from bokeh.models.widgets import Button, TextInput,PreText,Div,TextAreaInput,Select,MultiSelect,RadioGroup,Toggle
 from bokeh.layouts import widgetbox,column,row
 import numpy as np
 from simu_utils import file_save_location,file_name
-# from _structurepredict import Structure,plotbackend
-import datetime
-
+from scipy.optimize import least_squares
+from functools import wraps
 #TODO
 # change parameters with curve selection.
 # ability to copy and paste parameters.
 
-cache_loc=path.join(path.dirname(__file__),'static','cache')
-
+formula_loc=path.join(path.dirname(__file__),'general_equilibrium_formula.json')
 
 class Data():
     def __init__(self,data_index):
@@ -76,8 +76,6 @@ def plojo_data_init():
         plojo_data = Data(f['index'])
     return plojo_data
 
-
-
 def find_ec_50(a,signal):
 
     med = (np.max(signal)+np.min(signal))/2
@@ -97,6 +95,30 @@ def find_ec_50(a,signal):
     else:
 
         return a[closest] + (med-cv)*(a[cori]-a[closest])/(cor-cv)
+
+
+def display_errors(func):
+    @wraps(func)
+    def wrapper(self,*args,**kwargs):
+        try:
+            result = func(self,*args,**kwargs)
+            return result
+        except Exception as e:
+            self.display.text=self.info("F:${}$ ERROR@{}".format(func.__name__,e))
+            raise e
+    return wrapper
+
+def log_first_deri(x,y):
+    if len(x)<2:
+        return 1
+    return (y[-1][0]-y[-2][0])/(np.log(x[-1])-np.log(x[-2]))#/np.max(y)
+
+def log_second_deri(x,y):
+    if len(x)<3:
+        return 1
+    y1 = log_first_deri(x,y)
+    y2 = log_first_deri(x[:-1],y[:-1])
+    return (y1-y2)/(np.log(x[-1])-np.log(x[-2]))
 
 
 class ic50_simu():
@@ -264,6 +286,20 @@ class ic50_simu():
                 real_root=0
             result=np.append(result,real_root)
         return result
+
+        # a = [a]*len(a_0)
+        # d = [d]* len(a_0)
+        #
+        # for arg in zip(a,b,c,d):
+        #     root = np.roots(arg)
+        #     real_root = [i.real for i in root if 0<i.real<min_rv]
+        #     if real_root:
+        #         real_root = min(real_root)
+        #     else:
+        #         real_root=0
+        #     result=np.append(result,real_root)
+        # return result
+
 
 
     def randomizer(self,signal,linear=0.001, proportional=0.001,seed=42):
@@ -1260,3 +1296,405 @@ class ri50_coop_simu():
         plojo_data.experiment_to_save.update({new_entry:'sync'})
         plojo_data.save_experiment()
         self.p.title.text='Data Saved to plojo.'
+
+class general_equilibrium_simu():
+    def __init__(self):
+        self.infobox=Div(text='<h3>E.S.S. Parameters</h3>',width=200,height=30)
+        self.linecolors = ['green', 'red', 'blue', 'fuchsia', 'darkorange']
+        # self.curve=Select(title='Curve Selection', value='0', options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)  ])
+        # self.curve = MultiSelect(title='Curve Selection',value=["0"],options=[(str(i),'Curve {}: {}'.format(i+1,self.linecolors[i].capitalize())) for i in range(5)],size=5,)
+        self.curve_labels=['Curve {}: {}'.format(i+1,self.linecolors[i].capitalize()) for i in range(5)]
+        self.curve = RadioGroup(labels=self.curve_labels,active=0)
+        self.copy = Button(label='Copy Curve',button_type='success')
+        self.plot = Button(label='Plot Curve',button_type='success',disabled=True)
+        self.fit_data = {}
+
+        self.p = figure(title=None, plot_width=810, plot_height=500,min_border=0, toolbar_location=None)
+        self.p.annulus(x=[1, 2, 3,4,5], y=[1, 2, 3,4,5], color="hotpink",inner_radius=0.2, outer_radius=0.5)
+        txxds=ColumnDataSource(dict(x=[0.4,2,2.7], y=[4,2.75,1.5], text=['Equilibrium','State','Simulator']))
+        txxgly = Text(x='x', y='y', text='text', text_color="darkturquoise",
+                       text_font_size='60pt', text_font='cursive',text_font_style='bold')
+        self.p.add_glyph(txxds, txxgly)
+        self.p.xgrid.visible = False
+        self.p.ygrid.visible = False
+        self.p.axis.visible = False
+
+        self.x_axis_type = Toggle(label="X-log", active=True,width=70)
+        self.y_axis_type = Toggle(label="Y-log", active=False,width = 70)
+        self.toggle_normalize = Toggle(label="Normalize Curves", active=False,)
+
+        self.curve_box = widgetbox(self.infobox,Div(text='<h4>Select Curve</h4>',width=200,height=30),
+                                   self.curve,self.copy,self.plot,width=170)
+        self.equation=TextAreaInput(title='Equations:', rows=10, cols=35, max_length=50000)
+        self.kv = TextInput(title='Known Variables:')
+        self.ukv = TextInput(title='Unknown Variables:')
+        self.ukv_lb = TextInput(title='Unknown Variables lower boundary:')
+        self.ukv_ub = TextInput(title='Unknown Variables upper boundary:')
+        self.toplot = TextInput(title='Plot:')
+        self.against = TextInput(title='Against:')
+        self.against_start = TextInput(title='Against Start:')
+        self.against_range = TextInput(title='Against Range:')
+        self.create_formula = [self.equation,self.kv,self.ukv,self.ukv_lb,
+                    self.ukv_ub,self.toplot,self.against,self.against_start,self.against_range]
+        self.formulas = self.load_formula()
+        loadmenu_options=[('new','Create New Formula')  ] + [(i,i) for i in self.formulas.keys()]
+        self.load_menu = Select(title='Load Saved Formula', value='new', options=loadmenu_options)
+        self.compile = Button(label='Compile Formula',button_type='success')
+        self.name = TextInput(title='New Formula Name')
+        self.save =  Button(label='Save Formula',button_type='success')
+        self.delete = Button(label='Delete',button_type="warning",width=75)
+        self.formulainputs = row(Div(text='',width=10),column(row(
+                widgetbox(self.kv,self.ukv,self.ukv_lb,self.ukv_ub),
+                widgetbox(self.toplot,self.against,self.against_start,self.against_range,width=205),
+                widgetbox(self.name,self.load_menu,self.compile,self.save,row(self.delete,self.x_axis_type,self.y_axis_type,),width=245)),self.equation))
+
+
+
+        # add callbacks
+        self.toggle_normalize.on_change('active',self.toggle_normalize_cb)
+        self.plot.on_click(self.plot_cb)
+        self.compile.on_click(self.compile_cb)
+        for i in self.create_formula:
+            i.on_change('value',self.create_formula_cb)
+        self.load_menu.on_change('value',self.load_menu_cb)
+        self.save.on_click(self.save_cb)
+        self.curve.on_change('active',self.curve_cb)
+        self.copy.on_click(self.copy_cb)
+        self.delete.on_click(self.delete_cb)
+
+        # state values
+        self.layout =([column(self.p,self.formulainputs),Div(text="",width=15),column(self.curve_box,)],)
+        self.known_variable_inputs=[]
+        self.formula_signature = []
+        self.plot_signature = []
+        self.annotation={}
+        self.curve_para = {}
+        self.info_deque_holder = ["","",""]
+        self.deleted_formula = {}
+        self.curve_normalize = {}
+
+    @display_errors
+    def toggle_normalize_cb(self,attr,old,new):
+        if new:
+            for k in list(self.fit_data.keys()):
+                if k!='x':
+                    self.fit_data[k].data = self.normalize_data(self.fit_data[k].data,self.curve_normalize.get(k,{}))
+        else:
+            for k in list(self.fit_data.keys()):
+                if k!='x':
+                    self.fit_data[k].data = self.normalize_data(self.fit_data[k].data,self.curve_normalize.get(k,{}),False)
+
+    @display_errors
+    def normalize_data(self,cdsdata,normdict,norm=True):
+        if normdict:
+            if norm:
+                for k in list(cdsdata.keys()):
+                    if k!='x':
+                        cdsdata[k]=[i/normdict[k]*100 for i in cdsdata[k]]
+            else:
+                for k in list(cdsdata.keys()):
+                    if k!='x':
+                        cdsdata[k]=[i*normdict[k]/100 for i in cdsdata[k]]
+        return cdsdata
+
+    def info(self,text):
+        j = len(self.info_deque_holder)-2
+        self.info_deque_holder.append(str(j)+' > '+text)
+        result="""<ul style="list-style-type:none;font-size:8;">
+          <li>{}</li>
+          <li>{}</li>
+          <li>{}</li>
+        </ul>""".format(*self.info_deque_holder[-3:])
+        return result
+
+    @display_errors
+    def delete_cb(self):
+        curr = self.delete.button_type
+        if curr == 'warning':
+            self.delete.button_type = 'danger'
+            self.delete.label = "?"
+        elif curr == 'danger':
+            self.delete.label = 'Delete'
+            self.delete.button_type = 'warning'
+            if self.load_menu.value == "Kd Two curves Demo":
+                self.display.text = self.info("Please don't delete the Demo.")
+            else:
+                self.deleted_formula.update({ self.load_menu.value:self.formulas.pop(self.load_menu.value,None)})
+                self.save_formula()
+                self.load_menu.options = [('new','New Formula')  ] + [(i,i) for i in self.formulas.keys()]
+                self.load_menu.value = 'new'
+                self.display.text = self.info(f"{self.load_menu.value} deleted.")
+
+    @display_errors
+    def curve_cb(self,attr,old,new):
+        if self.curve_para.get(new,[]):
+            for i,j in zip(self.known_variable_inputs,self.curve_para.get(new,[])):
+                i.value = j
+
+    @display_errors
+    def copy_cb(self):
+        curve = self.curve.active
+        if self.copy.button_type=='success':
+            self.copy.button_type='warning'
+            self.copy.label= '<Curve{}:{}> Copied.'.format(int(curve)+1, self.linecolors[int(curve)].capitalize())
+        else:
+            self.copy.button_type='success'
+            copyed = (int(self.copy.label[6])-1)
+            self.copy.label="Copy Curve"
+            self.curve_cb(1,1,copyed)
+            self.curve_para[curve]=self.curve_para.get(copyed,[])
+            self.fit_data[curve].data=self.fit_data[copyed].data
+
+    @display_errors
+    def load_menu_cb(self,attr,old,new):
+        self.delete.label = 'Delete'
+        self.delete.button_type = 'warning'
+        self.curve_para={}
+        if new!='new':
+            data = self.formulas.get(new)
+            self.name.value = ""
+            self.delete.button_type = 'warning'
+            for i,j in zip(data,self.create_formula):
+                j.value=i
+        else:
+            self.name.value = ""
+
+    @display_errors
+    def save_cb(self):
+        name = self.name.value
+        if not name:
+            self.display.text = self.info("Enter Name.")
+        else:
+            self.formulas[name] = self.current_formula
+            self.save_formula()
+            self.load_menu.options = [('new','Create New Formula')  ] + [(i,i) for i in self.formulas.keys()]
+            self.load_menu.value = name
+            self.name.value = name
+            self.display.text = self.info(f"\"{name}\" saved.")
+
+    @display_errors
+    def load_formula(self):
+        with open(formula_loc,'rt') as f:
+            return json.load(f)['active']
+
+    @display_errors
+    def save_formula(self):
+        with open(formula_loc,'wt') as f:
+            return json.dump({'active':self.formulas,'deleted':self.deleted_formula},f,indent=2)
+
+    def register_info_display(self,info):
+        self.display=info
+
+    def create_formula_cb(self,attr,old,new):
+        self.plot.disabled=True
+
+    @display_errors
+    def compile_cb(self):
+        self.formula_signature,self.annotation = self.formula_to_signature(self.current_formula)
+        self.plot_signature=[i for i in self.formula_signature[3].split(',') if i]
+        inputs = self.formula_signature[1].copy()
+        inputs.remove(self.formula_signature[4])
+        self.known_variable_inputs=[]
+        for i in inputs:
+            self.known_variable_inputs.append(TextInput(title=self.annotation.get(i,i),value="1"))
+        self.curve_box.children[5:]=self.known_variable_inputs + [self.toggle_normalize]
+        self.plot.disabled=False
+        self.generate_plot()
+        # self.curve_para={}
+        self.display.text = self.info('Compile successful.')
+
+    @display_errors
+    def formula_to_signature(self,formula):
+        plot,against = formula[5],formula[6]
+        equation,*notes = formula[0].split('#')
+        annotation={}
+        if notes:
+            for line in notes[0].strip().split('\n'):
+                annotation.update({ line.split(":")[0].strip() : line.split(":")[1].strip()})
+        function,kv,ukv,eqkv=self.prep_function(formula[1],formula[2],equation)
+        lb,ub = formula[3],formula[4]
+        lb = lb or ",".join(["0"]*len(ukv))
+        ub = ub or ",".join([f"max({','.join(kv)})"]*len(ukv))
+        bound = f"([{lb}], [{ub}])"
+        ag_start = formula[7] or None
+        ag_range = f"[{formula[8]}]" if formula[8] else None
+        return [function,kv,ukv,plot,against,bound,ag_start,ag_range,eqkv],annotation
+
+    @property
+    def current_formula(self):
+        result = []
+        for i in self.create_formula:
+            result.append(i.value.strip())
+        return tuple(result)
+
+    @staticmethod
+    def prep_function(known_variable,unknown_variable,equation):
+        kv = [i.strip() for i in known_variable.strip().split(',') if i]
+        ukv = [i.strip() for i in unknown_variable.strip().split(',') if i]
+        eq = [i.strip().split('=')[0] for i in equation.strip().split('\n') if i]
+        eq_string = ','.join(eq)
+        eqkv=[i for i in kv if i in eq_string]
+        assert len(eq)==len(ukv), ('{} equations but {} variables'.format(len(eq),len(ukv)))
+        funcstring = "def _prepared_function(X,*args):\n\t{}=X\n\t{}=args\n\treturn {}".format(','.join(ukv),','.join(kv),eq_string)
+        exec(funcstring)
+        return locals()['_prepared_function'],kv,ukv,eqkv
+
+    @staticmethod
+    def line_solver(_kv_arg,_f,_kv,_ukv,_plot,_against,_bound,_against_start,_against_range,_eqkv):
+        """
+        f: function from prep_function
+        kv: known_variable signature
+        unk: unknown_variable signature
+        plot: formula to plot
+        against : one of the known variable to plot against
+        kv_arg : list of the other known variable value
+        bound :tuple of two list, uppder and lower bound of unknown_variable boundary; "([{}],[{}])"
+        generate dots at 1.2 X up or down, until flat or up to 1e6, low to 1e-6
+        _against_start: starting point of the against value
+        all units are in nM.
+        """
+
+
+        _tempargs = list(_kv_arg)
+        _tempargs.insert(_kv.index(_against),1)
+
+        for _n,_value in zip(_kv,_tempargs ):
+            exec(f"{_n}={_value}")
+
+        def point_solver(against_value,_lastpointvalues=None):
+            # nonlocal _bound
+            _args = list(_kv_arg)
+            _args.insert(_kv.index(_against),against_value)
+            for _n,_value in zip(_kv,_args):
+                exec(f"{_n}={_value}")
+            if _lastpointvalues is not None:
+                if _bound:
+                    _hardbounds = eval(_bound)
+                    _boundtouse=([max(i/10,j) for i,j in zip(_lastpointvalues,_hardbounds[0])],
+                                 [min(i*10,j) for i,j in zip(_lastpointvalues,_hardbounds[1])])
+                else:
+                    _boundtouse=([i/10 for i in _lastpointvalues],[i*10 for i in _lastpointvalues])
+            else:
+
+                _boundtouse = eval(_bound)
+            _guess = [ (i+j)/2 for i,j in zip(*_boundtouse)]
+            # print("Guess {}".format(",".join("{:.3g}".format(i) for i in _guess)))
+            # print("LowBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[0])))
+            # print("UprBd {}".format(",".join("{:.3g}".format(i) for i in _boundtouse[1])))
+            _machine_epsilon = np.finfo(float).eps*1.1
+            _result = least_squares(_f,_guess,args=tuple(_args),bounds=_boundtouse,
+                    xtol=_machine_epsilon,ftol=_machine_epsilon,gtol=_machine_epsilon,)
+
+            for _n,_value in zip(_ukv, _result.x):
+                exec(f"{_n}={_value}")
+            _return_result = []
+            for _p_l in _plot.split(','):
+                if _p_l:
+                    _return_result.append(eval(_p_l))
+            return _return_result,_result.x
+
+        def directional(_ratio):
+            _tempargs = list(_kv_arg)
+            _tempargs.insert(_kv.index(_against),1)
+
+            for _n,_value in zip(_kv,_tempargs ):
+                exec(f"{_n}={_value}")
+
+            if (_against_start):
+                _against_start_x = eval(_against_start)
+            else:
+                _against_start_x = 1
+                for _i in _eqkv:
+
+                    _against_start_x = _against_start_x*eval(_i)
+
+                _against_start_x = _against_start_x**(1/(len(_eqkv)-1))
+            _against_values = [_against_start_x]
+            _pointsolver_result = point_solver(_against_start_x)
+            _plot_values = [_pointsolver_result[0]]
+            _solutions = [_pointsolver_result[1]]
+            _keeplooping=True
+            while _keeplooping==True and len(_against_values)<150:
+                _against_values.append(_against_values[-1]*_ratio)
+                _pointsolver_result = point_solver(_against_values[-1],_solutions[-1])
+                _plot_values.append(_pointsolver_result[0])
+                _solutions.append(_pointsolver_result[1])
+                if abs(log_first_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01 \
+                    and abs(log_second_deri(_against_values,_plot_values))/np.max(_plot_values)<0.01:
+                    if len(_plot_values)>20:
+                        _keeplooping=False
+            return _against_values,_plot_values
+
+        if _against_range:
+            _start_range , _end_range = eval(_against_range)
+            _start_range = max(_start_range , 1e-9)
+            _mid_range  = (_start_range * _end_range) ** (0.5)
+            _num_points = int(np.log10(_mid_range/_start_range)/np.log10(1.1))
+            _mid_res = point_solver(_mid_range)
+            _against_value_upper ,_plot_values_upper,_ps_res_up=[_mid_range],[_mid_res[0]],[_mid_res[1]]
+            _against_value_lower,_plot_values_lower,_ps_res_low = [_mid_range],[_mid_res[0]],[_mid_res[1]]
+            for i,j in zip(np.geomspace(_mid_range , _end_range,_num_points)[1:],np.geomspace( _mid_range, _start_range,_num_points)):
+                _against_value_upper.append(i)
+                _temp = point_solver(i,_ps_res_up[-1])
+                _plot_values_upper.append(_temp[0])
+                _ps_res_up.append(_temp[1])
+                _against_value_lower.append(j)
+                _temp = point_solver(j,_ps_res_low[-1])
+                _plot_values_lower.append(_temp[0])
+                _ps_res_low.append(_temp[1])
+        else:
+            _against_value_upper ,_plot_values_upper = directional(1.2)
+            _against_value_lower,_plot_values_lower = directional(1/1.2)
+        return _against_value_lower[::-1]+_against_value_upper[1:],_plot_values_lower[::-1]+_plot_values_upper[1:]
+
+    @display_errors
+    def generate_cds(self,mock=False):
+        kv_arg = [float(i.value) for i in self.known_variable_inputs]
+        if mock:
+            x,y=[1],[[1]*len(self.plot_signature)]
+        else:
+            x,y = self.line_solver(kv_arg,*self.formula_signature)
+        data = {'x':x}
+        for i,key in enumerate(self.plot_signature):
+            data.update({key:[_y[i] for _y in y]})
+        return data
+
+    @display_errors
+    def generate_plot(self):
+        x_axis_type = 'log' if self.x_axis_type.active else 'linear'
+        y_axis_type = 'log' if self.y_axis_type.active else 'linear'
+        against = self.formula_signature[4]
+        primaryplot = self.plot_signature[0]
+        self.fit_data = {i: ColumnDataSource(data=self.generate_cds(mock=True)) for i in range(5)}
+        tools_list = "pan,wheel_zoom,box_zoom,reset,save"
+        p = figure(x_axis_label=self.annotation.get(self.formula_signature[4],self.formula_signature[4]),
+                   y_axis_label=self.annotation.get(self.formula_signature[3],self.formula_signature[3]),
+                   x_axis_type=x_axis_type,y_axis_type=y_axis_type,toolbar_location='above',tools=tools_list)
+
+        for curve, color in enumerate(self.linecolors):
+            p_1=p.line('x',primaryplot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.65,legend=f" {primaryplot}")
+            hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}', '@x'),(f'{primaryplot}', '@{{{}}}'.format(primaryplot))],)
+            p.add_tools(hover_tool_1)
+            for plot,dashtype in zip(self.plot_signature[1:],cycle(['dashed','dotted','dotdash','dashdot'])):
+                p_1=p.line('x',plot, source=self.fit_data[curve],line_color=color,line_width=2,alpha=0.5,legend=f" {plot}",line_dash=dashtype)
+                hover_tool_1 = HoverTool(renderers=[p_1], tooltips=[(f'{against}', '@x'),(f'{plot}', '@{{{}}}'.format(plot))],)#mode='vline'
+                p.add_tools(hover_tool_1)
+        p.plot_height = 500
+        p.plot_width = 810
+        p.legend.click_policy = 'hide'
+        p.legend.location = 'top_right'
+        p.legend.border_line_alpha = 0
+        p.legend.background_fill_alpha = 0.1
+        self.layout[0][0].children[0]=p
+
+    @display_errors
+    def plot_cb(self):
+        curve = self.curve.active
+        data=self.generate_cds()
+        self.curve_normalize[curve] = {i:np.max(j) for i,j in data.items() if i!='x'}
+        if self.toggle_normalize.active:
+            self.fit_data[curve].data=self.normalize_data(data,self.curve_normalize[curve])
+        else:
+            self.fit_data[curve].data=data
+        self.curve_para[curve]=[(i.value) for i in self.known_variable_inputs]
+        self.display.text = self.info('Plot {} generated.'.format(self.curve_labels[curve]))

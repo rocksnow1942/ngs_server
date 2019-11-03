@@ -10,6 +10,7 @@ import logging
 import os
 from redis import Redis
 import rq
+from rq.job import Job
 from elasticsearch import Elasticsearch
 
 db = SQLAlchemy()
@@ -20,7 +21,23 @@ login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = 'Please log in to access this page.'
 
-def create_app(config_class = Config):
+def fetch_job_from_queue(rdqueue):
+    def wrapped(taskid):
+        job = Job.fetch(taskid,connection=rdqueue)
+        return job.result
+    return wrapped
+
+
+def create_app_context():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    db.init_app(app)
+    # app.app_context().push()
+    return app
+
+
+
+def create_app(config_class = Config,keeplog=True):   
     app = Flask(__name__)
     app.config.from_object(config_class)
     db.init_app(app)
@@ -31,6 +48,8 @@ def create_app(config_class = Config):
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('ngs-server-tasks', connection=app.redis)
+
+    app.fetch_job_result = fetch_job_from_queue(app.redis)
 
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None
@@ -53,29 +72,16 @@ def create_app(config_class = Config):
     from app.ngs import bp as ngs_bp
     app.register_blueprint(ngs_bp, url_prefix='/ngs')
 
+    from app.ppt import bp as ppt_bp
+    app.register_blueprint(ppt_bp, url_prefix='/ppt')
 
     from app.upload import bp as upload_bp
     app.register_blueprint(upload_bp,url_prefix='/upload')
-
-    if not app.debug and not app.testing:
-        # if app.config['MAIL_SERVER']:
-        #     auth = None
-        #     if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
-        #         auth = (app.config['MAIL_USERNAME'],app.config['MAIL_PASSWORD'])
-        #     secure=None
-        #     if app.config['MAIL_USE_TLS']:
-        #         secure = ()
-        #     mail_handler = SMTPHandler(
-        #         mailhost=(app.config['MAIL_SERVER'],app.config['MAIL_PORT']),
-        #         fromaddr='no-reply@'+app.config['MAIL_SERVER'],
-        #         toaddrs=app.config['ADMINS'],
-        #         subject='FLASK TEST Microblog Failure',
-        #         credentials=auth,secure=secure
-        #     )
-        #     mail_handler.setLevel(logging.ERROR)
-        #     app.logger.addHandler(mail_handler)
+   
+    if (not app.debug) and (not app.testing) and keeplog:
         if not os.path.exists('logs'):
             os.mkdir('logs')
+           
         file_handler = RotatingFileHandler('logs/ngs_server.log',maxBytes=10240,backupCount=10)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
@@ -87,4 +93,7 @@ def create_app(config_class = Config):
 
     return app
 
-from app import models
+
+
+from app import models#,plojo_models
+

@@ -11,11 +11,13 @@ import datetime
 from ._twig import Tree,Clade
 from ._alignment import Alignment,lev_distance
 import time
-import tqdm
 import psutil
 import platform
 
 ascii=True if platform.platform().startswith('Win') else None
+
+
+        
 
 def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=None,callback=None,progress_gap=(0,100),**kwargs):
     workerheads=psutil.cpu_count(logical=False)
@@ -24,15 +26,20 @@ def poolwrapper(task,workload,initializer=None,initargs=None,chunks=None,total=N
     chunksize= int(total//chunks)+1 if chunks else 1
     result = []
     count=0
+    progress = progress_gap[0]
     for _ in worker.imap(task, workload, chunksize):
-        result.append(_)
-        if callback:
-            callback(
-                count/total*(progress_gap[1]-progress_gap[0])+progress_gap[0])
+        count+=1
+        result.append(_) 
+        if callback :
+            current_pro = count/total*(progress_gap[1]-progress_gap[0])+progress_gap[0]
+            if current_pro > progress + 1:
+                progress = current_pro
+                callback(current_pro)     
     worker.close()
     worker.join()
     worker.terminate()
     return result
+
 
 
 def lev_cluster_from_seed(seed, list_of_seq, distance, connect):
@@ -77,6 +84,7 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     clusterlimit will limit cluster number to a threshold, after that, cluster number cannot grow, each new
     sequence is inserted to the existing cluster.
     """
+   
     print('Start clustering with levenshtein distance...')
     print('Current time: {}'.format(datetime.datetime.now()))
     seq = dict(zip(list_of_seq,apt_count))
@@ -84,13 +92,15 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     result_key = [list_of_seq[0]]
     result = {list_of_seq[0]: []}
     lenth = len(list_of_seq)
-    # percentcounter=0.02
+    percentcounter=0
     current=0
     starttime=time.time()
     for k,i in enumerate(list_of_seq):
         if callback: 
             current = k/lenth*80
-            callback(current)
+            if percentcounter  < current -1:
+                percentcounter = current
+                callback(current)
         if len(result_key)>clusterlimit:
             print('Cluster limit of {} reached. Start seed clustering...'.format(clusterlimit))
             break
@@ -232,7 +242,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
         if min_i==min_j:min_i+=1 # this is when full zero dm_new, shift joining to 0 and 1.
         clade1 = clades[min_i]
         clade2 = clades[min_j]
-        inner_count += 1
+        inner_count += 1 
         temp_name =  "J" + str(inner_count) if record_path else None
         inner_clade = Clade(None,temp_name)
         inner_clade.clades.append(clade1)
@@ -291,7 +301,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
     else:
         dict_align = list_align[0].align(list_align[1],offset=offset,gap=gap,gapext=gapext,count=count,**kwargs)
     print('Build tree and align done. Elapsed time: {:.2f}s.'.format(time.time()-starttime))
-    return Tree(root, rooted=False,name='root'),dict_align
+    return Tree(root, name='root'),dict_align
 
 # @registor_function
 def align_clustered_seq_with_CLUSTAL(data,offset=True,k=4,count=True,gap=7,gapext=2,**kwargs):
@@ -329,15 +339,15 @@ def align_clustered_seq(data,**kwargs):
     cluster = dict.fromkeys(data)
     # w = len(cluster.keys())
     data = list(data.items())
-    print("Starting in cluster align ...")
-    print('Current time: {}'.format(datetime.datetime.now()))
+    # print("Starting in cluster align ...")
+    # print('Current time: {}'.format(datetime.datetime.now()))
     # percentcounter=0.05
     starttime=time.time()
     callback=kwargs.pop('callback')
     wrapper = partial(_cluster_align,kwargs=kwargs)
     z=poolwrapper(wrapper,data,callback=callback,progress_gap=(80,95))
     cluster = dict(z)
-    print("In cluster alignment finished. Time Elapsed: {:.2f}s.".format(time.time()-starttime))
+    # print("In cluster alignment finished. Time Elapsed: {:.2f}s.".format(time.time()-starttime))
     return cluster
 
 
