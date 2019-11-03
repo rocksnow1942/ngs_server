@@ -139,9 +139,9 @@ class Memmon:
                 if test:
                     break
                 continue
-            lg(f'current time {datetime.now()}')
+            
             if (not self.time) or (self.time==datetime.now().hour):
-                # lg(f'current time {datetime.now()}')
+            
                 status = []
                 if self.programs:
                     keys = sorted(self.programs.keys())
