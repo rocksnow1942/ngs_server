@@ -1,5 +1,5 @@
 from ._twig import Tree,draw,Clade
-import json,copy,os,math
+import json,copy,os,math,pickle
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -155,7 +155,6 @@ class DataReader(Reader):
             return tree
         return Tree(name=name, root=revive(data))
 
-
     def serialize_tree(self):
         """
         jsonify tree into dictonary
@@ -172,7 +171,6 @@ class DataReader(Reader):
                     result[k] = i
             return result
         return serialize(self.tree.root)
-
 
     def jsonify(self,keys='all'):
         todump={}
@@ -194,23 +192,38 @@ class DataReader(Reader):
     def save_json(self,affix=""):
         with open(self.saveas(self.name+affix+'.json'),'wt') as f:
             json.dump(self.jsonify(), f, separators=(',', ':'))
-    
+
     @classmethod
-    def load_json(cls,file):
-        with open(file,'rt') as f:
-            data=json.load(f)
+    def load_json(cls, file):
+        with open(file, 'rt') as f:
+            data = json.load(f)
         for k in list(data.keys()):
             if 'df' in k:
                 data[k] = pd.DataFrame(data[k])
-            elif k=='align':
-                data[k] = {j:Alignment.from_dict(l) for j,l in data[k].items()}
+            elif k == 'align':
+                data[k] = {j: Alignment.from_dict(
+                    l) for j, l in data[k].items()}
             elif k == 'tree':
-                data[k]=DataReader.revive_tree(name=data['name'],data=data[k])
+                data[k] = DataReader.revive_tree(
+                    name=data['name'], data=data[k])
             else:
                 continue
-        a=cls()
-        a.__dict__=data
+        a = cls()
+        a.__dict__ = data
         return a
+
+    def save_pickle(self, affix=""):
+        with open(self.saveas(self.name+affix+'.pickle'), 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load_pickle(cls, file=''):
+        """
+        instantiate class from a file.
+        """
+        with open(file, 'rb') as f:
+            return pickle.load(f)
+         
 
     def sequence_length_hist(self,fullrange=False,save=False):
         if getattr(self,'_df',None) is not None:
@@ -936,8 +949,6 @@ class DataReader(Reader):
         else:
             result.append('Doesn\'t Contain Cluster.')
         return result
-
-
 
     # tools methods
     def compare(self,a,b,format=(1,1,1,0,0),show=True,**kwargs):
