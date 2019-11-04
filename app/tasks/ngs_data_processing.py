@@ -426,6 +426,7 @@ def build_cluster(id):
     dr.df_cluster(d,(lb,ub),ct,clusterlimit=1000,findoptimal=True,callback=_set_task_progress)
     dr.in_cluster_align(callback=_set_task_progress)
     dr.df_trim(save_df=True)
+    dr.alias={}
     dr.rename_from_ks_server(ks=KnownSequence.query.all())
     dr.save_json()
     hname,df=dr.plot_heatmap(save=True)
