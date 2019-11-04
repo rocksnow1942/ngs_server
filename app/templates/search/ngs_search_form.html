@@ -85,6 +85,12 @@ function change_search_field(method) {
         if (!sequence.includes($("#search_field").val())) {
             $("#search_field").val("known_sequence") };
         }
+    else if (method=='name'){
+        $('#ngs_search_revcomp_container').css('display', 'none');
+        $("#search_field option").each(function () {
+             $(this).removeAttr('disabled');
+        });
+    }
     else {
         $('#ngs_search_revcomp_container').css('display', 'none');
         $("#search_field option").each(function () {
