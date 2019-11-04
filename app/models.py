@@ -281,7 +281,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def build_cluster(self):
         job = current_app.task_queue.enqueue(
             'app.tasks.ngs_data_processing.build_cluster', self.id,job_timeout=3600*10)
-        t = Task(id=job.get_id(), name=f"Build luster {self}.")
+        t = Task(id=job.get_id(), name=f"Build cluster {self}.")
         self.task_id = t.id
         self.save_data()
         db.session.add(t)
