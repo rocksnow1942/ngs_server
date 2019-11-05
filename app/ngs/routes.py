@@ -8,6 +8,7 @@ from app.ngs import bp
 from app.models import Analysis,Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup,NGSSample,KnownSequence
 from app.ngs.forms import ngs_add_form_dictionary,ngs_edit_form_dictionary
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func,distinct
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
 
@@ -37,7 +38,15 @@ def browse():
                 entries = target.query.order_by(
                     target.id.desc()).paginate(page, pagelimit, False)
         else:
-            entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
+            if table == 'sequence_round':
+                sequences = db.session.query(Sequence.id).filter(
+                    Sequence.note!=None).subquery()
+                maxcounts = db.session.query(SeqRound.sequence_id, func.max(SeqRound.count).label('count')).filter(
+                    SeqRound.sequence_id.in_(sequences)).group_by(SeqRound.sequence_id).subquery()
+                entries = SeqRound.query.join(Sequence, SeqRound.sequence_id == Sequence.id).filter(
+                    SeqRound.sequence_id == maxcounts.c.sequence_id, SeqRound.count == maxcounts.c.count).order_by(Sequence.date.desc()).paginate(page, pagelimit, False)
+            else:
+                entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
           
         nextcontent = {'round':'sequence_round','selection':'round'}.get(table)
         kwargs={}
@@ -88,7 +97,8 @@ def load_datalist(toadd):
     elif toadd=='selection':
         return dict(targets=db.session.query(Selection.target).distinct().all())
     elif toadd=='sequence_round':
-        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all())
+        note = db.session.query(distinct(Sequence.note)).filter(Sequence.note!=None).limit(10)
+        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(),common_note=note)
     else:
         return {}
 

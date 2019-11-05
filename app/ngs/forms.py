@@ -3,7 +3,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, Selec
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo,Length,Optional
 from app.models import Selection, Rounds, Primers, NGSSampleGroup, NGSSample, KnownSequence, SeqRound, Sequence
 from app import db
-
+from datetime import datetime
 
 ngs_edit_form_dictionary = {}
 ngs_add_form_dictionary = {}
@@ -275,7 +275,7 @@ class Sequence_Round_Edit(FlaskForm):
     ks_sequence = StringField('Known As Sequence', render_kw=dict(disabled=''))
     knownas = StringField('Known As', render_kw=dict(placeholder='Parent Round Name', list='known_sequence'),
                           validators=[Length(min=0, max=50)])
-    note = StringField('Note',render_kw=dict(placeholder='Note, (Optional)'))
+    note = StringField('Note',render_kw=dict(placeholder='Note, (Optional)',list='common_note'))
                           
     submit = SubmitField('Confirm Edit Sequence')
 
@@ -300,6 +300,8 @@ class Sequence_Round_Edit(FlaskForm):
             sq = sr.sequence
             sq.knownas = ks
             sq.note = self.note.data
+            if not sq.date:
+                sq.date = datetime.now()
     
     def validate_knownas(self,knownas):
         if knownas.data == '':

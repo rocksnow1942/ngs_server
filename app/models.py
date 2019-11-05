@@ -378,6 +378,9 @@ class SeqRound(db.Model):
         l1= self.sequence_display
         l3=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
+        if self.sequence.note:
+            l4 = f"{self.sequence.date} - Note: {self.sequence.note}"
+            return l1,l2,l3,l4
         return l1,l2,l3
     
     def align(self,query):
@@ -504,6 +507,7 @@ class Sequence(db.Model,BaseDataModel):
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
     note = Column(mysql.VARCHAR(1000))
+    date = Column(DateTime())
 
     def align(self, query):
         align = Alignment(self.aptamer_seq)

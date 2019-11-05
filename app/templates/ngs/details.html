@@ -298,7 +298,9 @@
             <li><b>A.K.A.:</b>{% if entry.aka %}
             <a href="{{url_for('ngs.details',table='known_sequence',id=entry.sequence.knownas.id)}}">{{entry.aka}}</a>
             {% else %}None{% endif %}</li> 
-            
+            {% if entry.sequence.note %}
+                <li style='color:red'><b>Note: </b>{{entry.sequence.note}} - {{entry.sequence.date}}</li>
+            {% endif %}
             <hr>
             <h4 class="card-title">Similar Sequence</h4>
             <table class="table table-condensed table-hover">
