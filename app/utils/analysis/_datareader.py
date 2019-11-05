@@ -19,7 +19,6 @@ from datetime import datetime
 Note:
 if alignscore is used as a condition, filter will not scan all tree nodes.
 will pause at joints where alignscore matches condition and omit its children.
-
 Modified on 2019/09/18
 Modified for NGS_server use
 

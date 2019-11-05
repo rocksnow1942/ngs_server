@@ -33,7 +33,7 @@ def index():
     thumbnail = current_user.thumbnail
     table = request.args.get('table',None)
     if not table:
-        return redirect(url_for('ppt.index',table='ppt'))
+        return redirect(url_for('ppt.index',table='project'))
     
     id = request.args.get('id', 0, type=int)
     page = request.args.get('page', 1, type=int)
