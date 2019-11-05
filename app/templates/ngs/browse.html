@@ -80,7 +80,7 @@
         //sequence_id.push(id.replace('sequence_round_(', '').split(',')[0]);
        // let sequence = $(this).find('b').html();
         row.push($(this).find('.entry_id').text().trim());
-        $(this).find('.display_content').find('li').each(function () { row.push($(this).text().trim().replace(','," ")) });
+        $(this).find('.display_content').find('li').each(function () { row.push($(this).text().trim().replace(/,/g," ")) });
         table_rows.push(row);
       };
       });
