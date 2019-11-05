@@ -11,16 +11,12 @@
 
     {% for entry in entries %}
     <tr id="{{entry.__tablename__}}_{{entry.id}}">
-        <td width="50px">
+        <td width="50px" class='entry_id'>
             {% if entry.haschildren() and nextcontent %}
-                <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">
-                    {{ entry.id_display }}
-                    </a>
-            {%else%}
-            {{entry.id_display}}
-            {% endif %}
+                <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">{{ entry.id_display }}</a>
+            {%else%}{{entry.id_display}}{% endif %}
         </td>
-        <td>
+        <td class='display_content'>
             <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a></li>
             {% for line in entry.display()[1:] %}
                     <li>{{line}}</li>
