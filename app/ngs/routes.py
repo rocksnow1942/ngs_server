@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func,distinct
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
-
+from collections import Counter
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -98,8 +98,13 @@ def load_datalist(toadd):
         return dict(targets=db.session.query(Selection.target).distinct().all())
     elif toadd=='sequence_round':
         note = db.session.query(distinct(Sequence.note)).filter(
-            db.and_(Sequence.note.isnot(None), Sequence.note != '')).limit(10)
-        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(),common_note=note)
+            db.and_(Sequence.note.isnot(None), Sequence.note != '')).all()
+        n = Counter()
+        for i in note:
+            for j in i[0].split(','):
+                if j.strip():
+                    n[tuple(j.strip())] += 1
+        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(),common_note=n.most_common(10))
     else:
         return {}
 
