@@ -172,6 +172,8 @@ def delete():
             except IntegrityError as e:
                 db.session.rollback()
                 flash('Cannot delete {}. Exception: {}.'.format(todelete,e), 'danger')
+    else:
+        flash('Cannot delete sequence.')
     return redirect(edit_redirect_url)
 
 
@@ -624,3 +626,29 @@ def save_tree():
     except Exception as e:
         messages = [('warning',f'Error occured during saving tree: <{e}>')]
     return jsonify(msg=messages[0])
+
+
+@bp.route('/add_sequence_to_synthesis', methods=['POST'])
+@login_required
+def add_sequence_to_synthesis():
+    id = request.json.get('id')
+    note=""
+    status = ""
+    try:
+        seq = Sequence.query.get(id)
+        if seq.note and 'to synthesis' in seq.note.lower():
+            idx = seq.note.lower().index('to synthesis')
+            seq.note = seq.note.replace(seq.note[idx:idx+12],'Syn@{}'.format(datetime.now().strftime('%y%m%d')))
+            status = 'Synthesized'
+        else: 
+            seq.note = 'To Synthesis, ' + (seq.note or "")
+            seq.date=datetime.now()
+            status = 'To Synthesis'
+        db.session.commit()
+        note= f"{seq.note} - {seq.date}"
+        messages = [('success', f"Mark sequence <{seq.id_display}> as {status}")]
+    except Exception as e:
+        messages=[('warning', f"Error due to <{e}>")]   
+    return jsonify(html=render_template('flash_messages.html', messages=messages),status=status,note=note)
+
+

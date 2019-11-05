@@ -298,9 +298,11 @@
             <li><b>A.K.A.:</b>{% if entry.aka %}
             <a href="{{url_for('ngs.details',table='known_sequence',id=entry.sequence.knownas.id)}}">{{entry.aka}}</a>
             {% else %}None{% endif %}</li> 
-            {% if entry.sequence.note %}
-                <li style='color:red'><b>Note: </b>{{entry.sequence.note}} - {{entry.sequence.date}}</li>
-            {% endif %}
+            
+            <li id='sequence_syn_status{{entry.sequence.id}}' style='color:red;display:{% if not entry.synthesis_status %}
+                                    none{%else%}list-item;
+                            {% endif %}
+                            '>{{entry.synthesis_status}}</li>
             <hr>
             <h4 class="card-title">Similar Sequence</h4>
             <table class="table table-condensed table-hover">
@@ -325,6 +327,16 @@
             <div class="row">
                 <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id|string)}}" class='btn btn-info btn-block'
                         role='button'>Edit Sequence</a></div>
+                <div class="col-sm-6"> 
+                    <a  onclick="javascript:add_sequence_to_synthesis('{{entry.sequence.id}}')"
+                        class='btn btn-danger btn-block' role='button'>
+                        <span id="add_sequence_to_synthesis{{entry.sequence.id}}">
+                    {% if entry.tosynthesis %}
+                       Synthesized
+                        {%else %}
+                       To Synthesis                           
+                        {% endif %}</span>
+                         </a></div>
             </div>
            
         </div>
@@ -471,6 +483,8 @@
             })
         }
     }
+
+    
 </script>
 {% endblock %}
 

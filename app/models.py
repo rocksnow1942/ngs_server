@@ -371,6 +371,10 @@ class SeqRound(db.Model):
     def __repr__(self):
         return f"Sequence <{self.id_display}>, {self.count} in {self.round.round_name}"
 
+    @property
+    def tosynthesis(self):
+        return (self.sequence.note and 'to synthesis' in self.sequence.note.lower())
+
     def display(self):
         ks = self.sequence.knownas or ''
         if ks:
@@ -378,11 +382,15 @@ class SeqRound(db.Model):
         l1= self.sequence_display
         l3=f"{ks} Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
-        if self.sequence.note:
-            l4 = f"{self.sequence.date} - Note: {self.sequence.note}"
-            return l1,l2,l3,l4
         return l1,l2,l3
     
+    @property
+    def synthesis_status(self):
+        if self.sequence.note:
+            return f"{self.sequence.note} - {self.sequence.date}"
+        else:
+            return None 
+
     def align(self,query):
         align = Alignment(self.sequence.aptamer_seq)
         align=align.align(query,offset=False)
@@ -514,7 +522,7 @@ class Sequence(db.Model,BaseDataModel):
         align = align.align(query)
         return align.format(link=True, maxlength=95).split('\n')
 
-
+   
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
 
