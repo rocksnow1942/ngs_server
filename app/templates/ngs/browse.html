@@ -22,20 +22,16 @@
         <span aria-hidden="true">&rarr;</span>
       </a>
     </li>
-    {% if table != 'sequence_round' and table!='analysis' %}
     <li class='disabled'><span aria-hidden="true">&nbsp;&nbsp;|&nbsp;&nbsp;</span> </li>
+    {% if table != 'sequence_round' and table!='analysis' %}
+   
     <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
           aria-hidden="true"></span> {{table.upper()}}</a></li>
-      {% if table=='known_sequence' %}
-          <li class="next"><a href="javascript:download_sequence()"><span class="glyphicon glyphicon-download-alt"
-                aria-hidden="true"></span> Download</a></li>
+     
       {% endif %}
-      
-    {%elif table=='sequence_round'%}
-    <li class='disabled'><span aria-hidden="true">&nbsp;&nbsp;|&nbsp;&nbsp;</span> </li>
-    <li class="next"><a href="javascript:download_sequence()"><span class="glyphicon glyphicon-download-alt"
-          aria-hidden="true"></span> Download</a></li>
-    {% endif %}
+      <li class="next"><a href="javascript:download_sequence()"><span class="glyphicon glyphicon-download-alt"
+            aria-hidden="true"></span> Download</a></li>
+    
   </ul>
 </nav>
 
