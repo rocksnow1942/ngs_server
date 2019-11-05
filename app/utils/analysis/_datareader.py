@@ -2,7 +2,6 @@ from ._twig import Tree,draw,Clade
 import json,copy,os,math,pickle
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 import numpy as np
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -14,6 +13,7 @@ from functools import partial
 from ._utils import mapdistance,poolwrapper
 import textwrap
 from inspect import signature
+from datetime import datetime
 
 """
 Note:
@@ -36,8 +36,6 @@ def register_API(func):
         return func(*args,**kwargs)
     wrapper.__signature__ = sig
     return wrapper
-
-
 
 
 class Reader(object):
@@ -73,7 +71,7 @@ class DataReader(Reader):
     # constructor methods
     def __init__(self,name='',filepath=''):
         """
-        filepath is the folder path for all cache files.
+        filepath is at current_app.config['ANALYSIS_FOLDER']/str(analysis.id)
         """
         self.name=name
         self.filepath=filepath
@@ -82,6 +80,15 @@ class DataReader(Reader):
         self.processing_para={}
         # self.save_loc= abandoned save location.
 
+    # def exec_command(self,command,args):
+    #     """
+
+    #     """
+    #     result = eval("self.{}({})".format(command,args))
+
+    @property 
+    def datestamp(self):
+        return datetime.now().strftime('%Y/%m/%d - %H:%M:%S')+'\n'
 
     @property
     def dr_loc(self):
@@ -114,7 +121,6 @@ class DataReader(Reader):
         zero=self.df.sum(axis=0)
         zero=zero.loc[zero==0].index.tolist()
         self.df.drop(labels=zero,inplace=True,axis=1)
-
 
     def load_from_ngs_server(self,rounds,callback=None):
         """
@@ -213,8 +219,10 @@ class DataReader(Reader):
         return a
 
     def save_pickle(self, affix=""):
-        with open(self.saveas(self.name+affix+'.pickle'), 'wb') as f:
+        tosave= self.saveas(self.name+affix+'.pickle')
+        with open(tosave, 'wb') as f:
             pickle.dump(self, f)
+        return tosave 
 
     @classmethod
     def load_pickle(cls, file=''):
@@ -223,7 +231,6 @@ class DataReader(Reader):
         """
         with open(file, 'rb') as f:
             return pickle.load(f)
-         
 
     def sequence_length_hist(self,fullrange=False,save=False):
         if getattr(self,'_df',None) is not None:
@@ -275,14 +282,16 @@ class DataReader(Reader):
             plt.clf()
             return name
 
-    def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True):
+    @register_API
+    def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True,savepickle=False) ->str:
         """
-        clean up raw df by
-        1.remove unwated columns from ngs table.
-        2. remove sequence with length outside of length threshold
+        clean up raw DataFrame by
+        1. remove unwanted columns from ngs table.
+        2. remove sequence with length outside of length threshold; not use if None.
         3. remove sequence with sum count number <= count
         4. remove sequence with sum percent <= per
         and remove zero count sequences
+        savepickle: whether to save the filtered data.
         """
         if toremove:
             for i in self.df.columns.tolist():
@@ -300,13 +309,19 @@ class DataReader(Reader):
         self.df=df
         if nozero:
             self.df=self.df.loc[self.df.sum_count>0,:]
-        print('Current Dataframe:')
-        print(self.df.head())
-
-    def df_cluster(self,distance=5,cutoff=(35,45),count_thre=1,clusterlimit=5000,findoptimal=False,callback=None):
+        # print('Current Dataframe:')
+        # print(self.df.head())
+        if savepickle: self.save_pickle()
+        return f"{self.datestamp}Current DataFrame: \n {self.df.head()}\n"
+    
+    @register_API
+    def df_cluster(self,distance=5,cutoff=(35,45),count_thre=1,clusterlimit=5000,findoptimal=False,callback=None,savepickle=False) ->str:
         """
-        cluster sequence in self.df.
-        cluster limit is the maximum of clusters it will give.
+        cluster sequence in dataframe.
+        count_thre: threshold of read to be included.
+        cluster limit is the maximum of clusters it will allow.
+        findoptimal: set to True to search all clusters and find closest cluster for an incoming sequence. 
+        callback: set to _set_task_progress to display progress. 
         """
         if getattr(self, '_df', None) is not None:
             self.df = self._df
@@ -323,24 +338,51 @@ class DataReader(Reader):
         self.cluster = count_dict
         self.processing_para.update({'df_cluster':{'distance':distance,'cutoff':cutoff,
                                 'count_thre':count_thre,'stop_cluster_index':noncluster_count[0],'stop_cluster_count':noncluster_count[1]}})
+        if savepickle:
+            self.save_pickle()
+        return f'{self.datestamp}Custer Done. \n {self.processing_para}'
 
-    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None):
+    @register_API
+    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None,savepickle=False) ->str:
+        """
+        within cluster_para, define following parameters for in cluster align
+        offset: whether shift sequence back and forth to find best alignment.
+        k: for use in kmmer distance to determine offset value 
+        count:  consider sequence count weight during alignment
+        gap, gapext: penalty score for gap and gap extension.
+        callback: set to _set_task_progress to display progress. 
+        """
         data = self.cluster
         cluster = align_clustered_seq(data,**cluster_para,callback=callback)
         self.align = cluster
         self.processing_para.update({'cluster_para':cluster_para})
+        if savepickle:
+            self.save_pickle()
+        return f"{self.datestamp}In cluster align done. \n {self.processing_para}"
 
-    def build_tree_and_align(self,align_para={'offset':True,'k':4,'count':True,'gap':4,'gapext':1,'distance':'hybrid_distance'},save=True):
+    @register_API
+    def build_tree_and_align(self,align_para={'offset':True,'k':4,'count':True,'gap':4,'gapext':1,'distance':'hybrid_distance'},callback=None,savepickle=True):
+        """
+        Align all clusters together by neighbor join. 
+        within align_para, define following parameters:
+        offset: whether shift sequence back and forth to find best alignment.
+        k: for use in kmmer distance to determine offset value
+        count:  consider sequence count weight during alignment
+        gap, gapext: penalty score for gap and gap extension.
+        distance: method for distance calculation, can be: nw_distance or hybrid_distance.
+        """
         cluster = self.align
         name_list = [i for i,j in cluster.items() if i.startswith('C')]
         alignment_list = [j for i,j in cluster.items() if i.startswith('C')]
-        dm = build_distance_matrix(alignment_list,**align_para)
-        tree,alignment = neighbor_join(dm,name_list,alignment_list,record_path=True,**align_para)
+        dm = build_distance_matrix(alignment_list,callback=callback,**align_para)
+        tree,alignment = neighbor_join(dm,name_list,alignment_list,record_path=True,**align_para,callback=callback)
         tree.name = self.name
         self.tree=tree
         self.align=alignment
         self.processing_para.update({'align_para':align_para})
-        if save:self.save()
+        if savepickle:
+            self.save_pickle()
+        return f"{self.datestamp}Build tree and align done. \n {self.processing_para}"
 
     def lazy_build(self,mode='default',save=False): # not used in this version.
         para={'default':[{},{},{}],
@@ -399,7 +441,8 @@ class DataReader(Reader):
         return a
 
     # data clean up methods, run before or after construct a data reader object from scratch.
-    def df_trim(self,save_df=True):
+    @register_API
+    def df_trim(self,  savepickle=True) -> str:
         """
         Remove unused sequence from df. rename and group sequence based on their cluster name.
         calculate the percentage of each joint and append to df.
@@ -407,6 +450,7 @@ class DataReader(Reader):
         """
         df=self.df
         seq_list = [i[0] for k in self.cluster.values() for i in k]
+        msg=""
         try:
             newdf = df[df.aptamer_seq.isin(seq_list)]
             newdf['aptamer_seq']=newdf['aptamer_seq'].map(lambda x:self.find(x)[0])
@@ -420,10 +464,13 @@ class DataReader(Reader):
                 if key.startswith('J'):
                     term = self.tree[key]._get_terminals()
                     self.df.loc[key]=self.df.loc[term].sum(axis=0)
-            print('DataFrame trim done.')
-            self._df=df if save_df else None
+            msg=('DataFrame trim done.')
+            self._df=df
         except AttributeError:
-            print('Dataframe already trimmed.')
+            msg=('Dataframe already trimmed.')
+        if savepickle:
+            self.save_pickle()
+        return f"{self.datestamp}{msg}"
 
     def rename(self, sequence, newname,method='match',**kwargs):
         """
@@ -450,6 +497,19 @@ class DataReader(Reader):
 
     def _discalc(self,seq,method,kwargs,alignlist):
         return  [i.distances(method)(seq,**kwargs) for i in alignlist]
+
+    @register_API
+    def rename_from_known_sequence(self, method='match', threshold=0.1, scope='cluster', alignscore=None, **kwargs):
+        """
+        method can be hybrid_distance,nw_distance,sw_distance,lev_distance
+        alignscore is to prevent rename bad alignments.
+        threshold is depend on rename method, how close the cluster distance need to be for it to be renamed.
+        hybrid_distance,nw_distance,sw_distance: 0-1
+        lev_distance: 0- sequence length
+        """
+        from app.models import KnownSequence
+        self.rename_from_ks_server(ks=KnownSequence.query.all(),method=method,threshold=threshold,scope=scope,alignscore=alignscore,**kwargs)
+
 
     def rename_from_ks_server(self,ks,**kwargs):
         ksdict={i.rep_seq:i.name for i in ks}
@@ -482,7 +542,7 @@ class DataReader(Reader):
             for q in ks_list:
                 query = Alignment(q)
                 func=partial(query.distances(method=method),**kwargs)
-                dis_=poolwrapper(func,alignmentslist,chunks=100,desc='Searching {}'.format(ks[q]),showprogress=True)
+                dis_=poolwrapper(func,alignmentslist,chunks=100)
                 distances.append(dis_)
             min_dis_list = [[i_ for i_,k in enumerate(i) if k<=threshold and k ==min(i)] for i in zip(*distances)]
             for i,j in enumerate(min_dis_list):
@@ -1526,72 +1586,73 @@ class DataReader(Reader):
 
 # sub class of DataReader, specialized for deal with single sequence clusters.
 
-class ClusReader(DataReader):
-    """
-    for read all sequence in the NGS database that is close to a sequence, and analyse
-    light weight tool to quick analyse and cluster sequences on the go.
-    """
-    @property
-    def dr_loc(self):
-        return os.path.join(self.working_dir,'raw_data',self.name+'.clusreader')
+# class ClusReader(DataReader):
+#     """
+#     for read all sequence in the NGS database that is close to a sequence, and analyse
+#     light weight tool to quick analyse and cluster sequences on the go.
+#     """
+#     @property
+#     def dr_loc(self):
+#         return os.path.join(self.working_dir,'raw_data',self.name+'.clusreader')
 
-    @classmethod
-    def from_seq(cls,name='UnknownSeq',seq='',dr=None):
-        """
-        build a simple cluster reader file from list of sequence.
-        """
+#     @classmethod
+#     def from_seq(cls,name='UnknownSeq',seq='',dr=None):
+#         """
+#         build a simple cluster reader file from list of sequence.
+#         """
 
-        dr = dr.working_dir if isinstance(dr,DataReader) else dr
-        result=cls(name=name,working_dir=dr,save_loc='new_analysis',temp=not dr)
-        sequence = seq.split() if isinstance(seq,str) else seq
-        input = [{'id':i,'aptamer_seq':j,'sum_per':100/len(sequence),'sum_count':1,name:1} for i,j in enumerate(sequence)]
-        result.df=pd.DataFrame(input)
-        return result
+#         dr = dr.working_dir if isinstance(dr,DataReader) else dr
+#         result=cls(name=name,working_dir=dr,save_loc='new_analysis',temp=not dr)
+#         sequence = seq.split() if isinstance(seq,str) else seq
+#         input = [{'id':i,'aptamer_seq':j,'sum_per':100/len(sequence),'sum_count':1,name:1} for i,j in enumerate(sequence)]
+#         result.df=pd.DataFrame(input)
+#         return result
 
-    @classmethod
-    def from_dr(cls,target='',count=2,dis=10,dr=None,table=None):
-        """
-        query and build cluster reader from NGS database and query target.
-        search for sequence with read >= count, lev distance <= dis
-        """
-        table = table or dr.table_name
-        result=cls(name=target,working_dir=dr.working_dir if isinstance(dr,DataReader) else dr,
-                        save_loc='new_analysis',temp=not dr)
-        target = dr[target].rep_seq().replace('-','') if isinstance(dr,DataReader) else target
-        result.table_name=table
-        query = """SELECT aptamer_seq from self.table Where sum_count >= {}""".format(count)
-        sql=Mysql().connect().set_table(result.table_name)
-        sequences = [i['aptamer_seq'] for i in sql.query(query).fetchall()]
-        print("Searching {} sequences...".format(len(sequences)))
-        distances= mapdistance(target,sequences,dis,showprogress=True)
-        selected = [i for i,j in zip(sequences,distances) if j<=dis]
-        result.df=sql.search_seq(seq=selected)
-        sql.close()
-        print("Done. {} matching sequences found.".format(len(selected)))
-        return result
+#     @classmethod
+#     def from_dr(cls,target='',count=2,dis=10,dr=None,table=None):
+#         """
+#         query and build cluster reader from NGS database and query target.
+#         search for sequence with read >= count, lev distance <= dis
+#         """
+#         table = table or dr.table_name
+#         result=cls(name=target,working_dir=dr.working_dir if isinstance(dr,DataReader) else dr,
+#                         save_loc='new_analysis',temp=not dr)
+#         target = dr[target].rep_seq().replace('-','') if isinstance(dr,DataReader) else target
+#         result.table_name=table
+#         query = """SELECT aptamer_seq from self.table Where sum_count >= {}""".format(count)
+#         sql=Mysql().connect().set_table(result.table_name)
+#         sequences = [i['aptamer_seq'] for i in sql.query(query).fetchall()]
+#         print("Searching {} sequences...".format(len(sequences)))
+#         distances= mapdistance(target,sequences,dis,showprogress=True)
+#         selected = [i for i,j in zip(sequences,distances) if j<=dis]
+#         result.df=sql.search_seq(seq=selected)
+#         sql.close()
+#         print("Done. {} matching sequences found.".format(len(selected)))
+#         return result
 
-    @classmethod
-    def from_ngs(cls,name='NewSequence',seq='',count=2,dis=10,table=None,dr=None):
-        """
-        generate a DataReader file from sequence and NGS table.
-        provide a save path to dr or use datareader file's save path if provide as dr.
-        need to provide a table or DataReader instance to infer table_name
-        """
-        table = table or dr.table_name
-        table = table if isinstance(table,list) else [table]
-        a=0
-        for i in table:
-            a=cls.from_dr(target=seq,count=count,dis=dis,table=i,dr=dr)+a
-        a.name=name
-        return a
+#     @classmethod
+#     def from_ngs(cls,name='NewSequence',seq='',count=2,dis=10,table=None,dr=None):
+#         """
+#         generate a DataReader file from sequence and NGS table.
+#         provide a save path to dr or use datareader file's save path if provide as dr.
+#         need to provide a table or DataReader instance to infer table_name
+#         """
+#         table = table or dr.table_name
+#         table = table if isinstance(table,list) else [table]
+#         a=0
+#         for i in table:
+#             a=cls.from_dr(target=seq,count=count,dis=dis,table=i,dr=dr)+a
+#         a.name=name
+#         return a
 
-    @classmethod
-    def empty_like(cls,name='new',dr='',table=None):
-        table = table or dr.table_name
-        result=cls(name=name,working_dir=dr.working_dir if isinstance(dr,DataReader) else dr,
-                        save_loc='new_analysis',temp=not dr)
-        result.table_name=table
-        return result
+#     @classmethod
+#     def empty_like(cls,name='new',dr='',table=None):
+#         table = table or dr.table_name
+#         result=cls(name=name,working_dir=dr.working_dir if isinstance(dr,DataReader) else dr,
+#                         save_loc='new_analysis',temp=not dr)
+#         result.table_name=table
+#         return result
+
 
 #################################################
 
@@ -1603,3 +1664,4 @@ class AlignClade(Alignment,Clade):
         for b in a:
             for i,j in b.__dict__.items():
                 setattr(self,i,j)
+

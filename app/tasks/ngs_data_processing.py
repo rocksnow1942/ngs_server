@@ -405,6 +405,7 @@ def load_rounds(id):
     create_folder_if_not_exist(filepath)
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
+    analysis.pickle_file = dr.save_pickle()
     dr.save_json()
     ch=dr.sequence_count_hist(save=True)
     lh=dr.sequence_length_hist(save=True)
@@ -426,6 +427,7 @@ def build_cluster(id):
     dr.df_cluster(d,(lb,ub),ct,clusterlimit=1000,findoptimal=True,callback=_set_task_progress)
     dr.in_cluster_align(callback=_set_task_progress)
     dr.df_trim(save_df=True)
+    dr.alias={}
     dr.rename_from_ks_server(ks=KnownSequence.query.all())
     dr.save_json()
     hname,df=dr.plot_heatmap(save=True)

@@ -85,8 +85,8 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
     sequence is inserted to the existing cluster.
     """
    
-    print('Start clustering with levenshtein distance...')
-    print('Current time: {}'.format(datetime.datetime.now()))
+    # print('Start clustering with levenshtein distance...')
+    # print('Current time: {}'.format(datetime.datetime.now()))
     seq = dict(zip(list_of_seq,apt_count))
     list_of_seq = [i for i in list_of_seq if cutoff[0]<=len(i)<=cutoff[1]]
     result_key = [list_of_seq[0]]
@@ -168,7 +168,7 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
         new_result.update({'C'+str(counter_):sort_list})
         counter_+=1
     callback(80)
-    print('Cluster done. Time elapsed: {:.2f}s.'.format(time.time()-starttime))
+    # print('Cluster done. Time elapsed: {:.2f}s.'.format(time.time()-starttime))
     return new_result, stop_sum_count
 
 
@@ -182,22 +182,23 @@ def distance_calculator(x,kwargs):
         return x[0].nw_distance(x[1],**kwargs)
 
 # @registor_function
-def build_distance_matrix(list_of_alignment,**kwargs):
-    print('Start building distance matrix...')
-    print('Current time: {}'.format(datetime.datetime.now()))
+def build_distance_matrix(list_of_alignment,callback=None,**kwargs):
+    # print('Start building distance matrix...')
+    # print('Current time: {}'.format(datetime.datetime.now()))
     starttime=time.time()
     n = len(list_of_alignment)
     total=n*(n-1)/2
-    print('Matrix Size: {} X {}.'.format(n,n))
-    print('ETA: {:.2f} minutes...'.format(total*6.17172e-06))
+    # print('Matrix Size: {} X {}.'.format(n,n))
+    # print('ETA: {:.2f} minutes...'.format(total*6.17172e-06))
     wrapper = partial(distance_calculator,kwargs=kwargs)
-    z=poolwrapper(wrapper,combinations(list_of_alignment,2),chunks=100,total=int(total),desc='Build Matrix:',showprogress=True)
+    z = poolwrapper(wrapper, combinations(list_of_alignment, 2), chunks=100, total=int(
+        total), callback=callback, progress_gap=(0, 70))
     dm = np.zeros((n,n),float)
     for i in range(n-1):
         for j in range(i+1,n):
             index = int((2*n-2-i)*(i+1)/2-(n-1-j)-1)
             dm[i,j]=dm[j,i]=z[index]
-    print('Build distance matrix done. Elapsed time: {:.2f}s'.format(time.time()-starttime))
+    # print('Build distance matrix done. Elapsed time: {:.2f}s'.format(time.time()-starttime))
     return dm
 
 # @registor_function
@@ -221,18 +222,20 @@ def build_distance_matrix_single_process(list_of_alignment,**kwargs):
     return dm
 
 # @registor_function
-def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=True,gap=7,gapext=2,**kwargs):
+def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=True,gap=7,gapext=2,callback=None,**kwargs):
     """
     construct from distance matrix and name_list.
     """
-    print('Start building tree and align...')
+    # print('Start building tree and align...')
     starttime=time.time()
     clades = [Clade(None, name) for name in name_list]
     inner_count = 0
     lenth = len(dm)
     if record_path:
         dict_align = dict(zip(name_list,list_align))
-    while len(dm) > 2:
+    looplength = lenth
+    while looplength > 2:
+        callback( (lenth-looplength)*100/lenth ,start=70,end=95)
         dm_sum = np.sum(dm,axis=0)/(len(dm) -2)
         new_dm = dm -  dm_sum - dm_sum[:,None]
         np.fill_diagonal(new_dm,0)
@@ -268,6 +271,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
                                 dm[min_i, min_j]) / 2.0
         dm = np.delete(dm,min_i,axis=0)
         dm = np.delete(dm,min_i,axis=1)
+        looplength=len(dm)
     # set the last clade as one of the child of the inner_clade
     root = None
     if lenth >2:
@@ -300,7 +304,7 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
             dict_align.update({root.name:list_align[0].align(list_align[1],name='root',offset=offset,gap=gap,gapext=gapext,count=count,**kwargs)})
     else:
         dict_align = list_align[0].align(list_align[1],offset=offset,gap=gap,gapext=gapext,count=count,**kwargs)
-    print('Build tree and align done. Elapsed time: {:.2f}s.'.format(time.time()-starttime))
+    # print('Build tree and align done. Elapsed time: {:.2f}s.'.format(time.time()-starttime))
     return Tree(root, name='root'),dict_align
 
 # @registor_function

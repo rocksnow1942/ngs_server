@@ -35,7 +35,7 @@
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                   <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('main.index') }}"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> Home</a></li>
-                    <li><a href="{{ url_for('ngs.ngs') }}"><span class="glyphicon glyphicon-link" aria-hidden="true"></span> NGS</a></li>
+                    <li><a href="{{ url_for('ngs.browse',table='selection') }}"><span class="glyphicon glyphicon-link" aria-hidden="true"></span> NGS</a></li>
                     <li><a href="{{ url_for('apps.index') }}"><span class="glyphicon glyphicon-send" aria-hidden="true"></span> APPS</a></li>
                     <li><a href="{{ url_for('ppt.index') }}"><span class="glyphicon glyphicon-blackboard" aria-hidden="true"></span> PPT</a></li>
                   </ul>

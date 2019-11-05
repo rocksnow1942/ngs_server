@@ -12,6 +12,7 @@ from sqlalchemy import or_
 from app.ppt.routes import ppt_search_handler
 from app.utils.analysis._alignment import lev_distance
 from app.utils.common_utils import get_part_of_day, parse_url_path
+from app.utils.ngs_util import convert_string_to_id
 
 @bp.before_app_request
 def before_request():
@@ -114,8 +115,16 @@ def ngs_serach_handler(form):
         entries, total = target.search(form.q.data,page,pagelimit)
     elif method == 'name':
         q = form.q.data 
-        namedict = dict(analysis="name", known_sequence='sequence_name', selection='selection_name', round='round_name',primer='name', ngs_sample_group='name')
-        result = target.query.filter(getattr(target,namedict[table]).contains(q)).order_by(target.id.desc())
+        if table=='sequence':
+            table = 'sequence_round'
+            try:
+                seqid=convert_string_to_id(q)
+            except:
+                seqid=0
+            result = SeqRound.query.filter(SeqRound.sequence_id==seqid).order_by(SeqRound.count.desc())
+        else:
+            namedict = dict(analysis="name", known_sequence='sequence_name', selection='selection_name', round='round_name',primer='name', ngs_sample_group='name')
+            result = target.query.filter(getattr(target,namedict[table]).contains(q)).order_by(target.id.desc())
         result = result.paginate(page, pagelimit, False)
         total = result.total
         entries = result.items

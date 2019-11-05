@@ -95,5 +95,4 @@ def create_app(config_class = Config,keeplog=True):
 
 
 
-from app import models#,plojo_models
-
+from app import models,plojo_models
