@@ -323,3 +323,24 @@ a.most_common(100)
 
 from datetime import datetime
 datetime.now().strftime('%Y/%m/%d %H:%M')
+
+from inspect import signature
+
+
+class Test():
+    pass
+
+def test(a:int) -> str:
+    return 0
+
+
+str(signature(test))
+
+Another = lambda x:print('haha')
+
+def test(func):
+    func(1)
+
+test()
+
+eval('test(Another)')

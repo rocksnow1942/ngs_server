@@ -17,7 +17,6 @@ from sqlalchemy.orm import relationship
 from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
-from app.utils.analysis import DataReader,Alignment
 from app.utils.search import add_to_index, remove_from_index, query_index
 import os
 
@@ -234,6 +233,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     note = Column(String(500))
     _rounds = data_string_descriptor('rounds')()
     analysis_file = data_string_descriptor('analysis_file','')()
+    pickle_file = data_string_descriptor('pickle_file','')()
     task_id = data_string_descriptor('task_id', '')()
     hist = data_string_descriptor('hist',)()
     cluster_para=data_string_descriptor('cluster_para')()
@@ -1131,3 +1131,4 @@ models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSampl
 'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
 # from app.tasks.ngs_data_processing import 
 from app.utils.ngs_util import reverse_comp,file_blocks
+from app.utils.analysis import DataReader,Alignment

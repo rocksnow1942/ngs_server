@@ -405,6 +405,7 @@ def load_rounds(id):
     create_folder_if_not_exist(filepath)
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
+    analysis.pickle_file = dr.save_pickle()
     dr.save_json()
     ch=dr.sequence_count_hist(save=True)
     lh=dr.sequence_length_hist(save=True)
