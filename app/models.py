@@ -374,9 +374,9 @@ class SeqRound(db.Model):
     def display(self):
         ks = self.sequence.knownas or ''
         if ks:
-            ks = 'A.K.A. : '+ks.sequence_name+'\n'
+            ks = 'A.K.A. : '+ks.sequence_name
         l1= self.sequence_display
-        l3=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
+        l3=f"{ks} Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         if self.sequence.note:
             l4 = f"{self.sequence.date} - Note: {self.sequence.note}"
