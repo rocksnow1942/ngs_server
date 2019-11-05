@@ -275,6 +275,7 @@ class Sequence_Round_Edit(FlaskForm):
     ks_sequence = StringField('Known As Sequence', render_kw=dict(disabled=''))
     knownas = StringField('Known As', render_kw=dict(placeholder='Parent Round Name', list='known_sequence'),
                           validators=[Length(min=0, max=50)])
+    note = StringField('Note',render_kw=dict(placeholder='Note, (Optional)'))
                           
     submit = SubmitField('Confirm Edit Sequence')
 
@@ -290,7 +291,7 @@ class Sequence_Round_Edit(FlaskForm):
             self.ct.data = sr.count
             self.knownas.data = sr.sequence.knownas and sr.sequence.knownas.sequence_name
             self.ks_sequence.data = sr.sequence.knownas and sr.sequence.knownas.rep_seq
-    
+            self.note.data = sr.sequence.note 
 
     def populate_obj(self,id):
         sr = SeqRound.query.get(id)
@@ -298,6 +299,7 @@ class Sequence_Round_Edit(FlaskForm):
         if sr:
             sq = sr.sequence
             sq.knownas = ks
+            sq.note = self.note.data
     
     def validate_knownas(self,knownas):
         if knownas.data == '':

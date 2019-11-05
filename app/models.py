@@ -503,6 +503,7 @@ class Sequence(db.Model,BaseDataModel):
     known_sequence_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('known_sequence.id'))
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
+    note = Column(mysql.VARCHAR(1000))
 
     def align(self, query):
         align = Alignment(self.aptamer_seq)
