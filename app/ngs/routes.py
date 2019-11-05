@@ -100,11 +100,13 @@ def load_datalist(toadd):
         note = db.session.query(distinct(Sequence.note)).filter(
             db.and_(Sequence.note.isnot(None), Sequence.note != '')).all()
         n = Counter()
+        
         for i in note:
             for j in i[0].split(','):
                 if j.strip():
-                    n[tuple(j.strip())] += 1
-        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(),common_note=n.most_common(10))
+                    n[(j.strip(),)] += 1
+       
+        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(), common_note=[i[0] for i in n.most_common(10)])
     else:
         return {}
 
