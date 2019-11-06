@@ -33,3 +33,4 @@ class Config():
     
     APP_ERROR_LOG = os.environ.get('APP_ERROR_LOG') or None
         
+    DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'

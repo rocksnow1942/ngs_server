@@ -1,4 +1,4 @@
-import io
+import io,json,os 
 from app import db
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, jsonify, Response, send_from_directory
@@ -12,6 +12,8 @@ from sqlalchemy import func,distinct
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
 from collections import Counter
+from app.utils.analysis import DataReader, Alignment
+
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -545,8 +547,29 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
+    if filename.endswith('.pickle'):
+        f = os.path.join(
+            current_app.config['ANALYSIS_FOLDER'], filename)
+        dr=DataReader.load_pickle(f)
+        data = json.dumps(dr.jsonify(), separators=(',', ":"))
+        return Response(data, mimetype="text/json",
+            headers={"Content-disposition": f"attachment; filename={filename[0:-7]}.json"})
+        
     as_attachment =  filename.endswith('.json')
     return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
+
+
+@bp.route("/sendjson")
+def sendjson():
+    dr = Analysis.query.get(6).get_datareader
+    # with open("outputs/Adjacency.csv") as fp:
+    #     csv = fp.read()
+    csv = json.dumps(dr.jsonify(),separators=(',',":"))
+    return Response(
+        csv,
+        mimetype="text/json",
+        headers={"Content-disposition":
+                 "attachment; filename=test.json"})
 
 
 @bp.route('/get_bar_progress', methods=['POST'])

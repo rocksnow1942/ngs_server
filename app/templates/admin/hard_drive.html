@@ -1,0 +1,30 @@
+<div class="thumbnail custom-card alert-info well-sm">
+    <h5 class="card-title">Hard Drive Usage</h5>
+    <div class="progress ">
+        <div class="progress-bar progress-bar-striped active" id="harddrive_status" role="progressbar" aria-valuenow="0"
+            aria-valuemin="10" aria-valuemax="100" style="width: 10%">10%
+        </div>
+    </div>
+    <h5 class="card-title">Database Usage</h5>
+    <div class="progress ">
+        <div class="progress-bar progress-bar-striped active" id="database_status" role="progressbar" aria-valuenow="0"
+            aria-valuemin="10" aria-valuemax="100" style="width: 10%">10%
+        </div>
+    </div>
+</div>
+<script src="{{url_for('static',filename='js/ngs.js')}}"></script>
+<script>
+    $(document).ready(function () {
+            $.ajax({
+                url: "{{ url_for('admin.get_harddrive_usage')}}",
+                type: "POST",
+                success: function (result) {
+                    $('#harddrive_status').css('width', result.disk+'%').attr('aria-valuenow', result.disk).text(result.diskusage);
+                    $('#database_status').css('width', result.database+'%').attr('aria-valuenow', result.database).text(result.dbusage);
+                    set_bar_color('harddrive_status', result.disk);
+                    set_bar_color('database_status', result.database)
+                },
+            });
+        }
+    )
+</script>

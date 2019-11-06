@@ -1,0 +1,31 @@
+<div class="thumbnail custom-card alert-info well-sm">
+    <h5 class="card-title">CPU Usage</h5>
+    <div class="progress ">
+        <div class="progress-bar progress-bar-striped active" id="cpu_status" role="progressbar" aria-valuenow="0"
+            aria-valuemin="10" aria-valuemax="100" style="width: 10%">10%
+        </div>
+    </div>
+    <h5 class="card-title">Memory Usage</h5>
+    <div class="progress ">
+        <div class="progress-bar progress-bar-striped active" id="memory_status" role="progressbar" aria-valuenow="0"
+            aria-valuemin="10" aria-valuemax="100" style="width: 10%">10%
+        </div>
+    </div>
+</div>
+<script src="{{url_for('static',filename='js/ngs.js')}}"></script>
+<script>
+    $(document).ready(function () {
+        setInterval(function () {
+            $.ajax({
+                url: "{{ url_for('admin.get_system_usage')}}",
+                type: "POST",
+                success: function (result) {
+                    set_bar_progress('cpu_status', result.cpu);
+                    set_bar_progress('memory_status', result.memory);
+                    set_bar_color('cpu_status',result.cpu);
+                    set_bar_color('memory_status',result.memory)
+                },
+            });
+        }, 1000)
+    })
+</script>

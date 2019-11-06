@@ -400,18 +400,18 @@ def test_worker(n):
 
 def load_rounds(id):
     analysis = Analysis.query.get(id)
+    analysis_id = str(analysis.id)
     filepath = os.path.join(
-        current_app.config['ANALYSIS_FOLDER'], str(analysis.id))
+        current_app.config['ANALYSIS_FOLDER'], analysis_id)
     create_folder_if_not_exist(filepath)
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
-    analysis.pickle_file = dr.save_pickle()
-    dr.save_json()
+    analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
+    analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
     ch=dr.sequence_count_hist(save=True)
     lh=dr.sequence_length_hist(save=True)
-    analysis.analysis_file=os.path.join(filepath,analysis.name+'.json')
     analysis.hist = [os.path.join(
-        str(analysis.id), ch), os.path.join(str(analysis.id), lh)]
+        analysis_id, ch), os.path.join(analysis_id, lh)]
     analysis.task_id=''
     analysis.cluster_para=''
     analysis.heatmap=''

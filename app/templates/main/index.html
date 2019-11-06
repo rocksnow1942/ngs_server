@@ -80,6 +80,35 @@
       </div>
     </div>
 
+
+
+<div class="panel panel-info">
+  <div class="panel-heading" role="tab" id='headingServerStatus'>
+    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseServerStatus" aria-expanded="true"
+      aria-controls="collapseServerStatus" class="custom-card">
+      <h3 class="panel-title"> Server Status </h3>
+    </a>
+  </div>
+  <div id="collapseServerStatus" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingServerStatus">
+    <div class="panel-body">
+
+    <div class='row'>
+      <div class='col-xs-4'>
+        {% include "admin/cpu_memory.html" %}
+      </div>
+      <div class='col-xs-4'>
+        {% include "admin/hard_drive.html" %}
+      </div>
+      <div class='col-xs-4'>
+        {% include "admin/visit_log.html" %}
+      </div>
+    </div>
+
+    </div>
+  </div>
+</div>
+
+   
     
 {% endblock %}
 

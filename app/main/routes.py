@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for, request, current_ap
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
-from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Sequence
+from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Sequence
 from flask import g
 from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm,UserSettingForm
 from urllib.parse import urlparse
@@ -39,8 +39,15 @@ def before_request():
             result = db.session.query(PPT.id, PPT.name).filter(PPT.project_id.in_(project)).order_by(
                 PPT.date.desc()).all()
         g.search_form.search_ppt.choices = [('all', 'All'),]+ result
-          
 
+    if request.method=='GET': 
+        hour = datetime.now().hour+1
+        al=AccessLog.query.get(hour)
+        if al:
+            al.add_count()
+        else:
+            db.session.add(AccessLog(id=hour, count=1))
+        db.session.commit()
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])

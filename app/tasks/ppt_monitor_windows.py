@@ -1,4 +1,7 @@
-import time,os,shutil,json
+import time
+import os
+import shutil
+import json
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from pptx import Presentation
@@ -6,12 +9,9 @@ from pathlib import PureWindowsPath
 from comtypes import client
 from ctypes import Structure, windll, c_uint, sizeof, byref
 from datetime import datetime
+import gc
 
-# to run monitor script in background on window:
-# run with pythonw.exe "<path_to_file.py>"
-#
-#
-
+#C:\Users\aptitude\Anaconda3\pythonw.exe "C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor.py"
 
 source_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Projects"
 target_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap"
@@ -44,6 +44,8 @@ def make_snapshot(source, target):
     powerpoint.ActivePresentation.Export(target.strip()+'.pptx', 'PNG')
     powerpoint.ActivePresentation.Close()
     powerpoint.Quit()
+    del powerpoint
+
 
 def glob_pptx(path):
     result = []
@@ -60,13 +62,15 @@ def get_revision(*files):
         try:
             ppt = Presentation(file)
             revision = ppt.core_properties.revision
+            del ppt
         except:
             revision = 0
         result.append(revision)
     return result
 
+
 class FileLogger():
-    def __init__(self, source_folder="", target_foler="", log_file="",running_log=""):
+    def __init__(self, source_folder="", target_foler="", log_file="", running_log=""):
         self.data = {}
         self.revisions = {}
         self.source_folder = source_folder
@@ -74,11 +78,11 @@ class FileLogger():
         self.log_file = log_file
         self.running_log = running_log
 
-    def write_log(self,content):
+    def write_log(self, content):
         if printscreen:
             print(content)
-        with open(self.running_log,'a') as f:
-            f.write(f"{self.time} - " +content+'\n')
+        with open(self.running_log, 'a') as f:
+            f.write(f"{self.time} - " + content+'\n')
 
     @property
     def time(self):
@@ -98,7 +102,7 @@ class FileLogger():
 
     def init_revision(self):
         try:
-            path=self.source_folder
+            path = self.source_folder
             files = glob_pptx(path)
             revisions = get_revision(*files)
             new = dict(zip(files, revisions))
@@ -151,7 +155,7 @@ class FileLogger():
                     make_snapshot(file, self.mirror_path(file))
                     self.revisions[file] = c_rev
                     self.write_log('Success: Making snapshot {}'.format(
-                         self.mirror_path(file)))
+                        self.mirror_path(file)))
                 except Exception as e:
                     self.write_log('Error: Making Snapshot {}; \nReason: {}'.format(
                         self.mirror_path(file), e))
@@ -160,10 +164,12 @@ class FileLogger():
         for file in self.deleted:
             try:
                 shutil.rmtree(self.mirror_path(file))
-                self.write_log('Success: Delete Folder: {}'.format(self.mirror_path(file)))
+                self.write_log('Success: Delete Folder: {}'.format(
+                    self.mirror_path(file)))
                 self.revisions.pop(file, None)
             except FileNotFoundError as e:
-                self.write_log(f"Error: Delete Folder {self.mirror_path(file)}; \nReason: {e}")
+                self.write_log(
+                    f"Error: Delete Folder {self.mirror_path(file)}; \nReason: {e}")
         self.data = {}
         with open(self.log_file, 'wt') as f:
             json.dump(self.revisions, f, indent=2)
@@ -179,7 +185,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
                          ignore_directories=False, case_sensitive=True)
         self.logger = logger
 
-    def write_log(self,content):
+    def write_log(self, content):
         self.logger.write_log(content)
 
     def on_created(self, event):
@@ -195,17 +201,17 @@ class PPTX_Handler(PatternMatchingEventHandler):
         self.logger.create(event.src_path)
 
     def on_moved(self, event):
-        self.write_log(f"Watchdog: Rename {event.src_path} to {event.dest_path}")
+        self.write_log(
+            f"Watchdog: Rename {event.src_path} to {event.dest_path}")
         if PureWindowsPath(event.src_path).suffix == ".pptx":
             self.logger.delete(event.src_path)
         if PureWindowsPath(event.dest_path).suffix == ".pptx":
             self.logger.create(event.dest_path)
 
 
-
 my_observer = Observer()
 logger = FileLogger(source_folder=source_folder,
-                    target_foler=target_folder, log_file=log_file,running_log=running_log)
+                    target_foler=target_folder, log_file=log_file, running_log=running_log)
 
 logger.write_log('***File Monitor Lanunch')
 
@@ -216,8 +222,9 @@ my_observer.start()
 logger.write_log('***File Monitor Started')
 try:
     while True:
-        time.sleep(60)
-        if get_idle_duration() > 180:
+        gc.collect()
+        time.sleep(30)
+        if get_idle_duration() > 120:
             logger.sync_snap()
 
 except KeyboardInterrupt:

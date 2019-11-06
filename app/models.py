@@ -240,6 +240,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     heatmap=data_string_descriptor('heatmap','')()
     # Order: name, name_link, Seq Iddisplay, Seq Id link, (display,s.id, )
     cluster_table = data_string_descriptor('cluster_table', [])()
+    
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
@@ -247,10 +248,15 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def haschildren(self):
         return (current_user.id!=self.user_id)
 
-    @property
-    def analysis_file_link(self):
-        parent = current_app.config['ANALYSIS_FOLDER']
-        return self.analysis_file.replace(parent,'')[1:]
+    # @property
+    # def analysis_file_link(self):
+    #     parent = current_app.config['ANALYSIS_FOLDER']
+    #     return self.analysis_file.replace(parent,'')[1:]
+    
+    # @property
+    # def pickle_file_link(self):
+    #     parent = current_app.config['ANALYSIS_FOLDER']
+    #     return self.analysis_file.replace(parent, '')[1:]
 
     @property
     def rounds(self):
@@ -267,7 +273,13 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     @lazyproperty
     def get_datareader(self):
         if self.analysis_file:
-            return DataReader.load_json(self.analysis_file)
+            f = os.path.join(
+                current_app.config['ANALYSIS_FOLDER'], self.analysis_file)
+            return DataReader.load(f)
+            # if self.analysis_file.endswith('.json'):
+            #     return DataReader.load_json(f)
+            # elif self.analysis_file.endswith('.pickle'):
+            #     return DataReader.load_pickle(f)
             
     def load_rounds(self):
         job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600)
@@ -505,6 +517,20 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
         result = [ ((a,b),(c,d),"{:.2%}".format(e)) for a,b,c,d,e in result]
         return result
 
+class AccessLog(db.Model):
+    __tablename__ = 'accesslog'
+    id = Column(db.Integer, primary_key=True)
+    count = Column(db.Integer)
+
+    def add_count(self):
+        self.count+=1 
+        n=self.id + 1 if self.id<24 else 1
+        nx=AccessLog.query.get(n)
+        if nx:
+            nx.count=0 
+        else:
+            db.session.add(AccessLog(id=n,count=0))
+    
 
 
 class Sequence(db.Model,BaseDataModel):

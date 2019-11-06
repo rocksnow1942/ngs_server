@@ -195,8 +195,17 @@ class DataReader(Reader):
         return os.path.join(self.filepath,name)
 
     def save_json(self,affix=""):
-        with open(self.saveas(self.name+affix+'.json'),'wt') as f:
+        tosave = self.saveas(self.name+affix+'.json')
+        with open(tosave,'wt') as f:
             json.dump(self.jsonify(), f, separators=(',', ':'))
+        return tosave
+
+    @classmethod 
+    def load(cls,file):
+        if file.endswith('.json'):
+            return cls.load_json(file)
+        elif file.endswith('.pickle'):
+            return cls.load_pickle(file)
 
     @classmethod
     def load_json(cls, file):

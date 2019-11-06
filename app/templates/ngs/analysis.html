@@ -133,10 +133,9 @@
             <hr>
         </div>
 
+        <!-- result panel -->
         <div role="tabpanel" class="tab-pane fade {% if active_tab=='result'%}active in{% endif %}" id="result"> 
-            <!-- result page -->
             {% if analysis.clustered %}          
-            
             <div class="row">
                 <h3 align='center'>Clustering Results</h3>
                 <div class="col-xs-6 col-md-7">
@@ -224,15 +223,24 @@
             {% endif %}
             
         </div>
+
+
+        <!-- download panel -->
         <div role="tabpanel" class="tab-pane fade {% if active_tab=='download'%}active in{% endif %}" id="download"> 
             {% if analysis.analysis_file %}
                     <h2 align='center'><a align='center' class='btn btn-default btn-lg'
-                        href="{{url_for('ngs.analysis_data',filename=analysis.analysis_file_link,randid=range(11999, 9999999) | random)}}"><h2>Download Data File</h2><br><h4>{{analysis.__repr__()}}</h4></a></h2>
+                        href="{{url_for('ngs.analysis_data',filename=analysis.analysis_file,randid=range(11999, 9999999) | random)}}"><h2>Download Data JSON File</h2><br><h4>{{analysis.__repr__()}}</h4></a></h2>
+            {%elif analysis.pickle_file%}
+                <h2 align='center'><a align='center' class='btn btn-default btn-lg'
+                        href="{{url_for('ngs.analysis_data',filename=analysis.pickle_file,randid=range(11999, 9999999) | random)}}">
+                        <h2>Download Pickle JSON File</h2><br>
+                        <h4>{{analysis.__repr__()}}</h4>
+                    </a></h2>
             {%else%}
             <h2 align='center'>Data File Not Available. Load NGS data first.</h2>
             {% endif %}
-            
         </div>
+        
     </div>
 
 </div>
