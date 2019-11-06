@@ -406,8 +406,8 @@ def load_rounds(id):
     create_folder_if_not_exist(filepath)
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
-    analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
     analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
+    analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
     ch=dr.sequence_count_hist(save=True)
     lh=dr.sequence_length_hist(save=True)
     analysis.hist = [os.path.join(
@@ -422,14 +422,15 @@ def load_rounds(id):
 
 def build_cluster(id):
     analysis = Analysis.query.get(id)
+    analysis_id = str(analysis.id)
     dr = analysis.get_datareader
     d,lb,ub,ct=analysis.cluster_para
     dr.df_cluster(d,(lb,ub),ct,clusterlimit=1000,findoptimal=True,callback=_set_task_progress)
     dr.in_cluster_align(callback=_set_task_progress)
-    dr.df_trim(save_df=True)
+    dr.df_trim()
     dr.alias={}
     dr.rename_from_ks_server(ks=KnownSequence.query.all())
-    dr.save_json()
+    analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
     hname,df=dr.plot_heatmap(save=True)
     analysis.heatmap = os.path.join(str(analysis.id), hname)
     roundnamedict = dict(zip(df.columns.tolist(),analysis._rounds))

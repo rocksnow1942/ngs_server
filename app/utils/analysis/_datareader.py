@@ -77,6 +77,7 @@ class DataReader(Reader):
         self.table_name=None
         self.alias={}
         self.processing_para={}
+        self.affix = ""
         # self.save_loc= abandoned save location.
 
     # def exec_command(self,command,args):
@@ -195,8 +196,8 @@ class DataReader(Reader):
         return os.path.join(self.filepath,name)
 
     def save_json(self,affix=""):
-        tosave = self.saveas(self.name+affix+'.json')
-        with open(tosave,'wt') as f:
+        tosave = self.name+affix+'.json'
+        with open(self.saveas(tosave),'wt') as f:
             json.dump(self.jsonify(), f, separators=(',', ':'))
         return tosave
 
@@ -223,12 +224,13 @@ class DataReader(Reader):
             else:
                 continue
         a = cls()
-        a.__dict__ = data
+        a.__dict__.update(data)
         return a
 
     def save_pickle(self, affix=""):
-        tosave= self.saveas(self.name+affix+'.pickle')
-        with open(tosave, 'wb') as f:
+        self.affix = affix = affix or self.affix
+        tosave= self.name+affix+'.pickle'
+        with open(self.saveas(tosave), 'wb') as f:
             pickle.dump(self, f)
         return tosave 
 
@@ -403,7 +405,7 @@ class DataReader(Reader):
                 }
         self.df_cluster(**para[mode][0])
         self.in_cluster_align(**para[mode][1])
-        self.build_tree_and_align(**para[mode][2],save=save)
+        self.build_tree_and_align(**para[mode][2])
         self.df_trim()
 
     def tree_guide_align(self,target='root',tree=None,dict_of_alignment=None,start=True,count_=None,replace=True,**kwargs):

@@ -227,15 +227,18 @@
 
         <!-- download panel -->
         <div role="tabpanel" class="tab-pane fade {% if active_tab=='download'%}active in{% endif %}" id="download"> 
+            {% if analysis.analysis_file or analysis.pickle_file%}
             {% if analysis.analysis_file %}
                     <h2 align='center'><a align='center' class='btn btn-default btn-lg'
                         href="{{url_for('ngs.analysis_data',filename=analysis.analysis_file,randid=range(11999, 9999999) | random)}}"><h2>Download Data JSON File</h2><br><h4>{{analysis.__repr__()}}</h4></a></h2>
-            {%elif analysis.pickle_file%}
+            {% endif %}
+            {%if analysis.pickle_file%}
                 <h2 align='center'><a align='center' class='btn btn-default btn-lg'
                         href="{{url_for('ngs.analysis_data',filename=analysis.pickle_file,randid=range(11999, 9999999) | random)}}">
                         <h2>Download Pickle JSON File</h2><br>
                         <h4>{{analysis.__repr__()}}</h4>
                     </a></h2>
+            {% endif %}
             {%else%}
             <h2 align='center'>Data File Not Available. Load NGS data first.</h2>
             {% endif %}

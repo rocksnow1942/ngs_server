@@ -272,6 +272,9 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     
     @lazyproperty
     def get_datareader(self):
+        """
+        only used for getting analysis_file (common one), not for pickle_file (_advanced)
+        """
         if self.analysis_file:
             f = os.path.join(
                 current_app.config['ANALYSIS_FOLDER'], self.analysis_file)
