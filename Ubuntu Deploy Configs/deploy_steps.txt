@@ -145,3 +145,7 @@
 17. to use supervisord eventlistener, install following packages:
     pip install superlance
     then add supervisor conf.
+    
+18. to allow check database folder size:
+    run 
+    sudo chmod a+rwx /var/lib/mysql
