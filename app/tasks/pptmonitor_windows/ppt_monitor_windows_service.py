@@ -17,14 +17,15 @@ import configparser
 import psutil
 import subprocess
 
-# 
+#
 r"""
 # location :
-# C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor_service.py
-# To install service, run python  <file.py> install / update / start / stop / remove.
+# C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\ppt_monitor_windows_service.py
+# To install service,start cmd in administrator mode
+# run python  <file.py> install / update / start / stop / remove.
 # problem with the current script is that th windows machine memory too small, and cause a "memory not enough error"
 #
-
+# the service won't work because it doesn't start python script in the same windows session. services on windows are on session 0 while other user apps are on session 1
 
 # The service didn't start run on local machine due to an import DLL error;
 # added all the following path form user path to System path.
@@ -41,8 +42,8 @@ r"""
 # C:\Windows\System32\WindowsPowerShell\v1.0\
 # C:\Users\aptitude\AppData\Local\Microsoft\WindowsApps
 """
-running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap\windows_ppt_watcher_service.txt" 
-monitor_script = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor.py"
+running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\monitor_service_log.txt"
+monitor_script = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\ppt_monitor_windows.py"
 
 
 class FileLogger():
@@ -63,11 +64,11 @@ class PPTmonitorService(win32serviceutil.ServiceFramework):
     def __init__(self,args):
         win32serviceutil.ServiceFramework.__init__(self,args)
         self.stop_event = win32event.CreateEvent(None,0,0,None)
-       
+
     def SvcStop(self):
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         win32event.SetEvent(self.stop_event)
-    
+
     def SvcDoRun(self):
         self.ReportServiceStatus(win32service.SERVICE_RUNNING)
         servicemanager.LogMsg(
@@ -91,7 +92,7 @@ class PPTmonitorService(win32serviceutil.ServiceFramework):
         logger.write_log(f'Started ppt monitor script PID= [{monitorpid}].')
         while rc != win32event.WAIT_OBJECT_0:
             pids = [p.pid for p in psutil.process_iter()]
-            if monitorpid not in pids: 
+            if monitorpid not in pids:
                 logger.write_log(f'Detected PPT monitor script stopped.')
                 monitorpid = None
                 try:

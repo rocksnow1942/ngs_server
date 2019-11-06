@@ -16,7 +16,7 @@ import gc
 source_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Projects"
 target_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap"
 log_file = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap\log.json"
-running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap\windows_ppt_watcher_log.txt"
+running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\monitor_log.txt"
 printscreen = True
 
 
@@ -45,6 +45,7 @@ def make_snapshot(source, target):
     powerpoint.ActivePresentation.Close()
     powerpoint.Quit()
     del powerpoint
+    return None
 
 
 def glob_pptx(path):
@@ -83,6 +84,7 @@ class FileLogger():
             print(content)
         with open(self.running_log, 'a') as f:
             f.write(f"{self.time} - " + content+'\n')
+        return 0
 
     @property
     def time(self):
@@ -116,6 +118,7 @@ class FileLogger():
             self.write_log('Success: Init Revision Done.')
         except Exception as e:
             self.write_log(f'Error: Init Error \nReason:{e}')
+        return 0
 
     def create(self, file):
         self.data[file] = 'create'
@@ -177,7 +180,7 @@ class FileLogger():
             unresolved.update(json.load(f))
         with open(self.log_file+'_errors', 'wt') as f:
             json.dump(unresolved, f, indent=2)
-
+        return 0
 
 class PPTX_Handler(PatternMatchingEventHandler):
     def __init__(self, logger):
