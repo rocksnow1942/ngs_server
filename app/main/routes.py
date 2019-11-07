@@ -56,11 +56,20 @@ def pptmonitor_port():
     result = request.json 
     time = parser.parse(result['time'])
     msg = result['msg']
-    task = Task.query.get('pptmonitor_status_entry') or Task(id='pptmonitor_status_entry')
-    task.date = time
-    task.name = msg
-    db.session.add(task)
-    db.session.commit()
+    if msg == 'monitor':
+        task = Task.query.get('pptmonitor_status_entry')
+        if not task:
+            return 'restart'
+        dt = (datetime.now() - task.date)
+        dt = dt.seconds//60
+        if dt > 30: # if over 30minutes not hearing back, restart. 
+            return 'restart'
+    else:
+        task = Task.query.get('pptmonitor_status_entry') or Task(id='pptmonitor_status_entry')
+        task.date = time
+        task.name = msg
+        db.session.add(task)
+        db.session.commit()
     # return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, linkentries=linkentries)
     return 'ok'
 

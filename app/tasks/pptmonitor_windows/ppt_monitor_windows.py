@@ -10,6 +10,7 @@ from comtypes import client
 from ctypes import Structure, windll, c_uint, sizeof, byref
 from datetime import datetime
 import gc
+import requests
 
 #C:\Users\aptitude\Anaconda3\pythonw.exe "C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor.py"
 
@@ -17,7 +18,8 @@ source_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Projects"
 target_folder = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap"
 log_file = r"C:\Users\aptitude\Aptitude-Cloud\R&D Backup\Plojo backup\Project_Slide_snap\log.json"
 running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\monitor_log.txt"
-printscreen = True
+printscreen = False
+post_url = 'http://192.168.86.200/pptmonitor_port'
 
 
 class LASTINPUTINFO(Structure):
@@ -63,7 +65,6 @@ def get_revision(*files):
         try:
             ppt = Presentation(file)
             revision = ppt.core_properties.revision
-            del ppt
         except:
             revision = 0
         result.append(revision)
@@ -85,6 +86,9 @@ class FileLogger():
         with open(self.running_log, 'a') as f:
             f.write(f"{self.time} - " + content+'\n')
         return 0
+
+    def post(self, msg):
+        requests.post(url=post_url, json={'time': self.time, 'msg': msg})
 
     @property
     def time(self):
@@ -182,6 +186,7 @@ class FileLogger():
             json.dump(unresolved, f, indent=2)
         return 0
 
+
 class PPTX_Handler(PatternMatchingEventHandler):
     def __init__(self, logger):
         super().__init__(patterns=["*.pptx", ], ignore_patterns=["*~$*", "*Conflict*"],
@@ -212,25 +217,27 @@ class PPTX_Handler(PatternMatchingEventHandler):
             self.logger.create(event.dest_path)
 
 
-my_observer = Observer()
-logger = FileLogger(source_folder=source_folder,
-                    target_foler=target_folder, log_file=log_file, running_log=running_log)
-
-logger.write_log('***File Monitor Lanunch')
-
-logger.init_revision()
-my_observer.schedule(PPTX_Handler(logger=logger),
-                     source_folder, recursive=True)
-my_observer.start()
-logger.write_log('***File Monitor Started')
-try:
+def main():
+    my_observer = Observer()
+    logger = FileLogger(source_folder=source_folder,
+                        target_foler=target_folder, log_file=log_file, running_log=running_log)
+    logger.write_log('***File Monitor Lanunch')
+    logger.post("I'm running.")
+    logger.init_revision()
+    my_observer.schedule(PPTX_Handler(logger=logger),
+                         source_folder, recursive=True)
+    my_observer.start()
+    logger.write_log('***File Monitor Started')
+    gc.collect()
     while True:
+        time.sleep(60)
+        try:            
+            if get_idle_duration() > 120:
+                logger.sync_snap()
+            logger.post("I'm running.") # post signal every 1minutes
+        except Exception as e:
+            logger.write_log(f'Logging Error: {e}')
         gc.collect()
-        time.sleep(30)
-        if get_idle_duration() > 120:
-            logger.sync_snap()
 
-except KeyboardInterrupt:
-    my_observer.stop()
-    my_observer.join()
-    logger.write_log('File Monitor Stopped by KeyboardInterrupt')
+if __name__ == '__main__':
+    main()

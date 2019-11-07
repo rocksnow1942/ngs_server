@@ -137,7 +137,7 @@ class PPT_Indexer():
         for page, slide in enumerate(ppt.slides):
             temp = []
             for shape in slide.shapes:
-                if hasattr(shape, "text"):
+                if hasattr(shape, "text") and shape.text.strip():
                     temp.append((shape.text, shape.top))
             if not temp:
                 temp.append(("No Title", 0))
