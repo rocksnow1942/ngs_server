@@ -55,7 +55,7 @@ def before_request():
 def pptmonitor_port():
     result = request.json 
     time = parser.parse(result['time'])
-    msg = parser.parse(result['msg'])
+    msg = result['msg']
     task = Task.query.get('pptmonitor_status_entry') or Task(id='pptmonitor_status_entry')
     task.date = time
     task.name = msg
