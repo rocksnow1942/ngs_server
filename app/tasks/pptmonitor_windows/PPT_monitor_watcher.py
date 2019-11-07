@@ -5,6 +5,8 @@ import psutil
 import subprocess
 import gc
 import requests
+import logging 
+from logging.handlers import RotatingFileHandler
 #
 # start by batch file
 # @echo off
@@ -21,52 +23,79 @@ post_url = 'http://192.168.86.200/pptmonitor_port'
 
 
 class FileLogger():
-    def __init__(self, running_log=""):
-        self.running_log = running_log
+    def __init__(self, running_log="",level="INFO"):
+        level = getattr(logging, level.upper(),20)
+        logger=logging.getLogger('Monitor')
+        logger.setLevel(level)
+        fh = RotatingFileHandler(running_log,maxBytes=102400,backupCount=2)
+        fh.setLevel(level)
+        fh.setFormatter(logging.Formatter(
+            '%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p'
+        ))
+        logger.addHandler(fh) 
+        self.logger=logger 
+
+        for i in ['debug','info','warning','error','critical']:
+            setattr(self,i,getattr(self.logger,i))
 
     @property
     def time(self):
         return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    def write_log(self, content):
-        with open(self.running_log, 'a') as f:
-            f.write(f"{self.time} - " + content+'\n')
-
+        
     def post(self):
-        answer = requests.post(url=post_url, json={'time': self.time, 'msg': 'monitor'})
-        if answer.text == 'restart':
-            return True 
+        try:
+            answer = requests.post(url=post_url, json={
+                                   'time': self.time, 'msg': 'monitor'}, timeout=(10, 30))
+            self.debug(f'Post answer is : {answer.text}')
+            if answer.text == 'restart':
+                return True
+        except Exception as e:
+            self.debug(f'Post failed: {e}')
         return False
+
 
 def start_script():
     result = subprocess.Popen(
         [sys.executable, monitor_script], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return result
 
-def main():
-    logger = FileLogger(running_log=running_log)
-    logger.write_log('Monitor Service Started.')
+
+def main(loglevel='INFO'):
+    logger = FileLogger(running_log=running_log , level=loglevel)
+    logger.info('Monitor Service Started.')
     monitorpid = start_script()
-    logger.write_log(f'Started ppt monitor script PID= [{monitorpid.pid}].')
+    logger.info(f'Started ppt monitor script PID= [{monitorpid.pid}].')
     
     while 1:
-        pids = [p.pid for p in psutil.process_iter()]
-        if monitorpid.pid not in pids:  # restart if process is gone.
-            logger.write_log(f'Detected PPT monitor script stopped.')
-            try:
-                monitorpid = start_script()
-                logger.write_log(f'Re-Started ppt monitor PID= [{monitorpid.pid}].')
-            except Exception as e:
-                logger.write_log(f'Start ppt monitor failed. Reason: {e}')
-        
-        time.sleep(300) # check every 300 seconds if the monitor service is running.
-        
-        if logger.post():
-            logger.write_log(f'Detected PPT monitor script not sending post signal.')
-            monitorpid.kill()            
-        gc.collect()
-        
-    
+        try:
+            pids = [p.pid for p in psutil.process_iter()]
+            if monitorpid.pid not in pids:  # restart if process is gone.
+                logger.warning(f'Detected PPT monitor script stopped.')
+                try:
+                    monitorpid = start_script()
+                    logger.info(
+                        f'Re-Started ppt monitor PID= [{monitorpid.pid}].')
+                except Exception as e:
+                    logger.error(f'Start ppt monitor failed. Reason: {e}')
+
+            # check every 600 seconds if the monitor service is running.
+            time.sleep(600)
+
+            if logger.post():
+                logger.warning(
+                    'Detected PPT monitor script not sending post signal.')
+                try:
+                    monitorpid.kill()
+                except Exception as e:
+                    logger.error(f"Stop PPT monitor script failed: {e}")
+            gc.collect()
+        except Exception as e:
+            logger.critical(f'Monitor Loop Break: {e}')
+            time.sleep(600)
+            continue 
+
 
 if __name__ == '__main__':
-    main()
+    # DEBUG to get more info
+    main(loglevel='INFO')
