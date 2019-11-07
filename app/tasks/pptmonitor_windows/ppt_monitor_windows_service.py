@@ -52,7 +52,7 @@ class FileLogger():
 
     @property
     def time(self):
-        return datetime.now().strftime('%y/%m/%d %H:%M:%S')
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def write_log(self, content):
         with open(self.running_log, 'a') as f:

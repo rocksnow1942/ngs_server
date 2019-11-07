@@ -88,7 +88,7 @@ class FileLogger():
 
     @property
     def time(self):
-        return datetime.now().strftime('%y/%m/%d %H:%M:%S')
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     def mirror_path(self, path):
         sf = PureWindowsPath(self.source_folder)

@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for, request, current_ap
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
-from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Sequence
+from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Sequence,Task
 from flask import g
 from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm,UserSettingForm
 from urllib.parse import urlparse
@@ -13,6 +13,7 @@ from app.ppt.routes import ppt_search_handler
 from app.utils.analysis._alignment import lev_distance
 from app.utils.common_utils import get_part_of_day, parse_url_path
 from app.utils.ngs_util import convert_string_to_id
+from dateutil import parser
 
 @bp.before_app_request
 def before_request():
@@ -48,6 +49,20 @@ def before_request():
         else:
             db.session.add(AccessLog(id=hour, count=1))
         db.session.commit()
+
+
+@bp.route('/pptmonitor_port', methods=['POST'])
+def pptmonitor_port():
+    result = request.json 
+    time = parser.parse(result['time'])
+    msg = parser.parse(result['msg'])
+    task = Task.query.get('pptmonitor_status_entry') or Task(id='pptmonitor_status_entry')
+    task.date = time
+    task.name = msg
+    db.session.add(task)
+    db.session.commit()
+    # return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, linkentries=linkentries)
+    return 'ok'
 
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
