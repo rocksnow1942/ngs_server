@@ -53,7 +53,6 @@ def main():
         pids = [p.pid for p in psutil.process_iter()]
         if monitorpid.pid not in pids:  # restart if process is gone.
             logger.write_log(f'Detected PPT monitor script stopped.')
-            monitorpid = None
             try:
                 monitorpid = start_script()
                 logger.write_log(f'Re-Started ppt monitor PID= [{monitorpid.pid}].')
@@ -63,11 +62,8 @@ def main():
         time.sleep(300) # check every 300 seconds if the monitor service is running.
         
         if logger.post():
-            logger.write_log(f'Detected PPT monitor script not sending signal.')
-            monitorpid.kill()
-            time.sleep(10)
-            monitorpid = start_script()
-        
+            logger.write_log(f'Detected PPT monitor script not sending post signal.')
+            monitorpid.kill()            
         gc.collect()
         
     

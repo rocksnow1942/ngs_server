@@ -234,7 +234,7 @@ def main():
         try:            
             if get_idle_duration() > 120:
                 logger.sync_snap()
-            logger.post("I'm running.") # post signal every 1minutes
+            logger.post("PPTmonitor is running.")  # post signal every 1minutes
         except Exception as e:
             logger.write_log(f'Logging Error: {e}')
         gc.collect()
