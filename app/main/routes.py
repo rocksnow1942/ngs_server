@@ -71,8 +71,14 @@ def index():
     follow_ppt = current_user.follow_ppt.keys()
     entries = PPT.query.filter(PPT.id.in_(follow_ppt)).all()
     greet = get_part_of_day(datetime.now().hour)
-    linkentries = current_user.quick_link
-    return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, linkentries=linkentries)
+    linkentries = current_user.quick_link 
+    ppttask = Task.query.get('pptmonitor_status_entry') 
+    if ppttask:
+        dt = (datetime.now() - ppttask.date)
+        pptindextime = dt.seconds//60 
+    else:
+        pptindextime = 60
+    return render_template('main/index.html', title='Home', follow_ppt=entries, greet=greet, pptindextime=pptindextime, linkentries=linkentries)
 
 
 @bp.route('/edit_link', methods=['GET', 'POST'])
