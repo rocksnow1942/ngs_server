@@ -387,6 +387,10 @@ class SeqRound(db.Model):
         return f"Sequence <{self.id_display}>, {self.count} in {self.round.round_name}"
 
     @property
+    def name(self):
+        return f'{self.id_display}'
+
+    @property
     def tosynthesis(self):
         return (self.sequence.note and 'to synthesis' in self.sequence.note.lower())
 
@@ -551,6 +555,9 @@ class Sequence(db.Model,BaseDataModel):
         align = align.align(query)
         return align.format(link=True, maxlength=95).split('\n')
 
+    @property 
+    def name(self):
+        return self.id_display
    
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
