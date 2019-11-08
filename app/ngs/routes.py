@@ -373,11 +373,11 @@ def details():
         start, end = pagination_gaps(page, totalpages, pagelimit)
         page_url = [(i, url_for('ngs.details', table=table, page=i, id=id))
                     for i in range(start, end+1)]
-        return render_template('ngs/details.html', title=f'{entry.__repr__()}-Details', entry=entry, table=table,
+        return render_template('ngs/details.html', title=f'{entry.name}-Details', entry=entry, table=table,
                                query_result=query_result, next_url=next_url, prev_url=prev_url, active=page, page_url=page_url)
 
 
-    return render_template('ngs/details.html', title = f'{entry.__repr__()}-Details', entry = entry, table=table)
+    return render_template('ngs/details.html', title = f'{entry.name}-Details', entry = entry, table=table)
                           
 
 
