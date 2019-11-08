@@ -230,7 +230,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     date = Column(DateTime(), default=datetime.now)
     user_id = Column(db.Integer, ForeignKey('user.id'))
     data_string = Column(db.Text, default="{}")
-    note = Column(String(500))
+    note = Column(String(5000))
     _rounds = data_string_descriptor('rounds')()
     analysis_file = data_string_descriptor('analysis_file','')()
     pickle_file = data_string_descriptor('pickle_file','')()
@@ -475,7 +475,7 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
     rep_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True)
     target = Column(mysql.VARCHAR(50))
-    note = Column(mysql.VARCHAR(500))
+    note = Column(mysql.VARCHAR(5000))
     sequence_variants =  relationship('Sequence',backref='knownas')
 
     def align(self, query):
@@ -543,7 +543,7 @@ class Sequence(db.Model,BaseDataModel):
     known_sequence_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('known_sequence.id'))
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
-    note = Column(mysql.VARCHAR(1000))
+    note = Column(mysql.VARCHAR(5000))
     date = Column(DateTime())
 
     def align(self, query):
@@ -596,7 +596,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     sequences = relationship("SeqRound", back_populates="round")
     target = Column(String(50))
     totalread = Column(mysql.INTEGER(unsigned=True),default=0)
-    note = Column(String(300))
+    note = Column(String(5000))
     forward_primer = Column(mysql.INTEGER(unsigned=True),
                             ForeignKey('primer.id'))
     reverse_primer = Column(mysql.INTEGER(unsigned=True),
@@ -713,7 +713,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     selection_name = Column(String(100),unique=True)
     target = Column(String(50))
-    note = Column(String(300))
+    note = Column(String(5000))
     rounds = relationship('Rounds',backref='selection')
     date = Column(DateTime(), default=datetime.now)
     
@@ -804,7 +804,7 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     name = Column(String(20), unique=True)
     sequence = Column(mysql.VARCHAR(200, charset='ascii'), unique=True)
     role = Column(String(10)) # can be PD
-    note = Column(String(300))
+    note = Column(String(3000))
    
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
@@ -862,7 +862,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(500))
-    note = Column(mysql.VARCHAR(500))
+    note = Column(mysql.VARCHAR(5000))
     date = Column(DateTime(), default=datetime.now)
     samples = relationship(
         'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
@@ -1058,7 +1058,7 @@ class Slide(SearchableMixin,db.Model):
     title = Column(mysql.TEXT)
     body = Column(mysql.TEXT)
     ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
-    note = Column(String(2000))
+    note = Column(String(5000))
     tag = Column(String(900))
     page = Column(mysql.INTEGER(unsigned=True))
     date = Column(DateTime(), default=datetime.now)
@@ -1126,7 +1126,7 @@ class PPT(db.Model):
     __tablename__ = 'powerpoint'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(200))
-    note = Column(String(2000))
+    note = Column(String(5000))
     project_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('project.id'))
     path = Column(String(900),unique=True)
     md5 = Column(String(200),unique=True)
