@@ -33,7 +33,7 @@ class Selection_Add(CheckName):
     target = StringField('Selection Target', validators=[
         DataRequired(), Length(min=0, max=50)], render_kw=dict(placeholder="Selection Target",list='targets'))
     note = TextAreaField('Notes', validators=[Length(
-        min=0, max=300)], render_kw=dict(placeholder="Notes (Optional)"))
+        min=0, max=3000)], render_kw=dict(placeholder="Notes (Optional)"))
     submit = SubmitField('Confirm Add Selection')
 
     def load_obj(self,id=0):
@@ -77,7 +77,7 @@ class Round_Add(CheckName):
     reverse_primer=StringField('Reverse Primer', validators = [DataRequired(
         )], render_kw = dict(placeholder='reverse primer', list="primers"))
     note = TextAreaField('Notes', validators=[Length(
-        min=0, max=300)], render_kw=dict(placeholder='Notes (Optional)'))
+        min=0, max=5000)], render_kw=dict(placeholder='Notes (Optional)'))
     submit = SubmitField('Confirm Add Round')#render_kw={"class":"btn btn-secondary"}
 
     def load_obj(self,id=0):
@@ -166,7 +166,7 @@ class Primer_Add(CheckName):
     primeroptions = [('PD','PD'),('NGS','NGS'),('SELEX','SELEX'),('Other','Other')]
     role = SelectField('Primer type', choices = primeroptions, validators=[DataRequired()])
     note = TextAreaField('Notes', validators=[Length(
-        min=0, max=300)], render_kw=dict(placeholder="Notes (Optional)"))
+        min=0, max=3000)], render_kw=dict(placeholder="Notes (Optional)"))
     submit = SubmitField('Confirm Add Primer')#render_kw={"class":"btn btn-secondary"}
     
     def load_obj(self,id=0):
@@ -209,7 +209,7 @@ class Known_Sequence_Add(FlaskForm):
     target = StringField("Target", validators=[
         DataRequired(), Length(min=0, max=50)], render_kw=dict(placeholder="Target"))
     note = TextAreaField('Notes', validators=[Length(
-        min=0, max=300)], render_kw=dict(placeholder="Notes (Optional)"))
+        min=0, max=3000)], render_kw=dict(placeholder="Notes (Optional)"))
     submit = SubmitField('Confirm Add Known Sequence')
     
     def __init__(self, old_obj=None, *args, **kwargs):
@@ -353,7 +353,7 @@ class AddSampleForm(FlaskForm):
 class NGS_Sample_Group_Add(CheckName):
     name = StringField('Name', validators=[DataRequired()])
     note = TextAreaField('Notes', validators=[Length(
-        min=0, max=300)], render_kw=dict(placeholder='Notes (Optional)'))
+        min=0, max=5000)], render_kw=dict(placeholder='Notes (Optional)'))
 
     samples = FieldList(FormField(AddSampleForm),min_entries=1)
     ignore_duplicate = BooleanField('Ignore Duplicate')
