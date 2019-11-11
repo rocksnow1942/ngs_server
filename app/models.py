@@ -18,7 +18,7 @@ from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
-import os
+import os,gzip
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -967,25 +967,46 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         don't check if there is no file2.
         """
         if f2:
-            with open(f1,'rt') as f, open(f2,'rt') as r:
+            with self.reader_obj(f1) as f, self.reader_obj(f2) as r:
                 fb1 = file_blocks(f)
                 fb2 = file_blocks(r)
-                fb1length = sum(bl.count("\n") for bl in fb1)
-                fb2length = sum(bl.count("\n") for bl in fb2)
+                f1_break = '\n' if f1.endswith('.fastq') else b'\n'
+                f2_break = '\n' if f2.endswith('.fastq') else b'\n'
+                fb1length = sum(bl.count(f1_break) for bl in fb1)
+                fb2length = sum(bl.count(f2_break) for bl in fb2)
             assert fb1length==fb2length, ("Files are not of the same length.")
+
+    def reader_obj(self, filename):
+        if filename.endswith('.fastq'):
+            return open(filename, 'rt')
+        elif filename.endswith('.gz'):
+            return gzip.open(filename, 'rb')
+        else:
+            return None
+
+    def read_lines(self,filename,n=2000):
+        """
+        determine file type is fastq or gz, then return n lines read into file.
+        """ 
+        lines=[]
+        if filename.endswith('.fastq'):
+            with open(filename, 'rt') as f:
+                for line in islice(f, 1, n, 4):
+                    lines.append(line.strip())
+        elif filename.endswith('.gz'):
+            with gzip.open(filename,'rb') as f: 
+                for line in islice(f, 1, n, 4):
+                    lines.append(line.decode().strip())
+        return lines
 
     def _check_primers_match(self,f1,f2,sampleinfo):
         forward ,reverse = [],[]
         needtoswap = 0
         match = 0
         revcomp=0
-        with open(f1,'rt') as f:
-            for line in islice(f,1,2000,4):
-                forward.append(line.strip())
+        forward = self.read_lines(f1)
         if f2:
-            with open(f2, 'rt') as r:
-                for line in islice(r, 1, 2000, 4):
-                    reverse.append(line.strip())
+            reverse = self.read_lines(f2)
         for idx,_f in enumerate(forward):
             if reverse:
                 _r = reverse[idx]

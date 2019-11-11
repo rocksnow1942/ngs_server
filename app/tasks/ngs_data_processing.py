@@ -2,7 +2,7 @@ from rq import get_current_job
 from app import db
 from app.models import models_table_name_dictionary, NGSSampleGroup, Primers, Rounds, Sequence, KnownSequence, Task, SeqRound, Analysis, generate_sample_info
 from app import create_app
-import os
+import os,gzip
 from flask import current_app
 
 from itertools import islice, zip_longest
@@ -99,11 +99,20 @@ class NGS_Sample_Process:
                 f"Q-score>{self.score_threshold}"*bool(self.filters[2]) , 
                 f"Count>{self.commit_threshold}"*bool(self.commit_threshold) ] if i)
 
+    def reader_obj(self, filename):
+        if filename.endswith('.fastq'):
+            return open(filename, 'rt')
+        elif filename.endswith('.gz'):
+            return gzip.open(filename, 'rb')
+        else:
+            return None
+
     def file_generator(self):
-        f=open(self.f1,'rt') if self.f1 else []
-        r = open(self.f2,'rt') if self.f2 else []
+        f= self.reader_obj(self.f1) if self.f1 else []
+        r = self.reader_obj(self.f2) if self.f2 else []
+        fastq = [self.f1.endswith('.fastq')]*2 + [self.f2.endswith('.fastq')]*2
         for fw_fs_rev_rs in zip_longest(islice(f, 1, None, 2), islice(f, 1, None, 2), islice(r, 1, None, 2), islice(r, 1, None, 2)):
-            fw_fs_rev_rs = tuple(i.strip() if i else i for i in fw_fs_rev_rs)
+            fw_fs_rev_rs = tuple(i and (i.strip() if k else i.decode().strip()) for i,k in zip(fw_fs_rev_rs,fastq))
             yield fw_fs_rev_rs
         if self.f1: f.close()
         if self.f2: r.close()

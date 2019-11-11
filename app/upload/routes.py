@@ -63,7 +63,7 @@ def ngsuploadwidget():
         # if file1.filename == '' or file2.filename == '':
         #     flash('Need both files.', 'warning')
         #     return redirect(returnurl)
-        if allowed_file(file1,fileextension='fastq'):
+        if allowed_file(file1, fileextension=['fastq','gz']):
             try:
                 f1,f2=process_ngssample_files(file1,file2)
                 tosavename = json.dumps({'file1': f1, 'file2': f2})
