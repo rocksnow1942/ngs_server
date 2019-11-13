@@ -103,16 +103,16 @@ class NGS_Sample_Process:
         if filename.endswith('.fastq'):
             return open(filename, 'rt')
         elif filename.endswith('.gz'):
-            return gzip.open(filename, 'rb')
+            return gzip.open(filename, 'rt')
         else:
             return None
 
     def file_generator(self):
         f= self.reader_obj(self.f1) if self.f1 else []
         r = self.reader_obj(self.f2) if self.f2 else []
-        fastq = [self.f1.endswith('.fastq')]*2 + [self.f2.endswith('.fastq')]*2
+        # fastq = [self.f1.endswith('.fastq')]*2 + [self.f2.endswith('.fastq')]*2
         for fw_fs_rev_rs in zip_longest(islice(f, 1, None, 2), islice(f, 1, None, 2), islice(r, 1, None, 2), islice(r, 1, None, 2)):
-            fw_fs_rev_rs = tuple(i and (i.strip() if k else i.decode().strip()) for i,k in zip(fw_fs_rev_rs,fastq))
+            fw_fs_rev_rs = tuple(i and i.strip() for i in fw_fs_rev_rs) #if k else i.decode().strip()
             yield fw_fs_rev_rs
         if self.f1: f.close()
         if self.f2: r.close()

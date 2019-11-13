@@ -214,8 +214,6 @@ class User(UserMixin,db.Model,DataStringMixin):
         db.session.commit()
         return t.id
 
-
-
 class BaseDataModel():
     @property
     def id_display(self):
@@ -373,7 +371,6 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             hm,df = dr.plot_heatmap()
             return hm
 
-
 class SeqRound(db.Model):
     __tablename__ = 'sequence_round'
     # __table_args__ = {'extend_existing': True}
@@ -470,7 +467,6 @@ class SeqRound(db.Model):
     def haschildren(self):
         return True
 
-
 class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'known_sequence'
     __searchable__ = ['sequence_name', 'target', 'note']
@@ -538,8 +534,6 @@ class AccessLog(db.Model):
         else:
             db.session.add(AccessLog(id=n,count=0))
     
-
-
 class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
@@ -590,7 +584,6 @@ class Sequence(db.Model,BaseDataModel):
     def plot_structure(self):
         fs=Structure(self.aptamer_seq,name=self.id_display)
         return fs.quick_plot()
-
 
 class Rounds(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'round'
@@ -711,7 +704,6 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
             lastxy= (np.sign(x),y)
         fig.set_tight_layout(True)
         return fig
-
 
 class Selection(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'selection'
@@ -835,7 +827,6 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     def sequence_rc(self):
         return reverse_comp(self.sequence)
 
-
 def generate_sample_info(nsg_id):
     """
     sample info is a list consist of [ () ()]
@@ -860,8 +851,6 @@ def generate_sample_info(nsg_id):
         sampleinfo.append(
             (round_id, fpindex, reverse_comp(rpindex), fp, reverse_comp(rp)))
     return f1, f2, sampleinfo
-
-
 
 class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __tablename__ = 'ngs_sample_group'
@@ -970,8 +959,8 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
             with self.reader_obj(f1) as f, self.reader_obj(f2) as r:
                 fb1 = file_blocks(f)
                 fb2 = file_blocks(r)
-                f1_break = '\n' if f1.endswith('.fastq') else b'\n'
-                f2_break = '\n' if f2.endswith('.fastq') else b'\n'
+                f1_break = '\n' # if f1.endswith('.fastq') else b'\n'
+                f2_break = '\n' # if f2.endswith('.fastq') else b'\n'
                 fb1length = sum(bl.count(f1_break) for bl in fb1)
                 fb2length = sum(bl.count(f2_break) for bl in fb2)
             assert fb1length==fb2length, ("Files are not of the same length.")
@@ -980,7 +969,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         if filename.endswith('.fastq'):
             return open(filename, 'rt')
         elif filename.endswith('.gz'):
-            return gzip.open(filename, 'rb')
+            return gzip.open(filename, 'rt')
         else:
             return None
 
@@ -990,13 +979,14 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         """ 
         lines=[]
         if filename.endswith('.fastq'):
-            with open(filename, 'rt') as f:
+            f = open(filename, 'rt')
+        elif filename.endswith('.gz'):
+            f = gzip.open(filename,'rt')
+        else: f = None 
+        if f:
+            with f:
                 for line in islice(f, 1, n, 4):
                     lines.append(line.strip())
-        elif filename.endswith('.gz'):
-            with gzip.open(filename,'rb') as f: 
-                for line in islice(f, 1, n, 4):
-                    lines.append(line.decode().strip())
         return lines
 
     def _check_primers_match(self,f1,f2,sampleinfo):
@@ -1149,7 +1139,6 @@ class Slide(SearchableMixin,db.Model):
         when = [ (k,i) for i,k in enumerate(ids) ]
         return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
         
-
 class PPT(db.Model):
     __tablename__ = 'powerpoint'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
