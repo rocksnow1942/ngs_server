@@ -17,6 +17,7 @@ def admin():
 
 
 @bp.route('/clear_trash', methods=['GET', 'POST'])
+@privilege_required('admin')
 def clear_trash():
     """
     clear tasks that are more than a day old.
@@ -60,6 +61,7 @@ def clear_trash():
 
 
 @bp.route('/reindex_models', methods=['GET', 'POST'])
+@privilege_required('admin')
 def reindex_models():
     """
     reindex all the elastic searach models
@@ -79,6 +81,7 @@ def reindex_models():
 
 
 @bp.route('/clear_ppt_trash', methods=['GET', 'POST'])
+@privilege_required('admin')
 def clear_ppt_trash():
     """
     clear empty project, and ppt that not in project and slides.
@@ -126,6 +129,7 @@ def clear_ppt_trash():
     
 
 @bp.route('/reindex_ppt', methods=['GET', 'POST'])
+@privilege_required('admin')
 def reindex_ppt():
     try:
         # msg = reindex()

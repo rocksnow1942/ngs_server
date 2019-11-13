@@ -14,6 +14,7 @@ from app.utils.analysis._alignment import lev_distance
 from app.utils.common_utils import get_part_of_day, parse_url_path
 from app.utils.ngs_util import convert_string_to_id
 from dateutil import parser
+from inspect import signature
 
 @bp.before_app_request
 def before_request():
@@ -52,11 +53,14 @@ def before_request():
 
 def privilege_required(privilege='user'):
     def decorator(func):
+        sig = signature(func)
         def wrapper(*args,**kwargs):
             if current_user.privilege == privilege:
                 return func(*args,**kwargs)
             else:
-                return abort(404)
+                return render_template('main/privilege.html')
+        wrapper.__signature__ = sig
+        wrapper.__name__=func.__name__
         return wrapper
     return decorator
 

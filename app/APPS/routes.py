@@ -76,3 +76,10 @@ def plojo_help():
 @bp.route('/plojo_help/static/<path:filename>', methods=['GET'])
 def plojo_help_static_image(filename):
     return redirect(url_for("static", filename="plojo_help/"+filename))
+
+
+@bp.route('/mw_calculator', methods=['GET', 'POST'])
+@login_required
+def mw_calculator():
+    
+    return render_template('apps/mw_calc.html', )
