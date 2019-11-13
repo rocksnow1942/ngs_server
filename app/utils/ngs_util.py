@@ -40,7 +40,7 @@ def reverse_comp(s):
     comp=''.join(map(lambda x:dict(zip('ATCGN','TAGCN'))[x]  ,s))
     return comp[::-1]
 
-def file_blocks(files, size=65536):
+def file_blocks(files, size=2**24): # read 16 MB data at 1 time. 
     while True:
         b = files.read(size)
         if not b: break
