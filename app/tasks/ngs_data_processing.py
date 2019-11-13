@@ -50,6 +50,25 @@ _set_task_progress = ProgressHandler()
 def illumina_nt_score(n):
     return """!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI""".index(n)
 
+
+def time_func(func):
+    import time
+    from inspect import signature
+    sig=signature(func)
+    def wrapped(*args,**kwargs):
+
+        t1 = time.time()
+        result = func(*args,**kwargs)
+        t2 = time.time()
+
+        print('Run {}: {:.3f}s'.format(func.__name__,(t2-t1)*1000000))
+        return result
+    wrapped.__signature__ = sig
+    wrapped.__name__ = func.__name__
+    return wrapped
+    
+
+
 class NGS_Sample_Process:
     """
     process files into database commits. assuming files are already validated.
@@ -61,9 +80,13 @@ class NGS_Sample_Process:
         self.f1 = f1
         self.f2 = f2
         self.sampleinfo = sampleinfo
+        self.sampleinfo_rc = []
+        for i in self.sampleinfo:
+            self.sampleinfo_rc.append((reverse_comp(i[2]),reverse_comp(i[1]),reverse_comp(i[4]),reverse_comp(i[3])))
+        
+        
         self.filters = filters
         *_,self.score_threshold,self.commit_threshold = filters
-
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
@@ -116,7 +139,7 @@ class NGS_Sample_Process:
             yield fw_fs_rev_rs
         if self.f1: f.close()
         if self.f2: r.close()
-
+        
     def _fr_equal_length_filter(self,f,r):
         if len(f) == len(r):
             self.length_filter += 1
@@ -125,8 +148,10 @@ class NGS_Sample_Process:
             return False
     
     def _rev_comp_filter(self,f,r):
+        
         if f == r:
             self.revcomp+=1
+            
             return f 
         else: return False 
     
@@ -138,7 +163,8 @@ class NGS_Sample_Process:
             return "".join(i[0] for i in best_score_nts)
         else:
             return False
-
+            
+    
     def result_filter(self, fmatch,rmatch):
         forward, forward_score = fmatch or ['',[0]]
         reverse, reverse_score = rmatch or ['',[0]]
@@ -173,24 +199,49 @@ class NGS_Sample_Process:
         #         return "".join(i[0] for i in assb)
         #     else:
         #         return None
-                       
+        
     def process_seq(self, fw_fs_rev_rs):
         nomatch = True
         fw, fs,rev,rs = fw_fs_rev_rs
-        for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
+        for (rdid,*(primers)),primers_rc, patterns in zip(self.sampleinfo,self.sampleinfo_rc,self.pattern):
             fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
-            rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
+            rmatch =  rev and self.match_pattern(rev,primers_rc,patterns,rs)
+            if rmatch:
+                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1])
             if fmatch or rmatch:
                 nomatch = False
                 self.success+=1
                 matchresult = self.result_filter(fmatch,rmatch)
+            
                 if matchresult:  
                     self.collection[(rdid,matchresult)]+=1
                 break
         if nomatch:    
             self.log_unmatch(fw or rev)
+            
+    # 
+    # def process_seq(self, fw_fs_rev_rs):
+    #     nomatch = True
+    #     fw, fs,rev,rs = fw_fs_rev_rs
+    #     for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
+    #         fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
+    #         rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
+    #         if fmatch or rmatch:
+    #             nomatch = False
+    #             self.success+=1
+    #             matchresult = self.result_filter(fmatch,rmatch)
+    #             if matchresult:  
+    #                 self.collection[(rdid,matchresult)]+=1
+    #             break
+    #     if nomatch:    
+    #         self.log_unmatch(fw or rev)
+            
+            
               
-    def match_pattern(self,seq,primers,patterns,score):
+    def match_pattern_slow(self,seq,primers,patterns,score):
+        """
+        using re match.
+        """
         match = False
         if all([i in seq for i in primers]):
             ffind = patterns[0].search(seq)
@@ -204,6 +255,23 @@ class NGS_Sample_Process:
             return match, [illumina_nt_score(i) for i in score[findex:rindex]]
         else:
             return None
+    
+    def match_pattern(self,seq,primers,patterns,score):
+        match=False
+        fpi,rpi,fp,rp = primers 
+        findex = seq.find(fpi+fp) 
+        rindex = seq.rfind(rp+rpi)
+        if findex>-1 and rindex>-1:
+            match = seq[findex+ len(fpi+fp):rindex]
+        
+        if match:
+            # print(seq)
+            # print("*"*(findex)+(fpi+fp[:-1])+"|"+match+"|"+rp[1:]+rpi)
+            # 
+            return match , [illumina_nt_score(i) for i in score[findex+ len(fpi+fp):rindex]]
+        else:
+            return None
+
 
     def log_unmatch(self,seq):
         ab = True
