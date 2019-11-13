@@ -1,5 +1,5 @@
 from app import db
-from flask import render_template, flash, redirect, url_for, request, current_app, jsonify
+from flask import render_template, flash, redirect, url_for, request, current_app, jsonify, abort
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.main import bp
@@ -49,6 +49,16 @@ def before_request():
         else:
             db.session.add(AccessLog(id=hour, count=1))
         db.session.commit()
+
+def privilege_required(privilege='user'):
+    def decorator(func):
+        def wrapper(*args,**kwargs):
+            if current_user.privilege == privilege:
+                return func(*args,**kwargs)
+            else:
+                return abort(404)
+        return wrapper
+    return decorator
 
 
 @bp.route('/pptmonitor_port', methods=['POST'])

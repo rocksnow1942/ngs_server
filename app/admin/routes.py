@@ -6,9 +6,12 @@ from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary
 from datetime import datetime, timedelta
 import glob,shutil,os,psutil
 from app.utils.common_utils import get_folder_size
+from app.main.routes import privilege_required
+from flask_user import roles_required
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
+@privilege_required('admin')
 def admin():
     return render_template('admin/index.html',title='Admin Page')
 
