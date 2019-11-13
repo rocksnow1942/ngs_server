@@ -283,7 +283,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             #     return DataReader.load_pickle(f)
             
     def load_rounds(self):
-        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600)
+        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600*10)
         t = Task(id=job.get_id(),name=f"Load analysis {self}.")
         self.task_id=t.id 
         self.save_data()
@@ -930,7 +930,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
             if not filters:
                 filters = [0,1,0,30,self.commit_threshold]
         job = current_app.task_queue.enqueue(
-            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600)
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600*10)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()
