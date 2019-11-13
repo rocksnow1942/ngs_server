@@ -139,11 +139,6 @@ class NGS_Sample_Process:
         else:
             return False
 
-    
-    # def reverse_compliment_filter(self,f,fs,r,rs):
-
-
-
     def result_filter(self, fmatch,rmatch):
         forward, forward_score = fmatch or ['',[0]]
         reverse, reverse_score = rmatch or ['',[0]]
@@ -179,7 +174,6 @@ class NGS_Sample_Process:
         #     else:
         #         return None
                        
-
     def process_seq(self, fw_fs_rev_rs):
         nomatch = True
         fw, fs,rev,rs = fw_fs_rev_rs
@@ -196,7 +190,6 @@ class NGS_Sample_Process:
         if nomatch:    
             self.log_unmatch(fw or rev)
               
-
     def match_pattern(self,seq,primers,patterns,score):
         match = False
         if all([i in seq for i in primers]):
@@ -243,7 +236,7 @@ class NGS_Sample_Process:
 
     def totalread(self):
         toread = self.f1 or self.f2
-        with open(toread, 'rt') as f:
+        with self.reader_obj(toread) as f:
             fb1 = file_blocks(f)
             totalread = sum(bl.count("\n") for bl in fb1)
         return totalread//4
@@ -512,26 +505,4 @@ def lev_distance_search(query,table):
 
 if __name__ == '__main__':
     """test data processing module"""
-
-    file1 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R1_001.fastq"
-    file2 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R2_001.fastq"
-
-
-    forward ,reverse = [],[]
-    with open(file1, "r") as f, open(file2,'rt') as r:
-        for line in islice(f,1,None,4):
-            forward.append(line.strip())
-        for line in islice(r,1,None,4):
-            reverse.append(line.strip())
-
-    len(forward)
-    len(reverse)
-    forward[0]
-    reverse[0]
-    count=0
-    for i,j in zip(forward,reverse):
-         if i!=reverse_comp(j):
-                count+=1
-
-    print(count)
-    all([i in 'abc' for i in 'abcd'])
+    

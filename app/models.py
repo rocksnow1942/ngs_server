@@ -978,11 +978,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         determine file type is fastq or gz, then return n lines read into file.
         """ 
         lines=[]
-        if filename.endswith('.fastq'):
-            f = open(filename, 'rt')
-        elif filename.endswith('.gz'):
-            f = gzip.open(filename,'rt')
-        else: f = None 
+        f = self.reader_obj(filename)
         if f:
             with f:
                 for line in islice(f, 1, n, 4):
