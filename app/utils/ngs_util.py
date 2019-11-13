@@ -37,10 +37,11 @@ def validate_sequence(sequence):
 
 def reverse_comp(s):
     s=s.upper()
-    comp=''.join(map(lambda x:dict(zip('ATCGN','TAGCN'))[x]  ,s))
-    return comp[::-1]
+    d = {'A':'T','T':'A','C':'G','G':'C','N':'N'} #dict(zip('ATCGN','TAGCN'))
+    comp = [d[i] for i in s[::-1]]
+    return ''.join(comp)
 
-def file_blocks(files, size=2**24): # read 16 MB data at 1 time. 
+def file_blocks(files, size=2**24): # read 16 MB data at 1 time.
     while True:
         b = files.read(size)
         if not b: break
@@ -129,4 +130,3 @@ def lev_distance(s1, s2, threshold=1000):
             return currentmin
         horizontal = newhorizontal
     return horizontal[-1]
-

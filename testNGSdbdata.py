@@ -224,7 +224,7 @@ def time_func(func):
     wrapped.__signature__ = sig
     wrapped.__name__ = func.__name__
     return wrapped
-    
+
 
 
 def break_fastq_file(file,lines,tosave):
@@ -245,10 +245,42 @@ def reverse_comp(s):
     comp=''.join(map(lambda x:dict(zip('ATCGN','TAGCN'))[x]  ,s))
     return comp[::-1]
 
+def rc(s):
+    s=s.upper().strip()
+    d = {'A':'T','T':'A','C':'G','G':'C','N':'N'} #dict(zip('ATCGN','TAGCN'))
+    comp = [d[i] for i in s[::-1]]
+    return ''.join(comp)
 
-
-seq="""
-TTAATGATTATCANTATTCTTCTTCGAGCCCTGAATTCGTCGCCCTCGTCCCATCTCGCGACCTTTTTTCGCGGTATATGAGTGGTCGCCACAGAGAAGAAACAAGACCAGCGATAGATTAAACTCAATACTCGTTGACGTCTAAAGATCGG
-"""
+seq="""TTAATGATTATCANTATTCTTCTTCGAGCCCTGAATTCGTCGCCCTCGTCCCATCTCGCGACCTTTTTTCGCGGTATATGAGTGGTCGCCACAGAGAAGAAACAAGACCAGCGATAGATTAAACTCAATACTCGTTGACGTCTAAAGATCGG"""
 
 reverse_comp(seq)
+seq2="TTAATGATTATCANTATTCTTCTTCGAGCCCTGAATTCGTCGCCCTCGTCCCATCTCGCGACCTT"
+len(seq2)
+def ft(func,para,number=1):
+    import timeit
+    def wrapper(func,para):
+        def wrapped():
+            if isinstance(para,dict):
+                return func(**para)
+            if isinstance(para,tuple):
+                return func(*para)
+            else:
+                return func(para)
+        return wrapped
+    t = timeit.timeit(wrapper(func,para),number=number)
+    print('Run {} {} times: {:.5f}s'.format(func.__name__,number,t))
+    return t
+len(seq)
+ft(rc,seq,number=10000)
+Run rc 10000 times: 0.16813s
+0.16813064700181712
+
+Run rc 10000 times: 0.10419s
+0.1041855929979647
+
+
+Run reverse_comp 10000 times: 1.32235s 152nt
+1.3223510249990795
+
+Run reverse_comp 10000 times: 0.51378s 65nt
+0.5137808190011128
