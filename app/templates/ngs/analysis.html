@@ -16,6 +16,8 @@
         </li>
         <li role="presentation" {% if active_tab=='download'%}class="active"{% endif %}><a href="#download" aria-controls="download" role="tab" data-toggle="tab">DOWNLOAD</a>
         </li>
+        <li role="presentation" {% if active_tab=='advanced'%}class="active" {% endif %}><a href="#advanced" aria-controls="advanced" role="tab" data-toggle="tab">ADVANCED</a>
+        </li>
     </ul>
 
 
@@ -242,6 +244,86 @@
             {%else%}
             <h2 align='center'>Data File Not Available. Load NGS data first.</h2>
             {% endif %}
+        </div>
+
+        <!-- advanced tab -->
+        <div role="tabpanel" class="tab-pane fade" id="advanced">
+            <style>
+                .scrollcontainer {
+                    margin-top: 5px;
+                    position: relative;
+                    height: 900px;
+                    overflow-y: scroll;
+                    }
+                ul.nav-pills {
+                    top: 20px;
+                    position: relative ;
+                }
+            
+                div.col-sm-9 .items {
+                    min-height: 200px;
+                    font-size: 12px;
+                    padding: 0px 15px 15px 15px;
+                }
+            
+                .section1 {
+                    color: #fff;
+                    background-color: #1E88E5;
+                }
+            
+                .section2 {
+                    color: #fff;
+                    background-color: #673ab7;
+                }
+            
+                .section3 {
+                    color: #fff;
+                    background-color: #ff9800;
+                }
+            
+                .section4 {
+                    color: #fff;
+                    background-color: #00bcd4;
+                }
+            
+                .section5 {
+                    color: #fff;
+                    background-color: #009688;
+                }
+            </style>
+       
+                <div class="row">
+                    <nav class="col-sm-3 scrollcontainer" id="myScrollspy">
+                        <ul class="nav nav-pills nav-stacked">
+                            <li class="active"><a href="#{{api[0]['name']}}">{{api[0]['name']}}</a></li>
+                            {% for ele in api[1:] %}
+                                <li ><a href="#{{ele['name']}}">{{ele['name']}}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </nav>
+                    <div class="col-sm-9 scrollcontainer" data-spy="scroll" data-target="#myScrollspy" data-offset="100">
+                        {% for item in api %}
+                        <div id="{{item['name']}}" class="items section{{loop.index%5+1}}">
+                                <h3>{{item['name']}}</h3>
+                                <h5>Doc:</h5>
+                                <p style='white-space:pre-wrap'>{{item['doc']}}</p>
+                                <p style='white-space:pre-wrap'><b>Call Signature:</b> {{item['signature']}}</p>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="the saved inputs from last execution">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default" type="button">Run</button>
+                                    </span>
+                                </div>
+                        </div> 
+                        <hr>
+                        {% endfor %}      
+                        <div style="height: 800px;">
+                            <p></p>
+                        </div>                  
+                    </div>
+                </div>
+       
+
         </div>
         
     </div>

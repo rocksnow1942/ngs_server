@@ -451,6 +451,8 @@ def add_analysis():
         flash(f'Analysis <{analysis}> added.','success')
     return redirect(url_for('ngs.analysis',id=analysis.id))
 
+from app.utils.analysis._datareader import datareader_API
+
 @bp.route('/analysis', methods=['POST','GET'])
 @login_required
 def analysis():
@@ -463,7 +465,7 @@ def analysis():
         active_tab='cluster'
     else:
         active_tab = 'load'
-    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab,table='analysis')
+    return render_template('ngs/analysis.html', api = datareader_API, analysis=analysis,active_tab=active_tab,table='analysis')
 
 
 @bp.route('/analysis/cluster', methods=['POST', 'GET'])

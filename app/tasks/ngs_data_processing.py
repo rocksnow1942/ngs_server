@@ -50,24 +50,7 @@ _set_task_progress = ProgressHandler()
 def illumina_nt_score(n):
     return """!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI""".index(n)
 
-
-def time_func(func):
-    import time
-    from inspect import signature
-    sig=signature(func)
-    def wrapped(*args,**kwargs):
-
-        t1 = time.time()
-        result = func(*args,**kwargs)
-        t2 = time.time()
-
-        print('Run {}: {:.3f}s'.format(func.__name__,(t2-t1)*1000000))
-        return result
-    wrapped.__signature__ = sig
-    wrapped.__name__ = func.__name__
-    return wrapped
     
-
 
 class NGS_Sample_Process:
     """
@@ -145,15 +128,18 @@ class NGS_Sample_Process:
             self.length_filter += 1
             return f
         else:
+            # print(f'F: {f}')
+            # print(f'R: {r}')
             return False
     
     def _rev_comp_filter(self,f,r):
-        
         if f == r:
             self.revcomp+=1
-            
             return f 
-        else: return False 
+        else:
+            # print(f'F: {f}')
+            # print(f'R: {r}')
+            return False 
     
     def _q_score_filter(self, forward, forward_score, reverse, reverse_score):
         best_score_nts = [(f, fs) if fs >= rs else (r, rs) for f, fs, r, rs in zip_longest(
@@ -163,8 +149,7 @@ class NGS_Sample_Process:
             return "".join(i[0] for i in best_score_nts)
         else:
             return False
-            
-    
+
     def result_filter(self, fmatch,rmatch):
         forward, forward_score = fmatch or ['',[0]]
         reverse, reverse_score = rmatch or ['',[0]]
@@ -179,27 +164,7 @@ class NGS_Sample_Process:
                 return forward or reverse
         else:
             return None
-
-        # if len(forward)!=len(reverse):
-        #     minf,minr = min(forward_score),min(reverse_score)           
-        #     matchresult, matchscore = (forward, minf )if minf>=minr else (reverse, minr)
-        #     if matchscore >= self.score_threshold:
-        #         self.score_filter += 1
-        #         return matchresult
-        #     else:
-        #         return None
-        # else:
-        #     self.length_filter += 1
-        #     assb = [(f,fs) if fs >= rs else (r,rs) for f, fs, r, rs in zip(
-        #         forward, forward_score, reverse, reverse_score)]
-        #     if forward == reverse:
-        #         self.revcomp += 1
-        #     if min([i[1] for i in assb]) >= self.score_threshold:
-        #         self.score_filter += 1
-        #         return "".join(i[0] for i in assb)
-        #     else:
-        #         return None
-        
+    
     def process_seq(self, fw_fs_rev_rs):
         nomatch = True
         fw, fs,rev,rs = fw_fs_rev_rs
@@ -207,19 +172,17 @@ class NGS_Sample_Process:
             fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
             rmatch =  rev and self.match_pattern(rev,primers_rc,patterns,rs)
             if rmatch:
-                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) #
+                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) # if reverse match found, make the found part reverse complement. 
             if fmatch or rmatch:
                 nomatch = False
                 self.success+=1
                 matchresult = self.result_filter(fmatch,rmatch)
-            
                 if matchresult:  
                     self.collection[(rdid,matchresult)]+=1
                 break
         if nomatch:    
             self.log_unmatch(fw or rev)
-            
-    # 
+
     # def process_seq(self, fw_fs_rev_rs):
     #     nomatch = True
     #     fw, fs,rev,rs = fw_fs_rev_rs
@@ -235,12 +198,10 @@ class NGS_Sample_Process:
     #             break
     #     if nomatch:    
     #         self.log_unmatch(fw or rev)
-            
-            
-              
+               
     def match_pattern_slow(self,seq,primers,patterns,score):
         """
-        using re match.
+        using re match to search. 
         """
         match = False
         if all([i in seq for i in primers]):
