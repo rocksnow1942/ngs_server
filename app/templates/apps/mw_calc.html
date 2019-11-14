@@ -29,7 +29,7 @@
 
 $(document).on("change","#sequence",function(event) {
     let seq = $(event.target).val().split(' ').join('').split('\n').join('').toUpperCase();
-    let nt_weight = {'A':331.19748,'T': 308.15758,'C':307.17278,'G':347.19628,'Z':179.151422,'B':374.47082}; // m.w. of 2'f NMP-H2O
+    let nt_weight = {'A':331.19748,'T': 308.15758,'C':307.17278,'G':347.19628,'Z':179.151422,'B':405.444582}; // m.w. of 2'f NMP-H2O
     let mw = 0;
     Object.keys(nt_weight).forEach(function(key){
         let reg = new RegExp(key,'g');

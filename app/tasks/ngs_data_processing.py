@@ -207,7 +207,7 @@ class NGS_Sample_Process:
             fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
             rmatch =  rev and self.match_pattern(rev,primers_rc,patterns,rs)
             if rmatch:
-                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1])
+                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) #
             if fmatch or rmatch:
                 nomatch = False
                 self.success+=1
@@ -267,7 +267,6 @@ class NGS_Sample_Process:
         if match:
             # print(seq)
             # print("*"*(findex)+(fpi+fp[:-1])+"|"+match+"|"+rp[1:]+rpi)
-            # 
             return match , [illumina_nt_score(i) for i in score[findex+ len(fpi+fp):rindex]]
         else:
             return None
