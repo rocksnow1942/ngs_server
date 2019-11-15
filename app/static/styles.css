@@ -111,7 +111,7 @@ img.image-link:hover {
   border-radius: 8px;
 }
 .box.small {
-  height: 223px;
+  height: auto;
   
 }
 .box.medium {

@@ -183,7 +183,7 @@ function set_thumbnail(size) {
             $('.slide_input.outer').css('display', 'none');
             $('.thumbnail_title_text').css('display', 'block');
             $('.slide_container').removeClass("col-xs-3 col-xs-6 col-xs-12").addClass(' col-xs-2 ');
-            $('.box').removeClass('medium large').addClass('small');
+            // $('.box').removeClass('medium large').addClass('small');
             $('.thumbnail_small').addClass('active');
             $('.slide_title.outer').removeClass('medium large').addClass('small');
             $('.zoom-hidden-text').css('display', "");
@@ -195,7 +195,7 @@ function set_thumbnail(size) {
            
             $('.slide_input.outer').css('display', 'block');
             $('.slide_container').removeClass('col-xs-6 col-xs-2 col-xs-12').addClass('col-xs-3 ');
-            $('.box').removeClass('small large').addClass('medium');
+            // $('.box').removeClass('small large').addClass('medium');
             $('.slide_title.outer').removeClass('small large').addClass('medium');
             $('.thumbnail_medium').addClass('active');
             $('.zoom-hidden-text').css('display', 'block');
@@ -208,7 +208,7 @@ function set_thumbnail(size) {
             $('.thumbnail_title_text').css('display', 'block');
             $('.slide_input.outer').css('display', 'block');
             $('.box').removeClass("small medium").addClass('large');
-            $('.slide_title.outer').removeClass("small medium").addClass('large');
+            // $('.slide_title.outer').removeClass("small medium").addClass('large');
             $('.slide_container').removeClass("col-xs-3 col-xs-2 col-xs-12").addClass('col-xs-6');
             $('.thumbnail_large').addClass('active');
             $('.zoom-hidden-text').css('display', 'block');
@@ -218,7 +218,7 @@ function set_thumbnail(size) {
             $('.slide_image_container').addClass('col-xs-3');
             $('.slide_input.outer').css('display', 'none');
             $('.slide_container').removeClass("col-xs-3 col-xs-2 col-xs-6").addClass('col-xs-12');
-            $('.box').removeClass("small medium large");
+            // $('.box').removeClass("small medium large");
             $('.thumbnail_title_text').css('display','none');
             $('.thumbnail_list_text').css('display', 'block');
             $('.thumbnail_list').addClass('active');
@@ -226,13 +226,24 @@ function set_thumbnail(size) {
             break;
         
     };
-    /*for (let i = 0; i < divs.length; i += grid_col) {
-     divs.slice(i, i + grid_col).wrapAll("<div class='row slide_row'> </div>  ")
-   }*/
+    set_box_height(_thumbnail_size)
+    
 };
 
 // add sortable to slides. 
 $(function () {
     $("#sortable").sortable({ handle: '.slide_title' });
     $("#sortable").disableSelection();
+});
+
+function set_box_height (size) {
+    let boxwidth = $(".box").width();
+    let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
+    $(".box").height(height);
+}
+
+$(document).ready(function () {
+    $(window).resize(function () {
+     set_box_height(_thumbnail_size);   
+    });
 });
