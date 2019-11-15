@@ -176,7 +176,7 @@ function set_thumbnail(size) {
    /* $('.thumbnail_medium').removeClass('active');
     $('.thumbnail_large').removeClass('active');
     $('.thumbnail_large').removeClass('active');*/
-    $('.slide_image_container').removeClass('col-xs-3');
+    $('.slide_image_container').removeClass('col-xs-2');
     switch (size) {
         case "small":
             //  $('.slide_image_container').addClass('slidezoom');       
@@ -215,7 +215,7 @@ function set_thumbnail(size) {
             $('.thumbnail_list_text').css('display', 'none');
             break;
         case 'list':
-            $('.slide_image_container').addClass('col-xs-3');
+            $('.slide_image_container').addClass('col-xs-2');
             $('.slide_input.outer').css('display', 'none');
             $('.slide_container').removeClass("col-xs-3 col-xs-2 col-xs-6").addClass('col-xs-12');
             // $('.box').removeClass("small medium large");
@@ -238,7 +238,9 @@ $(function () {
 
 function set_box_height (size) {
     let boxwidth = $(".box").width();
-    let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
+    let extra = { 'list': 0, 'small': 89, 'medium': 137, 'large': 137 }[size];
+    // let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
+    let height = extra + boxwidth*0.75;
     $(".box").height(height);
 }
 
