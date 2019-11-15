@@ -164,7 +164,7 @@ function _set_thumbnail(event, size,table) {
     if (size=='list' && ['project','ppt',].includes(table)) {
         $(event.target).blur();
     } else {
-        set_thumbnail(size)
+        set_thumbnail(size);
         $(event.target).blur();
     }
 };
@@ -238,13 +238,18 @@ $(function () {
 
 function set_box_height (size) {
     let boxwidth = $(".box").width();
-    let extra = { 'list': 0, 'small': 89, 'medium': 137, 'large': 137 }[size];
+    let para = {'list':0, 'small':89, 'medium':137, 'large':137};
+    let extra = para[size];
+    
     // let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
     let height = extra + boxwidth*0.75;
+    
     if (size=='list') {
         $(".box").css('min-height', $('.slide_image_container').height());
         $(".box").height('auto');
     } else {
+        console.log(height);
+        console.log(size);
         $(".box").height(height);
     }
 }
