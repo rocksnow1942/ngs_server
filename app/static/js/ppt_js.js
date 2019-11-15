@@ -241,6 +241,9 @@ function set_box_height (size) {
     let extra = { 'list': 0, 'small': 89, 'medium': 137, 'large': 137 }[size];
     // let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
     let height = extra + boxwidth*0.75;
+    if (size=='list') {
+        $(".box").css('min-height', boxwidth / 6);
+    };
     $(".box").height(height);
 }
 
