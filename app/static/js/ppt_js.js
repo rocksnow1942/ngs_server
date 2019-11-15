@@ -243,8 +243,10 @@ function set_box_height (size) {
     let height = extra + boxwidth*0.75;
     if (size=='list') {
         $(".box").css('min-height', boxwidth / 6);
-    };
-    $(".box").height(height);
+        $(".box").height('auto');
+    } else {
+        $(".box").height(height);
+    }
 }
 
 $(document).ready(function () {
