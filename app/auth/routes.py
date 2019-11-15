@@ -1,7 +1,7 @@
 from app import db
 from flask import render_template, flash, redirect,url_for,request
 from app.auth.forms import LoginForm, RegistrationForm, ResetPasswordRequestForm, ResetPassWordForm, ProfileForm, InviteNewUser
-from flask_login import current_user, login_user,logout_user
+from flask_login import current_user, login_user, logout_user, login_required
 from app.models import User
 from werkzeug.urls import url_parse
 from app.auth.email import send_password_reset_email, send_invitation_email
@@ -27,6 +27,7 @@ def login():
 
 
 @bp.route('/profile', methods=['GET', 'POST'])
+@login_required
 def profile():
     form=ProfileForm(old_obj=current_user,obj=current_user)
     
@@ -78,6 +79,7 @@ def reset_password_request():
 
 
 @bp.route('/create_newuser', methods=['GET', 'POST'])
+@login_required
 def create_newuser():
     if not current_user.isadmin:
         return redirect(url_for('main.index'))
