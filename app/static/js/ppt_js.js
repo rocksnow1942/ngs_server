@@ -185,7 +185,7 @@ function set_thumbnail(size) {
             $('.slide_container').removeClass("col-xs-3 col-xs-6 col-xs-12").addClass(' col-xs-2 ');
             // $('.box').removeClass('medium large').addClass('small');
             $('.thumbnail_small').addClass('active');
-            $('.slide_title.outer').removeClass('medium large').addClass('small');
+            // $('.slide_title.outer').removeClass('medium large').addClass('small');
             $('.zoom-hidden-text').css('display', "");
             $('.thumbnail_list_text').css('display', 'none');
 
@@ -196,7 +196,7 @@ function set_thumbnail(size) {
             $('.slide_input.outer').css('display', 'block');
             $('.slide_container').removeClass('col-xs-6 col-xs-2 col-xs-12').addClass('col-xs-3 ');
             // $('.box').removeClass('small large').addClass('medium');
-            $('.slide_title.outer').removeClass('small large').addClass('medium');
+            // $('.slide_title.outer').removeClass('small large').addClass('medium');
             $('.thumbnail_medium').addClass('active');
             $('.zoom-hidden-text').css('display', 'block');
             $('.thumbnail_list_text').css('display', 'none');
@@ -242,14 +242,12 @@ function set_box_height (size) {
     let extra = para[size];
     
     // let height = { 'list': 'auto', 'small': boxwidth * 1, 'medium': boxwidth * 1, 'large': boxwidth * 1}[size];
-    let height = extra + boxwidth*0.75;
+    let height = Math.ceil(extra + boxwidth*0.75);
     
     if (size=='list') {
         $(".box").css('min-height', $('.slide_image_container').height());
         $(".box").height('auto');
     } else {
-        console.log(height);
-        console.log(size);
         $(".box").height(height);
     }
 }
