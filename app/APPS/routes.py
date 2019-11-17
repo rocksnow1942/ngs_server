@@ -96,6 +96,7 @@ def animal_data():
         if os.path.isdir(os.path.join(data_path, i)) and (i not in experimentlist):
             try:
                 Experiment(os.path.join(data_path, i))
+                experimentlist.append(i)
             except Exception as e:
                 flash('Experiment {} cannot be loaded. Reason:{}'.format(i,e), 'warning')
     return render_template('apps/animal/animal_data.html', experiment_list=experimentlist)
