@@ -25,14 +25,32 @@
 </style>
 
 <div>
-    <h2 align='center'>Animal Data Viewer 
+    <h2 align='center'>Animal Data Viewer &nbsp; &nbsp;&nbsp;
     <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">2</a> 
     <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">3</a>
     <a class='btn btn-primary columns_selector' onclick="javascript:reset_columns(event)">4</a>
     <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">6</a>
-    <a class='btn btn-default' onclick="javascript:toggle_image_scroll(event)" ><span class="glyphicon glyphicon-film" aria-hidden="true"></span></a>
+    <a class='btn btn-default' data-toggle='animal_help_tooltip' data-placement="bottom" title="Toggle enable/disable figure scroll."
+     onclick="javascript:toggle_image_scroll(event)" ><span class="glyphicon glyphicon-film" aria-hidden="true"></span></a>
+    <div data-toggle='animal_help_tooltip' data-placement="right" style="padding:6px;display: inline-block; font-size:20px; vertical-align: top;cursor: help;"
+        title="Keyboard shortcuts: w/s/t/b - Move figure up/down/top/bottom; 
+        &uarr;/&darr;: Move figure selection up/down; 
+        r - Reset figure order.
+        "><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></div>
     </h2>
 </div>
+<!-- 
+display: inline-block;
+margin-bottom: 0; // For input.btn
+font-weight: @btn-font-weight;
+text-align: center;
+vertical-align: middle;
+touch-action: manipulation;
+cursor: pointer;
+background-image: none; // Reset unusual Firefox-on-Android default style; see
+https://github.com/necolas/normalize.css/issues/214
+border: 1px solid transparent;
+white-space: nowrap; -->
 
 <div class=' sortable'> 
    
@@ -48,10 +66,19 @@
     {% endfor %}
 </datalist>
 
+{% endblock %}
 
+
+{% block scripts %}
+{{super()}}
 <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
+<script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
 <script>
-    function toggle_image_scroll (event) {
+
+    $(function(){ $("[data-toggle='animal_help_tooltip']").tooltip()})
+
+
+    function toggle_image_scroll(event) {
         function scroll(e) {
             var scrollTo = null;
             if (e.type == 'mousewheel') {
@@ -68,13 +95,13 @@
         };
         let noscroll = $(event.target).closest('.btn').hasClass('btn-default');
         if (noscroll) {
-            $('.figure_container').css({ 'overflow-y': 'scroll','max-height': $(window).height()});
-            $(event.target).closest('.btn').attr('class','btn btn-danger');
+            $('.figure_container').css({ 'overflow-y': 'scroll', 'max-height': $(window).height() });
+            $(event.target).closest('.btn').attr('class', 'btn btn-danger');
             $('.figure_container').bind('mousewheel DOMMouseScroll', scroll)
         } else {
             $('.figure_container').css({ 'overflow-y': '', 'max-height': '' });
             $(event.target).closest('.btn').attr('class', 'btn btn-default')
-            $('.figure_container').unbind('mousewheel DOMMouseScroll',)
+            $('.figure_container').unbind('mousewheel DOMMouseScroll')
         }
     }
 
@@ -84,25 +111,25 @@
     });
 
     // reset columns
-    function reset_columns (event)  {
-       let col = $(event.target).text();
-       $('.columns_selector').attr('class','btn btn-default columns_selector');
-       $(event.target).attr('class','btn btn-primary columns_selector');
+    function reset_columns(event) {
+        let col = $(event.target).text();
+        $('.columns_selector').attr('class', 'btn btn-default columns_selector');
+        $(event.target).attr('class', 'btn btn-primary columns_selector');
 
-       let colclass = `col-xs-${12/col}` + ' columns';
-       for (let i=6; i>col; i--) {
+        let colclass = `col-xs-${12 / col}` + ' columns';
+        for (let i = 6; i > col; i--) {
             $(`.columns:nth-of-type(${i})`).css('display', 'none');
-       };
-       for (let i=1; i<=col; i++) {
-           $(`.columns:nth-of-type(${i})`).attr('class',colclass);
-           $(`.columns:nth-of-type(${i})`).css('display','block');
-       }
+        };
+        for (let i = 1; i <= col; i++) {
+            $(`.columns:nth-of-type(${i})`).attr('class', colclass);
+            $(`.columns:nth-of-type(${i})`).css('display', 'block');
+        }
     }
 
     // select data form changes
-    $(document).on('change', '.animal_data_form', function(event) {
+    $(document).on('change', '.animal_data_form', function (event) {
         let target = $(event.target).attr('name');
-        if (target=='note') {return };
+        if (target == 'note') { return };
         let form = $(event.target).closest('.form');
         let data = form.serializeArray();
         let col = form.attr('id');
@@ -111,30 +138,30 @@
             type: 'POST',
             data: JSON.stringify(data),
             contentType: "application/json",
-            success : function (result) {
+            success: function (result) {
                 if (result.form) {
                     form.html(result.form);
-                    $(`#panel-title-${col[col.length-1]}`).text(result.title);
+                    $(`#panel-title-${col[col.length - 1]}`).text(result.title);
                     $("#figure-" + col[col.length - 1]).html("")
-                }             
+                }
             }
         })
-    }) 
+    })
 
 
     // fetch and display images 
-    function display_figures(event,col) {
-       // $(event.target).blur();
-        let data = $('#form-'+col).serializeArray();
-         $.ajax({
+    function display_figures(event, col) {
+        // $(event.target).blur();
+        let data = $('#form-' + col).serializeArray();
+        $.ajax({
             url: "{{url_for('apps.animal_data_figure')}}",
             type: 'POST',
             data: JSON.stringify(data),
             contentType: "application/json",
             success: function (result) {
                 if (result.html) {
-                    $("#figure-"+col).html(result.html);
-                    $('#form-'+col).find('input[name="note"]').val(result.note);
+                    $("#figure-" + col).html(result.html);
+                    $('#form-' + col).find('input[name="note"]').val(result.note);
                     $(function () {
                         $(".sortable").sortable();
                         $(".sortable").disableSelection();
@@ -145,15 +172,15 @@
     }
 
     // save experiment data 
-    function save_experiment(event,col){
-      //  $(event.target).blur();
+    function save_experiment(event, col) {
+        //  $(event.target).blur();
         let data = $('#form-' + col).serializeArray();
         let order = [];
-        $(`#figure-${col}`).children().each(function () {order.push($(this).attr('name'))});
+        $(`#figure-${col}`).children().each(function () { order.push($(this).attr('name')) });
         $.ajax({
             url: "{{url_for('apps.save_animal_data')}}",
             type: 'POST',
-            data: JSON.stringify({data:data,order:order}),
+            data: JSON.stringify({ data: data, order: order }),
             contentType: "application/json",
             success: function (result) {
                 display_flash_message(result.html, 1000)
@@ -166,19 +193,20 @@
         $('.figure_box.active').removeClass('active');
         if (target) {
             return
-        } else { $(event.target).parent().addClass('active')} 
-    } 
+        } else { $(event.target).parent().addClass('active') }
+    }
 
     // keyboard to move figures 
-    $(document).ready(function() {
-        $(document).keydown(function(event){
-            if (!$('.figure_box.active').length) {return}
+    $(document).ready(function () {
+        $(document).keydown(function (event) {
+            if (!$('.figure_box.active').length) { return }
             else {
                 let current = $('.figure_box.active');
-                console.log(event.which)
-                if (event.target.tagName=='BODY' && [83,38,87,40,84,66,82].includes(event.which)){
+
+                if (event.target.tagName == 'BODY' && [83, 38, 87, 40, 84, 66, 82].includes(event.which)) {
                     event.preventDefault();
-                    
+                    let windowheight = $(window).height();
+                    let oldoffset = $(".figure_box.active").offset().top - $(window).scrollTop();
                     switch (event.which) {
                         case 38: // up
                             if (current.prev().length) {
@@ -212,21 +240,30 @@
                             }))
                             break
                     }
-                    // scroll to current active 
-                    let windowheight = $(window).height();
-                    if ($(".figure_box.active").offset().top - $(window).scrollTop() > windowheight - 45) {
-                        $(window).scrollTop($(".figure_box.active").offset().top - 15);
-                    }
-                    else if ($(".figure_box.active").offset().top - $(window).scrollTop() < 15) {
-                        $(window).scrollTop($(".figure_box.active").offset().top - windowheight + 50)
+                    // scroll to current active if scrolling up down 
+
+                    if ([38, 40, 82].includes(event.which)) {
+                        if ($(".figure_box.active").offset().top - $(window).scrollTop() > windowheight - 45) {
+                            $(window).scrollTop($(".figure_box.active").offset().top - 15);
+                        }
+                        else if ($(".figure_box.active").offset().top - $(window).scrollTop() < 15) {
+                            $(window).scrollTop($(".figure_box.active").offset().top - windowheight + 50)
+                        }
+                    } else if ([87, 83].includes(event.which)) {
+                        $(window).scrollTop($(".figure_box.active").offset().top - oldoffset)
                     }
                 }
             }
         })
     })
-    
+
 </script>
 
 
-
 {% endblock %}
+
+
+
+
+
+

@@ -20,12 +20,13 @@ def rename_monkey(path, pattern='1934(?P<animal>8[0-9][0-9])'):
     rename the FP/OCT subfolders with proper name.
     rename folder under FP/OCT with regex pattern <animal>
     """
-    p = re.compile(r'1934(?P<animal>8[0-9][0-9])')
+    p = re.compile(pattern)
     for root, folder, file in os.walk(path):
         if root.endswith('FP') or root.endswith('OCT'):
             for f in folder:
-                new = p.search(f).groupdict()['animal']
-                os.rename(os.path.join(root, f), os.path.join(root, new))
+                new = p.search(f)
+                if new:
+                    os.rename(os.path.join(root, f), os.path.join(root, new.groupdict()['animal']))
 
 class Experiment(object):
     """

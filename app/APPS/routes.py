@@ -90,7 +90,14 @@ def mw_calculator():
 @privilege_required('manager')
 def animal_data():
     data_path = current_app.config['ANIMAL_DATA_PATH']
-    experimentlist = [i.replace('.json','') for i in os.listdir(data_path) if i.endswith('.json')]
+    filelist = os.listdir(data_path)
+    experimentlist = [i.replace('.json','') for i in filelist if i.endswith('.json')]
+    for i in filelist:
+        if os.path.isdir(os.path.join(data_path, i)) and (i not in experimentlist):
+            try:
+                Experiment(os.path.join(data_path, i))
+            except Exception as e:
+                flash('Experiment {} cannot be loaded. Reason:{}'.format(i,e), 'warning')
     return render_template('apps/animal/animal_data.html', experiment_list=experimentlist)
 
 
