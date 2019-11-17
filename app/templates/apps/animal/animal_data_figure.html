@@ -1,0 +1,7 @@
+    {% for fig in figure_list %}
+    <div class='figure_box' name="{{loop.index-1}}" onclick='javascript:click_active(event)' >
+        <img src="{{url_for('apps.get_animal_data_figure',filename=fig,)}}" class="img-responsive"
+            alt="{{fig}}">
+    </div>
+    {% endfor %}
+    

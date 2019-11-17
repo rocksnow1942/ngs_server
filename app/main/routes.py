@@ -52,10 +52,11 @@ def before_request():
         db.session.commit()
 
 def privilege_required(privilege='user'):
+    allowed_roles = {"user":["user",'manager','admin'],"manager":['admin','manager'],'admin':["admin"]}[privilege]
     def decorator(func):
         sig = signature(func)
         def wrapper(*args,**kwargs):
-            if current_user.privilege == privilege:
+            if current_user.privilege in allowed_roles:
                 return func(*args,**kwargs)
             else:
                 return render_template('main/privilege.html')

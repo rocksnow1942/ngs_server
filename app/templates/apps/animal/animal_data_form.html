@@ -1,0 +1,47 @@
+<form class='form animal_data_form' id='form-{{col_number}}'>
+    <div class="input-group">
+        <span class="input-group-addon">Exp</span>
+        <input type="text" class="form-control" name='exp' placeholder="Select an experiment" list='experiment_list' value="{{exp}}">
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-addon">Animal</span>
+        <select type="text" class="form-control" name='animal'  >
+            {% for op in exp_animal %}
+                   <option value="{{op}}" {% if op==animal %}selected{% endif %}>{{op}}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-addon">Eye</span>
+        <select type="text" class="form-control" name='eye'  >
+            {% for op in exp_eye %}
+                <option value="{{op}}" {% if op==eye %}selected{% endif %}>{{op}}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-addon">Measure</span>
+        <select type="text" class="form-control" name='measure'  >
+            {% for op in exp_measure %}
+            <option value="{{op}}" {% if op==measure %}selected{% endif %}>{{op}}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-addon">Day</span>
+        <select type="text" class="form-control" name='day' >
+            {% for op in exp_day %}
+                <option value="{{op}}" {% if op==day %}selected{% endif %}>{{op}}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="input-group">
+        <span class="input-group-addon">Note</span>
+        <input type="text" class="form-control" name='note' value = '{{exp_note}}'>
+    </div>
+</form>
