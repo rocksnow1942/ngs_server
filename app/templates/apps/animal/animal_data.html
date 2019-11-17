@@ -35,7 +35,7 @@
     <div data-toggle='animal_help_tooltip' data-placement="right" style="padding:6px;display: inline-block; font-size:20px; vertical-align: top;cursor: help;"
         title="Keyboard shortcuts: w/s/t/b - Move figure up/down/top/bottom; 
         &uarr;/&darr;: Move figure selection up/down; 
-        r - Reset figure order.
+        r - Reset figure order; Space - Toggle zoom.
         "><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></div>
     </h2>
 </div>
@@ -66,6 +66,14 @@ white-space: nowrap; -->
     {% endfor %}
 </datalist>
 
+<div class="modal bs-example-modal-lg" id='animal_figure_modal'>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id='animal_figure_modal_container'>
+            <div> No Images yet</div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 
@@ -75,6 +83,7 @@ white-space: nowrap; -->
 <script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
 <script>
 
+    // add tooltip
     $(function(){ $("[data-toggle='animal_help_tooltip']").tooltip()})
 
 
@@ -162,10 +171,9 @@ white-space: nowrap; -->
                 if (result.html) {
                     $("#figure-" + col).html(result.html);
                     $('#form-' + col).find('input[name="note"]').val(result.note);
-                    $(function () {
-                        $(".sortable").sortable();
-                        $(".sortable").disableSelection();
-                    });
+                    $(".sortable").sortable();
+                    $(".sortable").disableSelection();
+                    figure_box_trigger_event();
                 }
             }
         })
@@ -188,12 +196,20 @@ white-space: nowrap; -->
         })
     }
 
+    // change figure_box to active by click
     function click_active(event) {
         let target = $(event.target).parent().hasClass('active');
         $('.figure_box.active').removeClass('active');
         if (target) {
             return
-        } else { $(event.target).parent().addClass('active') }
+        } else { $(event.target).parent().addClass('active').trigger('becomeActive') }
+    }
+
+    // figure_box class change 
+    function figure_box_trigger_event() {
+        $('.figure_box').on('becomeActive', function () {            
+            $('#animal_figure_modal_container').children().replaceWith($(this).children().clone())
+        })
     }
 
     // keyboard to move figures 
@@ -201,22 +217,41 @@ white-space: nowrap; -->
         $(document).keydown(function (event) {
             if (!$('.figure_box.active').length) { return }
             else {
+               // console.log(event.which) //32 space
                 let current = $('.figure_box.active');
-
-                if (event.target.tagName == 'BODY' && [83, 38, 87, 40, 84, 66, 82].includes(event.which)) {
-                    event.preventDefault();
+                let current_index = current.index();
+                let left = current.parent().parent().prev().find(`.figure_box:nth-of-type(${current_index+1})`);
+                let right = current.parent().parent().next().find(`.figure_box:nth-of-type(${current_index+1})`);
+                if (event.target.tagName == 'BODY' && [32,37,39,83, 38, 87, 40, 84, 66, 82].includes(event.which)) {
+                    event.preventDefault();                    
                     let windowheight = $(window).height();
                     let oldoffset = $(".figure_box.active").offset().top - $(window).scrollTop();
                     switch (event.which) {
+                       case 32: // space
+                           // $('#animal_figure_modal').css('display','block')
+                            $('#animal_figure_modal').modal('toggle')
+                            break
+                        case 37: // left
+                            if (left.length) {
+                                left.addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
+                        case 39: //right
+                            if (right.length && right.parent().parent().css('display')!='none') {
+                                right.addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
                         case 38: // up
                             if (current.prev().length) {
-                                current.prev().addClass('active')
+                                current.prev().addClass('active').trigger('becomeActive')
                                 current.removeClass('active')
                             }
                             break
                         case 40: //down
                             if (current.next().length) {
-                                current.next().addClass('active')
+                                current.next().addClass('active').trigger('becomeActive')
                                 current.removeClass('active')
                             }
                             break
@@ -227,10 +262,14 @@ white-space: nowrap; -->
                             current.insertAfter(current.next())
                             break
                         case 66: //  "b" key
-                            current.parent().append(current)
+                            current.parent().append(current);
+                            current.removeClass('active');
+                            current.parent().find(`.figure_box:nth-of-type(${current_index+1})`).addClass('active').trigger('becomeActive');
                             break
                         case 84: //'t' key 
                             current.parent().prepend(current)
+                            current.removeClass('active');
+                            current.parent().find(`.figure_box:nth-of-type(${current_index+1})`).addClass('active').trigger('becomeActive');
                             break
                         case 82: //'r' key 
                             current.parent().html(current.parent().children().sort(function (a, b) {
@@ -238,6 +277,9 @@ white-space: nowrap; -->
                                 let imb = $(b).children().attr('alt');
                                 return ima < imb ? -1 : 1;
                             }))
+                            current.parent().children().on('becomeActive', function () {
+                                $('#animal_figure_modal_container').children().replaceWith($(this).children().clone())
+                            })
                             break
                     }
                     // scroll to current active if scrolling up down 
