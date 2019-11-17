@@ -21,7 +21,7 @@ function draw_d3_tree (treeData) {
     // var viewerWidth = $(document).width();
     // var viewerHeight = $(document).height();
 
-    var viewerWidth = $("#bs-example-navbar-collapse-1").width();
+    var viewerWidth = $("#tree-outer-container").width();
     var viewerHeight = Math.floor(viewerWidth*0.618);
 
     var tree = d3.layout.tree()
