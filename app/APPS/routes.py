@@ -99,7 +99,7 @@ def animal_data():
                 experimentlist.append(i)
             except Exception as e:
                 flash('Experiment {} cannot be loaded. Reason:{}'.format(i,e), 'warning')
-    return render_template('apps/animal/animal_data.html', experiment_list=experimentlist)
+    return render_template('apps/animal/animal_data.html', title= "Animal Data Viewer",experiment_list=experimentlist)
 
 
 @bp.route('/animal_data_form', methods=['POST'])
