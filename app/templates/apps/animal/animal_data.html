@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {% block base_scripts %}
-
+<script src="{{bootstrap_find_resource('jquery.js', cdn='jquery')}}"></script>
+<script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
+<script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
 {%- endblock base_scripts %}
 
 {% block app_content %}
@@ -82,10 +84,7 @@ white-space: nowrap; -->
 
 
 {% block scripts %}
-<script src="{{bootstrap_find_resource('jquery.js', cdn='jquery')}}"></script>
 {{super()}}
-<script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
-<script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
 <script>
 
     // add tooltip
