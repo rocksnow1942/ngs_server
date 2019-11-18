@@ -86,7 +86,7 @@ def add():
         db.session.commit()
         flash('New {} added.'.format(toadd), 'success')
         # return redirect(url_for('ngs.add', toadd=toadd))
-    return render_template('ngs/add.html', title='NGS - add', table=toadd,form=form,datalist=datalist)
+    return render_template('ngs/add.html', title='NGS - Add', table=toadd,form=form,datalist=datalist)
 
 def load_datalist(toadd):
     if toadd=='round':
