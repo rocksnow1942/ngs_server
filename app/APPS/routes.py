@@ -107,6 +107,7 @@ def animal_data():
 def animal_data_form():
     data_path = current_app.config['ANIMAL_DATA_PATH']
     data = {item['name']: item['value'] for item in request.json}
+    
     try:
         exp = Experiment.load_json(os.path.join(data_path,data['exp']+'.json'))
         render_kw = exp.render_form_kw(data)

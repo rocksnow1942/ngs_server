@@ -1,11 +1,11 @@
 <form class='form animal_data_form' id='form-{{col_number}}'>
     <div class="input-group">
-        <span class="input-group-addon">Exp</span>
+        <span class="input-group-addon">EXP</span>
         <input type="text" class="form-control" name='exp' placeholder="Select an experiment" list='experiment_list' value="{{exp}}">
     </div>
 
     <div class="input-group">
-        <span class="input-group-addon">Animal</span>
+        <span class="input-group-addon">No.</span>
         <select type="text" class="form-control" name='animal'  >
             {% for op in exp_animal %}
                    <option value="{{op}}" {% if op==animal %}selected{% endif %}>{{op}}</option>
@@ -13,15 +13,37 @@
         </select>
     </div>
 
-    <div class="input-group">
+    <!-- <div class="input-group">
         <span class="input-group-addon">Eye</span>
         <select type="text" class="form-control" name='eye'  >
             {% for op in exp_eye %}
                 <option value="{{op}}" {% if op==eye %}selected{% endif %}>{{op}}</option>
             {% endfor %}
         </select>
+    </div> -->
+
+    <div class="input-group">
+        <span class='input-group-addon '>Eye</span>
+        <div class='form-control' style="overflow: hidden; white-space: nowrap;">  
+            {% for op in exp_eye %}
+            <label class="radio-inline " ><input type="radio" name="eye" value="{{op}}" {% if eye==op %}checked{% endif %}>{{op}}</label> 
+            {% endfor %}
+        </div>
+    
     </div>
 
+    <div class="input-group">
+        <span class='input-group-addon '>Test</span>
+        <div class='form-control' style="overflow: hidden; white-space: nowrap;">
+            {% for op in exp_measure %}
+            <label class="radio-inline "><input type="radio" name="measure" value='{{op}}'
+                    {% if op==measure  %}checked{% endif %}>{{op}}</label>
+            {% endfor %}
+            
+        </div>
+    
+    </div>
+<!--     
     <div class="input-group">
         <span class="input-group-addon">Measure</span>
         <select type="text" class="form-control" name='measure'  >
@@ -29,7 +51,7 @@
             <option value="{{op}}" {% if op==measure %}selected{% endif %}>{{op}}</option>
             {% endfor %}
         </select>
-    </div>
+    </div> -->
 
     <div class="input-group">
         <span class="input-group-addon">Day</span>

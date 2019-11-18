@@ -142,7 +142,8 @@ white-space: nowrap; -->
         let form = $(event.target).closest('.form');
         let data = form.serializeArray();
         let col = form.attr('id');
-        $.ajax({
+       
+         $.ajax({
             url: "{{url_for('apps.animal_data_form')}}",
             type: 'POST',
             data: JSON.stringify(data),
@@ -154,7 +155,7 @@ white-space: nowrap; -->
                     $("#figure-" + col[col.length - 1]).html("")
                 }
             }
-        })
+        }) 
     })
 
 
