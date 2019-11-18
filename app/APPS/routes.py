@@ -18,7 +18,7 @@ from app.utils.animal_data.animal import Experiment
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    return render_template('apps/index.html',title='NGS')
+    return render_template('apps/index.html',title='Apps Page')
 
 
 @bp.route('/simuojo', methods=['GET', 'POST'])
@@ -26,7 +26,7 @@ def index():
 def simuojo():
     root = urlparse(request.base_url).hostname
     script = server_session(url='http://'+root+':5006/simuojo',session_id=generate_session_id())
-    return render_template('apps/simuojo.html', script=script,)
+    return render_template('apps/simuojo.html', script=script, title='Simuojo')
 
 @bp.route('/simuojo/static/<path:filename>', methods=['GET'])
 def simjojo_static_image(filename):
@@ -38,7 +38,7 @@ def foldojo():
     root = urlparse(request.base_url).hostname
     script = server_session(url='http://'+root+':5006/foldojo',
                             session_id=generate_session_id())
-    return render_template('apps/simuojo.html', script=script)
+    return render_template('apps/simuojo.html', script=script, title='Foldojo')
 
 
 @bp.route('/foldojo/static/cache/<path:filename>', methods=['GET'])
@@ -51,7 +51,7 @@ def foldojo_images(filename):
 def plojo():
     root = urlparse(request.base_url).hostname
     script = server_session(url='http://'+root+':5006/plojo',session_id=generate_session_id())
-    return render_template('apps/simuojo.html', script=script)
+    return render_template('apps/simuojo.html', script=script,title='Plojo-Curve Fitting')
 
 
 @bp.route('/plojo_nior', methods=['GET', 'POST'])
@@ -60,7 +60,7 @@ def plojo_nior():
     root = urlparse(request.base_url).hostname
     script = server_session(url='http://'+root+':5006/plojo-nior',
                             session_id=generate_session_id())
-    return render_template('apps/simuojo.html', script=script)
+    return render_template('apps/simuojo.html', script=script, title='Plojo-nior HPLC data')
 
 
 @bp.route('/plojo_help', methods=['GET', 'POST'])
@@ -69,19 +69,19 @@ def plojo_help():
     root = urlparse(request.base_url).hostname
     script = server_session(url='http://'+root+':5006/plojo_help',
                             session_id=generate_session_id())
-    return render_template('apps/simuojo.html', script=script)
+    return render_template('apps/simuojo.html', script=script, title='Plojo Help')
 
 
 @bp.route('/plojo_help/static/<path:filename>', methods=['GET'])
 def plojo_help_static_image(filename):
-    return redirect(url_for("static", filename="plojo_help/"+filename))
+    return redirect(url_for("static", filename="plojo_help/"+filename), )
 
 
 @bp.route('/mw_calculator', methods=['GET', 'POST'])
 @login_required
 def mw_calculator():
     
-    return render_template('apps/mw_calc.html', )
+    return render_template('apps/mw_calc.html', title='M.W. calculator')
 
 
 
