@@ -61,9 +61,9 @@ def browse():
         prev_url = url_for('ngs.browse', table=table,
                         page=entries.prev_num,**kwargs) if entries.has_prev else None
         page_url = [ (i, url_for('ngs.browse',table=table,page=i,**kwargs)) for i in range(start,end+1)]
-        return render_template('ngs/browse.html', title='Browse' + (table or ' '), entries=entries.items,
+        return render_template('ngs/browse.html', title='NGS ' + (table.capitalize() or ' '), entries=entries.items,
                             next_url=next_url, prev_url=prev_url, table = table,nextcontent=nextcontent,page_url=page_url,active=page)
-    return render_template('ngs/browse.html', title='Browse', entries=[],table='')
+    return render_template('ngs/browse.html', title='NGS', entries=[],table='')
 
 
 @bp.route('/add', methods=['GET', 'POST'])
@@ -86,7 +86,7 @@ def add():
         db.session.commit()
         flash('New {} added.'.format(toadd), 'success')
         # return redirect(url_for('ngs.add', toadd=toadd))
-    return render_template('ngs/add.html', title='Add', table=toadd,form=form,datalist=datalist)
+    return render_template('ngs/add.html', title='NGS - add', table=toadd,form=form,datalist=datalist)
 
 def load_datalist(toadd):
     if toadd=='round':
@@ -152,7 +152,7 @@ def edit():
         flash('Your Edit to <{}> was saved.'.format(newitem),'success')
         return redirect(edit_redirect_url)
     
-    return render_template('ngs/add.html', title='Edit', table=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
+    return render_template('ngs/add.html', title='NGS - Edit', table=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/delete', methods=['POST','GET'])
@@ -192,7 +192,7 @@ def addsample():
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
     rdlist = [(i.id,i.round_name) for i in Rounds.query.all()]
-    title = 'Edit' if id else 'Add'
+    title = 'NGS - Edit' if id else 'NGS - Add'
     if id:
         if request.method == 'GET':
             form.load_obj(id)
@@ -373,11 +373,11 @@ def details():
         start, end = pagination_gaps(page, totalpages, pagelimit)
         page_url = [(i, url_for('ngs.details', table=table, page=i, id=id))
                     for i in range(start, end+1)]
-        return render_template('ngs/details.html', title=f'{entry.name}-Details', entry=entry, table=table,
+        return render_template('ngs/details.html', title=f'{entry.name.capitalize()}-Details', entry=entry, table=table,
                                query_result=query_result, next_url=next_url, prev_url=prev_url, active=page, page_url=page_url)
 
 
-    return render_template('ngs/details.html', title = f'{entry.name}-Details', entry = entry, table=table)
+    return render_template('ngs/details.html', title = f'{entry.name.capitalize()}-Details', entry = entry, table=table)
                           
 
 
@@ -430,7 +430,7 @@ def add_to_analysis():
 def analysis_cart():
     cart = current_user.analysis_cart
     entries = [Rounds.query.get(i) for i in cart]
-    return render_template('ngs/analysis_cart.html',entries=entries)
+    return render_template('ngs/analysis_cart.html', entries=entries, title='Analysis Cart')
 
 
 @bp.route('/add_analysis', methods=['POST'])
@@ -465,7 +465,7 @@ def analysis():
         active_tab='cluster'
     else:
         active_tab = 'load'
-    return render_template('ngs/analysis.html', api = datareader_API, analysis=analysis,active_tab=active_tab,table='analysis')
+    return render_template('ngs/analysis.html', api=datareader_API, analysis=analysis, active_tab=active_tab, table='analysis', title=f'Analysis-{id}')
 
 
 @bp.route('/analysis/cluster', methods=['POST', 'GET'])
@@ -476,7 +476,7 @@ def analysis_cluster():
     cluster = request.args.get('cluster', 'C1')
     info,clusters=analysis.cluster_display(cluster)
     colordict=dict(zip('ATCG-',['red','green','blue','orange','black']))
-    return render_template('ngs/analysis_cluster.html',cluster=cluster,colordict=colordict, analysis=analysis,clusters=clusters,clusterinfo=info)
+    return render_template('ngs/analysis_cluster.html',cluster=cluster,colordict=colordict, analysis=analysis,clusters=clusters,clusterinfo=info,title=f'Cluster-{cluster}')
 
 
 @bp.route('/analysis_image/<funcname>', methods=['GET'])
@@ -612,7 +612,7 @@ def lev_search(table):
         entry.lev_score = _s
         entry.aligndisplay = entry.align(query)
         entries.append(entry)
-    return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
+    return render_template('ngs/sequence_search_result.html', title='Search-' + table.capitalize(), entries=entries,
                            table=table,)
 
 
