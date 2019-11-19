@@ -210,7 +210,7 @@ def addsample():
         indextuple = []
         for i in form.samples:
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
-        if len(set(indextuple)) != len(indextuple):
+        if len(set(indextuple)) != len(indextuple) and (not form.ignore_duplicate.data):
             flash('Error: FP RP Index have duplicates. Check Primers.','warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         # if form.validate_name():
