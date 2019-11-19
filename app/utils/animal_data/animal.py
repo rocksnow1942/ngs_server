@@ -68,14 +68,27 @@ class Experiment(object):
         new.__dict__ = data
         return new
 
+    def update(self):
+        self.init_data(update=True) 
+        self.save_json()
+
+    def update_entry(self, monkey, eye, measure, day, data):
+        if self.data.get(monkey, None) is None:
+            self.data[monkey] = {}
+        if self.data[monkey].get(eye, None) is None:
+            self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}
+        if self.data[monkey][eye][measure].get(day,None) is None:
+            self.data[monkey][eye][measure][day] = data
+
     def create_entry(self, monkey, eye, measure, day, data):
         if self.data.get(monkey, None) is None:
             self.data[monkey] = {}
         if self.data[monkey].get(eye, None) is None:
             self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}
+        
         self.data[monkey][eye][measure][day] = data
 
-    def init_data(self):
+    def init_data(self,update=False):
         homedir = pathlib.Path(self.path)
         for root, folder, files in os.walk(self.path):
             pa = pathlib.Path(root)
@@ -89,9 +102,13 @@ class Experiment(object):
                 relative = pa.relative_to(homedir)
                 L = [os.path.join(relative, i) for i in L]
                 R = [os.path.join(relative, i) for i in R]
-                self.create_entry(monkey, 'L', 'FP', day, L)
-                self.create_entry(monkey, 'R', 'FP', day, R)
-
+                if update:
+                    self.update_entry(monkey, 'L', 'FP', day, L)
+                    self.update_entry(monkey, 'R', 'FP', day, R)
+                else:
+                    self.create_entry(monkey, 'L', 'FP', day, L)
+                    self.create_entry(monkey, 'R', 'FP', day, R)
+                
             elif pa_parts[-3] == 'OCT':
                 monkey = pa_parts[-2]
                 day = pa_parts[-4]
@@ -101,7 +118,11 @@ class Experiment(object):
                 data = [i for i in files if i.endswith('.jpg')]
                 data.sort()
                 data = [os.path.join(relative, i) for i in data]
-                self.create_entry(monkey, eye, 'OCT', day, data)
+                if update:
+                    self.update_entry(monkey, eye, 'OCT', day, data)
+                else:
+                    self.create_entry(monkey, eye, 'OCT', day, data)
+                    
 
     def list_animal(self):
         return list(self.data.keys())
