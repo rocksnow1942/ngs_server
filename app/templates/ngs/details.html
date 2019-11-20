@@ -186,7 +186,7 @@
                 <a href="{{url_for('ngs.details',table=entry.FP.__tablename__,id=entry.FP.id)}}">{{entry.FP.name}}</a>-{{entry.FP.sequence}}
                 {% else %}None{% endif %}</li>
             <li><b>Reverse Primer:</b> {% if entry.RP %}
-                <a href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.FP.id)}}">{{entry.RP.name}}</a>-{{entry.RP.sequence}}
+                <a href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.RP.id)}}">{{entry.RP.name}}</a>-{{entry.RP.sequence}}
                 {% else %}None{% endif %}</li>
             <li><b>Sequenced In:</b> {% if entry.samples %}
                 {% for sample in entry.samples %}
