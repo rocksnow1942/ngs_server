@@ -18,7 +18,7 @@ from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
-import os
+import os,gzip
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -214,8 +214,6 @@ class User(UserMixin,db.Model,DataStringMixin):
         db.session.commit()
         return t.id
 
-
-
 class BaseDataModel():
     @property
     def id_display(self):
@@ -230,7 +228,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     date = Column(DateTime(), default=datetime.now)
     user_id = Column(db.Integer, ForeignKey('user.id'))
     data_string = Column(db.Text, default="{}")
-    note = Column(String(500))
+    note = Column(String(5000))
     _rounds = data_string_descriptor('rounds')()
     analysis_file = data_string_descriptor('analysis_file','')()
     pickle_file = data_string_descriptor('pickle_file','')()
@@ -240,6 +238,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     heatmap=data_string_descriptor('heatmap','')()
     # Order: name, name_link, Seq Iddisplay, Seq Id link, (display,s.id, )
     cluster_table = data_string_descriptor('cluster_table', [])()
+    
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
@@ -247,10 +246,15 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def haschildren(self):
         return (current_user.id!=self.user_id)
 
-    @property
-    def analysis_file_link(self):
-        parent = current_app.config['ANALYSIS_FOLDER']
-        return self.analysis_file.replace(parent,'')[1:]
+    # @property
+    # def analysis_file_link(self):
+    #     parent = current_app.config['ANALYSIS_FOLDER']
+    #     return self.analysis_file.replace(parent,'')[1:]
+    
+    # @property
+    # def pickle_file_link(self):
+    #     parent = current_app.config['ANALYSIS_FOLDER']
+    #     return self.analysis_file.replace(parent, '')[1:]
 
     @property
     def rounds(self):
@@ -266,11 +270,20 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     
     @lazyproperty
     def get_datareader(self):
+        """
+        only used for getting analysis_file (common one), not for pickle_file (_advanced)
+        """
         if self.analysis_file:
-            return DataReader.load_json(self.analysis_file)
+            f = os.path.join(
+                current_app.config['ANALYSIS_FOLDER'], self.analysis_file)
+            return DataReader.load(f)
+            # if self.analysis_file.endswith('.json'):
+            #     return DataReader.load_json(f)
+            # elif self.analysis_file.endswith('.pickle'):
+            #     return DataReader.load_pickle(f)
             
     def load_rounds(self):
-        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600)
+        job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600*10)
         t = Task(id=job.get_id(),name=f"Load analysis {self}.")
         self.task_id=t.id 
         self.save_data()
@@ -358,7 +371,6 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             hm,df = dr.plot_heatmap()
             return hm
 
-
 class SeqRound(db.Model):
     __tablename__ = 'sequence_round'
     # __table_args__ = {'extend_existing': True}
@@ -371,15 +383,30 @@ class SeqRound(db.Model):
     def __repr__(self):
         return f"Sequence <{self.id_display}>, {self.count} in {self.round.round_name}"
 
+    @property
+    def name(self):
+        return f'{self.id_display}'
+
+    @property
+    def tosynthesis(self):
+        return (self.sequence.note and 'to synthesis' in self.sequence.note.lower())
+
     def display(self):
         ks = self.sequence.knownas or ''
         if ks:
-            ks = 'A.K.A. : '+ks.sequence_name+'\n'
+            ks = 'A.K.A. : '+ks.sequence_name
         l1= self.sequence_display
-        l3=f"{ks}Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
+        l3=f"{ks} Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         return l1,l2,l3
     
+    @property
+    def synthesis_status(self):
+        if self.sequence.note:
+            return f"{self.sequence.note} - {self.sequence.date}"
+        else:
+            return None 
+
     def align(self,query):
         align = Alignment(self.sequence.aptamer_seq)
         align=align.align(query,offset=False)
@@ -440,7 +467,6 @@ class SeqRound(db.Model):
     def haschildren(self):
         return True
 
-
 class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'known_sequence'
     __searchable__ = ['sequence_name', 'target', 'note']
@@ -449,7 +475,7 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     sequence_name = Column(mysql.VARCHAR(50),unique=True) #unique=True
     rep_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True)
     target = Column(mysql.VARCHAR(50))
-    note = Column(mysql.VARCHAR(500))
+    note = Column(mysql.VARCHAR(5000))
     sequence_variants =  relationship('Sequence',backref='knownas')
 
     def align(self, query):
@@ -494,8 +520,20 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
         result = [ ((a,b),(c,d),"{:.2%}".format(e)) for a,b,c,d,e in result]
         return result
 
+class AccessLog(db.Model):
+    __tablename__ = 'accesslog'
+    id = Column(db.Integer, primary_key=True)
+    count = Column(db.Integer)
 
-
+    def add_count(self):
+        self.count+=1 
+        n=self.id + 1 if self.id<24 else 1
+        nx=AccessLog.query.get(n)
+        if nx:
+            nx.count=0 
+        else:
+            db.session.add(AccessLog(id=n,count=0))
+    
 class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
@@ -503,13 +541,18 @@ class Sequence(db.Model,BaseDataModel):
     known_sequence_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('known_sequence.id'))
     aptamer_seq = Column(mysql.VARCHAR(200,charset='ascii'),unique=True) #unique=True
     rounds = relationship("SeqRound", back_populates="sequence")
+    note = Column(mysql.VARCHAR(5000))
+    date = Column(DateTime())
 
     def align(self, query):
         align = Alignment(self.aptamer_seq)
         align = align.align(query)
         return align.format(link=True, maxlength=95).split('\n')
 
-
+    @property 
+    def name(self):
+        return self.id_display
+   
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
 
@@ -542,7 +585,6 @@ class Sequence(db.Model,BaseDataModel):
         fs=Structure(self.aptamer_seq,name=self.id_display)
         return fs.quick_plot()
 
-
 class Rounds(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'round'
     __searchable__ = ['round_name', 'target', 'note']
@@ -554,7 +596,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     sequences = relationship("SeqRound", back_populates="round")
     target = Column(String(50))
     totalread = Column(mysql.INTEGER(unsigned=True),default=0)
-    note = Column(String(300))
+    note = Column(String(5000))
     forward_primer = Column(mysql.INTEGER(unsigned=True),
                             ForeignKey('primer.id'))
     reverse_primer = Column(mysql.INTEGER(unsigned=True),
@@ -663,7 +705,6 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         fig.set_tight_layout(True)
         return fig
 
-
 class Selection(SearchableMixin,db.Model, BaseDataModel):
     __tablename__ = 'selection'
     __searchable__=['selection_name','target','note']
@@ -671,7 +712,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     selection_name = Column(String(100),unique=True)
     target = Column(String(50))
-    note = Column(String(300))
+    note = Column(String(5000))
     rounds = relationship('Rounds',backref='selection')
     date = Column(DateTime(), default=datetime.now)
     
@@ -762,7 +803,7 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     name = Column(String(20), unique=True)
     sequence = Column(mysql.VARCHAR(200, charset='ascii'), unique=True)
     role = Column(String(10)) # can be PD
-    note = Column(String(300))
+    note = Column(String(3000))
    
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
@@ -785,7 +826,6 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     @property
     def sequence_rc(self):
         return reverse_comp(self.sequence)
-
 
 def generate_sample_info(nsg_id):
     """
@@ -812,15 +852,13 @@ def generate_sample_info(nsg_id):
             (round_id, fpindex, reverse_comp(rpindex), fp, reverse_comp(rp)))
     return f1, f2, sampleinfo
 
-
-
 class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     __tablename__ = 'ngs_sample_group'
     __searchable__ = ['name', 'note']
     __searablemethod__ = ['display']
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(500))
-    note = Column(mysql.VARCHAR(500))
+    note = Column(mysql.VARCHAR(5000))
     date = Column(DateTime(), default=datetime.now)
     samples = relationship(
         'NGSSample', backref='ngs_sample_group', cascade="all, delete-orphan")
@@ -892,7 +930,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
             if not filters:
                 filters = [0,1,0,30,self.commit_threshold]
         job = current_app.task_queue.enqueue(
-            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600)
+            'app.tasks.ngs_data_processing.parse_ngs_data', self.id, commit,filters,job_timeout=3600*10)
         t = Task(id=job.get_id(),name=f"Parse NGS Sample <{self.name}> data.")
         db.session.add(t)
         db.session.commit()
@@ -918,25 +956,43 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         don't check if there is no file2.
         """
         if f2:
-            with open(f1,'rt') as f, open(f2,'rt') as r:
+            with self.reader_obj(f1) as f, self.reader_obj(f2) as r:
                 fb1 = file_blocks(f)
                 fb2 = file_blocks(r)
-                fb1length = sum(bl.count("\n") for bl in fb1)
-                fb2length = sum(bl.count("\n") for bl in fb2)
+                f1_break = '\n' # if f1.endswith('.fastq') else b'\n'
+                f2_break = '\n' # if f2.endswith('.fastq') else b'\n'
+                fb1length = sum(bl.count(f1_break) for bl in fb1)
+                fb2length = sum(bl.count(f2_break) for bl in fb2)
             assert fb1length==fb2length, ("Files are not of the same length.")
+
+    def reader_obj(self, filename):
+        if filename.endswith('.fastq'):
+            return open(filename, 'rt')
+        elif filename.endswith('.gz'):
+            return gzip.open(filename, 'rt')
+        else:
+            return None
+
+    def read_lines(self,filename,n=2000):
+        """
+        determine file type is fastq or gz, then return n lines read into file.
+        """ 
+        lines=[]
+        f = self.reader_obj(filename)
+        if f:
+            with f:
+                for line in islice(f, 1, n, 4):
+                    lines.append(line.strip())
+        return lines
 
     def _check_primers_match(self,f1,f2,sampleinfo):
         forward ,reverse = [],[]
         needtoswap = 0
         match = 0
         revcomp=0
-        with open(f1,'rt') as f:
-            for line in islice(f,1,2000,4):
-                forward.append(line.strip())
+        forward = self.read_lines(f1)
         if f2:
-            with open(f2, 'rt') as r:
-                for line in islice(r, 1, 2000, 4):
-                    reverse.append(line.strip())
+            reverse = self.read_lines(f2)
         for idx,_f in enumerate(forward):
             if reverse:
                 _r = reverse[idx]
@@ -1016,7 +1072,7 @@ class Slide(SearchableMixin,db.Model):
     title = Column(mysql.TEXT)
     body = Column(mysql.TEXT)
     ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
-    note = Column(String(2000))
+    note = Column(String(5000))
     tag = Column(String(900))
     page = Column(mysql.INTEGER(unsigned=True))
     date = Column(DateTime(), default=datetime.now)
@@ -1079,14 +1135,13 @@ class Slide(SearchableMixin,db.Model):
         when = [ (k,i) for i,k in enumerate(ids) ]
         return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
         
-
 class PPT(db.Model):
     __tablename__ = 'powerpoint'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     name = Column(String(200))
-    note = Column(String(2000))
+    note = Column(String(5000))
     project_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('project.id'))
-    path = Column(String(900),unique=True)
+    path = Column(String(500),unique=True)
     md5 = Column(String(200),unique=True)
     revision = Column(db.Integer)
     slides = relationship('Slide', backref='ppt', cascade="all, delete-orphan")

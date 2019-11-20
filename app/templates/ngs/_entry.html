@@ -11,20 +11,23 @@
 
     {% for entry in entries %}
     <tr id="{{entry.__tablename__}}_{{entry.id}}">
-        <td width="50px">
+        <td width="50px" class='entry_id'>
             {% if entry.haschildren() and nextcontent %}
-                <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">
-                    {{ entry.id_display }}
-                    </a>
-            {%else%}
-            {{entry.id_display}}
-            {% endif %}
+                <a href="{{ url_for('ngs.browse', table=nextcontent, id=entry.id ) }}">{{ entry.id_display }}</a>
+            {%else%}{{entry.id_display}}{% endif %}
         </td>
-        <td>
+        <td class='display_content'>
             <li><a href="{{url_for('ngs.details',table=entry.__tablename__,id=entry.id|string)}}"><b>{{entry.display()[0]}}</b></a></li>
             {% for line in entry.display()[1:] %}
                     <li>{{line}}</li>
             {% endfor %}
+            {% if table=='sequence_round' %}
+                <li id='sequence_syn_status{{entry.sequence.id}}' style='color:red;display:{% if not entry.synthesis_status %}
+                        none{%else%}list-item;
+                {% endif %}
+                '>{{entry.synthesis_status}}</li>
+            {% endif %}
+            
         </td>
         {% if entry.__tablename__=='ngs_sample_group' %}
         <td >
@@ -158,6 +161,12 @@
             <li><a href="{{url_for('ngs.edit',toadd=entry.__tablename__,id=entry.id|string)}}">Edit</a></li>
             {% if table=='selection' or table=='round' %}
             <li><a href="javascript:add_to_analysis('{{entry.__tablename__}}',{{entry.id}});">Add To Analysis</a></li>
+            {%elif table=='sequence_round'%}
+            <li><a id="add_sequence_to_synthesis{{entry.sequence.id}}" onclick="javascript:add_sequence_to_synthesis({{entry.sequence.id}})">{% if entry.tosynthesis %}
+            Synthesized
+            {%else %}
+            To Synthesis
+            {% endif %}</a></li>
             {% endif %}
             <li role="separator" class="divider"></li>
             <li><a href="{{url_for('ngs.delete',table=entry.__tablename__,todelete=entry.id)}}" onclick="return confirm('Sure to delete {{entry.__repr__()}}?')">Delete</a></li>

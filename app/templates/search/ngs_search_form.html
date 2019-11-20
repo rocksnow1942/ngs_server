@@ -75,7 +75,7 @@ $(document).ready(function () {
 // update search allowed combinations.
 function change_search_field(method) {
     let sequence = ['known_sequence', 'primer', 'sequence'];
-    let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
+    //let text = ['known_sequence', 'primer', 'selection', 'round', 'analysis', 'ngs_sample_group',];
     if (method != 'text' && method != 'name') {
         $('#ngs_search_revcomp_container').css('display','block');
         $("#search_field option").each(function () {
@@ -94,12 +94,13 @@ function change_search_field(method) {
     else {
         $('#ngs_search_revcomp_container').css('display', 'none');
         $("#search_field option").each(function () {
-            if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
-            else { $(this).attr('disabled', "") };
+            $(this).removeAttr('disabled') ;
+            //if (text.includes($(this).val())) { $(this).removeAttr('disabled') }
+            //else { $(this).attr('disabled', "") };
         });
-        if (!text.includes($("#search_field").val())) {
+       /* if (!text.includes($("#search_field").val())) {
                     $("#search_field").val("selection")
-                }
+                }*/
     }
 }
 

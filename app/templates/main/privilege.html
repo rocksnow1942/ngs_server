@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block app_content   %}
+
+<div class="jumbotron">
+    <h1><span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>Sorry, you can't view this page.</h1>
+    <p><a class="btn btn-info btn-lg" href="{{ url_for('main.index') }}" role="button">Go Home?</a></p>
+    <div class='row'>
+        <div class='col-md-8 col-md-offset-2'>
+            <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive"
+                alt="Responsive image">
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}

@@ -2,7 +2,7 @@ from rq import get_current_job
 from app import db
 from app.models import models_table_name_dictionary, NGSSampleGroup, Primers, Rounds, Sequence, KnownSequence, Task, SeqRound, Analysis, generate_sample_info
 from app import create_app
-import os
+import os,gzip
 from flask import current_app
 
 from itertools import islice, zip_longest
@@ -50,6 +50,8 @@ _set_task_progress = ProgressHandler()
 def illumina_nt_score(n):
     return """!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI""".index(n)
 
+    
+
 class NGS_Sample_Process:
     """
     process files into database commits. assuming files are already validated.
@@ -61,9 +63,13 @@ class NGS_Sample_Process:
         self.f1 = f1
         self.f2 = f2
         self.sampleinfo = sampleinfo
+        self.sampleinfo_rc = []
+        for i in self.sampleinfo:
+            self.sampleinfo_rc.append((reverse_comp(i[2]),reverse_comp(i[1]),reverse_comp(i[4]),reverse_comp(i[3])))
+        
+        
         self.filters = filters
         *_,self.score_threshold,self.commit_threshold = filters
-
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
@@ -99,27 +105,41 @@ class NGS_Sample_Process:
                 f"Q-score>{self.score_threshold}"*bool(self.filters[2]) , 
                 f"Count>{self.commit_threshold}"*bool(self.commit_threshold) ] if i)
 
+    def reader_obj(self, filename):
+        if filename.endswith('.fastq'):
+            return open(filename, 'rt')
+        elif filename.endswith('.gz'):
+            return gzip.open(filename, 'rt')
+        else:
+            return None
+
     def file_generator(self):
-        f=open(self.f1,'rt') if self.f1 else []
-        r = open(self.f2,'rt') if self.f2 else []
+        f= self.reader_obj(self.f1) if self.f1 else []
+        r = self.reader_obj(self.f2) if self.f2 else []
+        # fastq = [self.f1.endswith('.fastq')]*2 + [self.f2.endswith('.fastq')]*2
         for fw_fs_rev_rs in zip_longest(islice(f, 1, None, 2), islice(f, 1, None, 2), islice(r, 1, None, 2), islice(r, 1, None, 2)):
-            fw_fs_rev_rs = tuple(i.strip() if i else i for i in fw_fs_rev_rs)
+            fw_fs_rev_rs = tuple(i and i.strip() for i in fw_fs_rev_rs) #if k else i.decode().strip()
             yield fw_fs_rev_rs
         if self.f1: f.close()
         if self.f2: r.close()
-
+        
     def _fr_equal_length_filter(self,f,r):
         if len(f) == len(r):
             self.length_filter += 1
             return f
         else:
+            # print(f'F: {f}')
+            # print(f'R: {r}')
             return False
     
     def _rev_comp_filter(self,f,r):
         if f == r:
             self.revcomp+=1
             return f 
-        else: return False 
+        else:
+            # print(f'F: {f}')
+            # print(f'R: {r}')
+            return False 
     
     def _q_score_filter(self, forward, forward_score, reverse, reverse_score):
         best_score_nts = [(f, fs) if fs >= rs else (r, rs) for f, fs, r, rs in zip_longest(
@@ -129,11 +149,6 @@ class NGS_Sample_Process:
             return "".join(i[0] for i in best_score_nts)
         else:
             return False
-
-    
-    # def reverse_compliment_filter(self,f,fs,r,rs):
-
-
 
     def result_filter(self, fmatch,rmatch):
         forward, forward_score = fmatch or ['',[0]]
@@ -149,34 +164,15 @@ class NGS_Sample_Process:
                 return forward or reverse
         else:
             return None
-
-        # if len(forward)!=len(reverse):
-        #     minf,minr = min(forward_score),min(reverse_score)           
-        #     matchresult, matchscore = (forward, minf )if minf>=minr else (reverse, minr)
-        #     if matchscore >= self.score_threshold:
-        #         self.score_filter += 1
-        #         return matchresult
-        #     else:
-        #         return None
-        # else:
-        #     self.length_filter += 1
-        #     assb = [(f,fs) if fs >= rs else (r,rs) for f, fs, r, rs in zip(
-        #         forward, forward_score, reverse, reverse_score)]
-        #     if forward == reverse:
-        #         self.revcomp += 1
-        #     if min([i[1] for i in assb]) >= self.score_threshold:
-        #         self.score_filter += 1
-        #         return "".join(i[0] for i in assb)
-        #     else:
-        #         return None
-                       
-
+    
     def process_seq(self, fw_fs_rev_rs):
         nomatch = True
         fw, fs,rev,rs = fw_fs_rev_rs
-        for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
+        for (rdid,*(primers)),primers_rc, patterns in zip(self.sampleinfo,self.sampleinfo_rc,self.pattern):
             fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
-            rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
+            rmatch =  rev and self.match_pattern(rev,primers_rc,patterns,rs)
+            if rmatch:
+                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) # if reverse match found, make the found part reverse complement. 
             if fmatch or rmatch:
                 nomatch = False
                 self.success+=1
@@ -186,9 +182,27 @@ class NGS_Sample_Process:
                 break
         if nomatch:    
             self.log_unmatch(fw or rev)
-              
 
-    def match_pattern(self,seq,primers,patterns,score):
+    # def process_seq(self, fw_fs_rev_rs):
+    #     nomatch = True
+    #     fw, fs,rev,rs = fw_fs_rev_rs
+    #     for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
+    #         fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
+    #         rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
+    #         if fmatch or rmatch:
+    #             nomatch = False
+    #             self.success+=1
+    #             matchresult = self.result_filter(fmatch,rmatch)
+    #             if matchresult:  
+    #                 self.collection[(rdid,matchresult)]+=1
+    #             break
+    #     if nomatch:    
+    #         self.log_unmatch(fw or rev)
+               
+    def match_pattern_slow(self,seq,primers,patterns,score):
+        """
+        using re match to search. 
+        """
         match = False
         if all([i in seq for i in primers]):
             ffind = patterns[0].search(seq)
@@ -202,6 +216,22 @@ class NGS_Sample_Process:
             return match, [illumina_nt_score(i) for i in score[findex:rindex]]
         else:
             return None
+    
+    def match_pattern(self,seq,primers,patterns,score):
+        match=False
+        fpi,rpi,fp,rp = primers 
+        findex = seq.find(fpi+fp) 
+        rindex = seq.rfind(rp+rpi)
+        if findex>-1 and rindex>-1:
+            match = seq[findex+ len(fpi+fp):rindex]
+        
+        if match:
+            # print(seq)
+            # print("*"*(findex)+(fpi+fp[:-1])+"|"+match+"|"+rp[1:]+rpi)
+            return match , [illumina_nt_score(i) for i in score[findex+ len(fpi+fp):rindex]]
+        else:
+            return None
+
 
     def log_unmatch(self,seq):
         ab = True
@@ -234,7 +264,7 @@ class NGS_Sample_Process:
 
     def totalread(self):
         toread = self.f1 or self.f2
-        with open(toread, 'rt') as f:
+        with self.reader_obj(toread) as f:
             fb1 = file_blocks(f)
             totalread = sum(bl.count("\n") for bl in fb1)
         return totalread//4
@@ -400,18 +430,18 @@ def test_worker(n):
 
 def load_rounds(id):
     analysis = Analysis.query.get(id)
+    analysis_id = str(analysis.id)
     filepath = os.path.join(
-        current_app.config['ANALYSIS_FOLDER'], str(analysis.id))
+        current_app.config['ANALYSIS_FOLDER'], analysis_id)
     create_folder_if_not_exist(filepath)
     dr=DataReader(name=analysis.name,filepath=filepath)
     dr.load_from_ngs_server(analysis.rounds,callback=_set_task_progress)
-    analysis.pickle_file = dr.save_pickle()
-    dr.save_json()
+    analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
+    analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
     ch=dr.sequence_count_hist(save=True)
     lh=dr.sequence_length_hist(save=True)
-    analysis.analysis_file=os.path.join(filepath,analysis.name+'.json')
     analysis.hist = [os.path.join(
-        str(analysis.id), ch), os.path.join(str(analysis.id), lh)]
+        analysis_id, ch), os.path.join(analysis_id, lh)]
     analysis.task_id=''
     analysis.cluster_para=''
     analysis.heatmap=''
@@ -422,14 +452,15 @@ def load_rounds(id):
 
 def build_cluster(id):
     analysis = Analysis.query.get(id)
+    analysis_id = str(analysis.id)
     dr = analysis.get_datareader
     d,lb,ub,ct=analysis.cluster_para
     dr.df_cluster(d,(lb,ub),ct,clusterlimit=1000,findoptimal=True,callback=_set_task_progress)
     dr.in_cluster_align(callback=_set_task_progress)
-    dr.df_trim(save_df=True)
+    dr.df_trim()
     dr.alias={}
     dr.rename_from_ks_server(ks=KnownSequence.query.all())
-    dr.save_json()
+    analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
     hname,df=dr.plot_heatmap(save=True)
     analysis.heatmap = os.path.join(str(analysis.id), hname)
     roundnamedict = dict(zip(df.columns.tolist(),analysis._rounds))
@@ -502,26 +533,4 @@ def lev_distance_search(query,table):
 
 if __name__ == '__main__':
     """test data processing module"""
-
-    file1 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R1_001.fastq"
-    file2 = "/Users/hui/Desktop/exp46_30-217785519/20190412_S1_R2_001.fastq"
-
-
-    forward ,reverse = [],[]
-    with open(file1, "r") as f, open(file2,'rt') as r:
-        for line in islice(f,1,None,4):
-            forward.append(line.strip())
-        for line in islice(r,1,None,4):
-            reverse.append(line.strip())
-
-    len(forward)
-    len(reverse)
-    forward[0]
-    reverse[0]
-    count=0
-    for i,j in zip(forward,reverse):
-         if i!=reverse_comp(j):
-                count+=1
-
-    print(count)
-    all([i in 'abc' for i in 'abcd'])
+    

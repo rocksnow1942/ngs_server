@@ -1,4 +1,4 @@
-import io
+import io,json,os 
 from app import db
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 from flask import render_template, flash, redirect, url_for, request, current_app, abort, jsonify, Response, send_from_directory
@@ -8,8 +8,11 @@ from app.ngs import bp
 from app.models import Analysis,Selection,Rounds,Primers,Sequence,SeqRound,NGSSampleGroup,NGSSample,KnownSequence
 from app.ngs.forms import ngs_add_form_dictionary,ngs_edit_form_dictionary
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func,distinct
 from app.models import models_table_name_dictionary
 from app.utils.ngs_util import pagination_gaps
+from collections import Counter
+from app.utils.analysis import DataReader, Alignment
 
 
 @bp.route('/', methods=['GET', 'POST'])
@@ -37,7 +40,15 @@ def browse():
                 entries = target.query.order_by(
                     target.id.desc()).paginate(page, pagelimit, False)
         else:
-            entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
+            if table == 'sequence_round':
+                sequences = db.session.query(Sequence.id).filter(db.and_(Sequence.note.isnot(None), Sequence.note != '')
+                    ).subquery()
+                maxcounts = db.session.query(SeqRound.sequence_id, func.max(SeqRound.count).label('count')).filter(
+                    SeqRound.sequence_id.in_(sequences)).group_by(SeqRound.sequence_id).subquery()
+                entries = SeqRound.query.join(Sequence, SeqRound.sequence_id == Sequence.id).filter(
+                    SeqRound.sequence_id == maxcounts.c.sequence_id, SeqRound.count == maxcounts.c.count).order_by(Sequence.date.desc()).paginate(page, pagelimit, False)
+            else:
+                entries = target.query.order_by(target.id.desc()).paginate(page,pagelimit,False)
           
         nextcontent = {'round':'sequence_round','selection':'round'}.get(table)
         kwargs={}
@@ -50,9 +61,9 @@ def browse():
         prev_url = url_for('ngs.browse', table=table,
                         page=entries.prev_num,**kwargs) if entries.has_prev else None
         page_url = [ (i, url_for('ngs.browse',table=table,page=i,**kwargs)) for i in range(start,end+1)]
-        return render_template('ngs/browse.html', title='Browse' + (table or ' '), entries=entries.items,
+        return render_template('ngs/browse.html', title='NGS ' + (table.capitalize() or ' '), entries=entries.items,
                             next_url=next_url, prev_url=prev_url, table = table,nextcontent=nextcontent,page_url=page_url,active=page)
-    return render_template('ngs/browse.html', title='Browse', entries=[],table='')
+    return render_template('ngs/browse.html', title='NGS', entries=[],table='')
 
 
 @bp.route('/add', methods=['GET', 'POST'])
@@ -75,7 +86,7 @@ def add():
         db.session.commit()
         flash('New {} added.'.format(toadd), 'success')
         # return redirect(url_for('ngs.add', toadd=toadd))
-    return render_template('ngs/add.html', title='Add', table=toadd,form=form,datalist=datalist)
+    return render_template('ngs/add.html', title='NGS - Add', table=toadd,form=form,datalist=datalist)
 
 def load_datalist(toadd):
     if toadd=='round':
@@ -88,7 +99,16 @@ def load_datalist(toadd):
     elif toadd=='selection':
         return dict(targets=db.session.query(Selection.target).distinct().all())
     elif toadd=='sequence_round':
-        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all())
+        note = db.session.query(distinct(Sequence.note)).filter(
+            db.and_(Sequence.note.isnot(None), Sequence.note != '')).all()
+        n = Counter()
+        
+        for i in note:
+            for j in i[0].split(','):
+                if j.strip():
+                    n[(j.strip(),)] += 1
+       
+        return dict(known_sequence=db.session.query(KnownSequence.sequence_name).all(), common_note=[i[0] for i in n.most_common(10)])
     else:
         return {}
 
@@ -132,7 +152,7 @@ def edit():
         flash('Your Edit to <{}> was saved.'.format(newitem),'success')
         return redirect(edit_redirect_url)
     
-    return render_template('ngs/add.html', title='Edit', table=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
+    return render_template('ngs/add.html', title='NGS - Edit', table=toadd, form=form, datalist=datalist, edit_redirect_url=edit_redirect_url)
 
 
 @bp.route('/delete', methods=['POST','GET'])
@@ -154,6 +174,8 @@ def delete():
             except IntegrityError as e:
                 db.session.rollback()
                 flash('Cannot delete {}. Exception: {}.'.format(todelete,e), 'danger')
+    else:
+        flash('Cannot delete sequence.')
     return redirect(edit_redirect_url)
 
 
@@ -170,7 +192,7 @@ def addsample():
     datalist.update(selections=db.session.query(Selection.selection_name).all(),)
     plist = [(i.id,i.name) for i in Primers.query.filter_by(role='NGS').all()]
     rdlist = [(i.id,i.round_name) for i in Rounds.query.all()]
-    title = 'Edit' if id else 'Add'
+    title = 'NGS - Edit' if id else 'NGS - Add'
     if id:
         if request.method == 'GET':
             form.load_obj(id)
@@ -188,7 +210,7 @@ def addsample():
         indextuple = []
         for i in form.samples:
             indextuple.append((i.form.fp_id.data,i.form.rp_id.data))
-        if len(set(indextuple)) != len(indextuple):
+        if len(set(indextuple)) != len(indextuple) and (not form.ignore_duplicate.data):
             flash('Error: FP RP Index have duplicates. Check Primers.','warning')
             return render_template('ngs/editsample.html', title=title, form=form, toadd='NGS Sample', datalist=datalist, id=id, edit_redirect_url=edit_redirect_url)
         # if form.validate_name():
@@ -351,11 +373,11 @@ def details():
         start, end = pagination_gaps(page, totalpages, pagelimit)
         page_url = [(i, url_for('ngs.details', table=table, page=i, id=id))
                     for i in range(start, end+1)]
-        return render_template('ngs/details.html', title='Details', entry=entry, table=table,
+        return render_template('ngs/details.html', title=f'{entry.name}-Details', entry=entry, table=table,
                                query_result=query_result, next_url=next_url, prev_url=prev_url, active=page, page_url=page_url)
 
 
-    return render_template('ngs/details.html', title = 'Details', entry = entry, table=table)
+    return render_template('ngs/details.html', title = f'{entry.name}-Details', entry = entry, table=table)
                           
 
 
@@ -408,7 +430,7 @@ def add_to_analysis():
 def analysis_cart():
     cart = current_user.analysis_cart
     entries = [Rounds.query.get(i) for i in cart]
-    return render_template('ngs/analysis_cart.html',entries=entries)
+    return render_template('ngs/analysis_cart.html', entries=entries, title='Analysis Cart')
 
 
 @bp.route('/add_analysis', methods=['POST'])
@@ -429,6 +451,8 @@ def add_analysis():
         flash(f'Analysis <{analysis}> added.','success')
     return redirect(url_for('ngs.analysis',id=analysis.id))
 
+from app.utils.analysis._datareader import datareader_API
+
 @bp.route('/analysis', methods=['POST','GET'])
 @login_required
 def analysis():
@@ -441,7 +465,7 @@ def analysis():
         active_tab='cluster'
     else:
         active_tab = 'load'
-    return render_template('ngs/analysis.html', analysis=analysis,active_tab=active_tab,table='analysis')
+    return render_template('ngs/analysis.html', api=datareader_API, analysis=analysis, active_tab=active_tab, table='analysis', title=f'Analysis-{id}')
 
 
 @bp.route('/analysis/cluster', methods=['POST', 'GET'])
@@ -452,7 +476,7 @@ def analysis_cluster():
     cluster = request.args.get('cluster', 'C1')
     info,clusters=analysis.cluster_display(cluster)
     colordict=dict(zip('ATCG-',['red','green','blue','orange','black']))
-    return render_template('ngs/analysis_cluster.html',cluster=cluster,colordict=colordict, analysis=analysis,clusters=clusters,clusterinfo=info)
+    return render_template('ngs/analysis_cluster.html',cluster=cluster,colordict=colordict, analysis=analysis,clusters=clusters,clusterinfo=info,title=f'Cluster-{cluster}')
 
 
 @bp.route('/analysis_image/<funcname>', methods=['GET'])
@@ -525,8 +549,29 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
+    if filename.endswith('.pickle'):
+        f = os.path.join(
+            current_app.config['ANALYSIS_FOLDER'], filename)
+        dr=DataReader.load_pickle(f)
+        data = json.dumps(dr.jsonify(), separators=(',', ":"))
+        return Response(data, mimetype="text/json",
+            headers={"Content-disposition": f"attachment; filename={filename[0:-7]}.json"})
+        
     as_attachment =  filename.endswith('.json')
     return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
+
+
+@bp.route("/sendjson")
+def sendjson():
+    dr = Analysis.query.get(6).get_datareader
+    # with open("outputs/Adjacency.csv") as fp:
+    #     csv = fp.read()
+    csv = json.dumps(dr.jsonify(),separators=(',',":"))
+    return Response(
+        csv,
+        mimetype="text/json",
+        headers={"Content-disposition":
+                 "attachment; filename=test.json"})
 
 
 @bp.route('/get_bar_progress', methods=['POST'])
@@ -567,7 +612,7 @@ def lev_search(table):
         entry.lev_score = _s
         entry.aligndisplay = entry.align(query)
         entries.append(entry)
-    return render_template('ngs/sequence_search_result.html', title='Search-' + table, entries=entries,
+    return render_template('ngs/sequence_search_result.html', title='Search-' + table.capitalize(), entries=entries,
                            table=table,)
 
 
@@ -606,3 +651,29 @@ def save_tree():
     except Exception as e:
         messages = [('warning',f'Error occured during saving tree: <{e}>')]
     return jsonify(msg=messages[0])
+
+
+@bp.route('/add_sequence_to_synthesis', methods=['POST'])
+@login_required
+def add_sequence_to_synthesis():
+    id = request.json.get('id')
+    note=""
+    status = ""
+    try:
+        seq = Sequence.query.get(id)
+        if seq.note and 'to synthesis' in seq.note.lower():
+            idx = seq.note.lower().index('to synthesis')
+            seq.note = seq.note.replace(seq.note[idx:idx+12],'Syn@{}'.format(datetime.now().strftime('%y%m%d')))
+            status = 'Synthesized'
+        else: 
+            seq.note = 'To Synthesis, ' + (seq.note or "")
+            seq.date=datetime.now()
+            status = 'To Synthesis'
+        db.session.commit()
+        note= f"{seq.note} - {seq.date}"
+        messages = [('success', f"Mark sequence <{seq.id_display}> as {status}")]
+    except Exception as e:
+        messages=[('warning', f"Error due to <{e}>")]   
+    return jsonify(html=render_template('flash_messages.html', messages=messages),status=status,note=note)
+
+

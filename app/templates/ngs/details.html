@@ -122,7 +122,7 @@
         </div>
     </div>
 </div>
-<div id="tree-outer-container" style='display:none'>
+<div id="tree-outer-container" style='display:none; width:75%; margin:auto;'>
     <div class='row'>
     <div class='col-xs-8 col-xs-offset-2'>
         <h4 align='center'>{{entry.__repr__()}} - Tree</h4>
@@ -299,6 +299,10 @@
             <a href="{{url_for('ngs.details',table='known_sequence',id=entry.sequence.knownas.id)}}">{{entry.aka}}</a>
             {% else %}None{% endif %}</li> 
             
+            <li id='sequence_syn_status{{entry.sequence.id}}' style='color:red;display:{% if not entry.synthesis_status %}
+                                    none{%else%}list-item;
+                            {% endif %}
+                            '>{{entry.synthesis_status}}</li>
             <hr>
             <h4 class="card-title">Similar Sequence</h4>
             <table class="table table-condensed table-hover">
@@ -323,6 +327,16 @@
             <div class="row">
                 <div class="col-sm-6"><a href="{{url_for('ngs.edit',toadd=table,id=entry.id|string)}}" class='btn btn-info btn-block'
                         role='button'>Edit Sequence</a></div>
+                <div class="col-sm-6"> 
+                    <a  onclick="javascript:add_sequence_to_synthesis('{{entry.sequence.id}}')"
+                        class='btn btn-danger btn-block' role='button'>
+                        <span id="add_sequence_to_synthesis{{entry.sequence.id}}">
+                    {% if entry.tosynthesis %}
+                       Synthesized
+                        {%else %}
+                       To Synthesis                           
+                        {% endif %}</span>
+                         </a></div>
             </div>
            
         </div>
@@ -452,6 +466,9 @@
                     $('#tree-container').addClass('row').attr('align', 'center');
                 }
             })
+        } else {
+            $('#tree-outer-container').css('display','none');
+            $('#tree-container').html('');
         }        
     };
 
@@ -469,6 +486,8 @@
             })
         }
     }
+
+    
 </script>
 {% endblock %}
 

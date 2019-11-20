@@ -33,7 +33,7 @@ def index():
     thumbnail = current_user.thumbnail
     table = request.args.get('table',None)
     if not table:
-        return redirect(url_for('ppt.index',table='ppt'))
+        return redirect(url_for('ppt.index',table='project'))
     
     id = request.args.get('id', 0, type=int)
     page = request.args.get('page', 1, type=int)
@@ -41,7 +41,7 @@ def index():
    
     tag = request.args.get('tag' , None)
     if table == 'tags' and tag==None:
-        return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '),  
+        return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',  
                                table=table,  entries=Slide.tags_list(500,True),)
     if table == 'trash' or table == 'tags':
         target = Slide
@@ -86,11 +86,11 @@ def index():
                            page=entries.prev_num, **kwargs) if entries.has_prev else None
         page_url = [(i, url_for('ppt.index', table=table, page=i, **kwargs))
                     for i in range(start, end+1)]
-        return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), entries=entries.items, 
+        return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View', entries=entries.items,
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
                                page_url=page_url, active=page,id=id,thumbnail=thumbnail)
         
-    return render_template('ppt/index.html', title='Browse-' + (table.upper() or ' '), 
+    return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',
                            table=table,  tags_list=tags_list, thumbnail=thumbnail)
 
 
@@ -117,7 +117,7 @@ def user_follow_slides():
                        page=entries.prev_num, ) if entries.has_prev else None
     page_url = [(i, url_for('ppt.slide_cart',  page=i, ))
                 for i in range(start, end+1)]
-    return render_template('ppt/slide_comparison.html', title='Project-Update', entries=entries.items,
+    return render_template('ppt/slide_comparison.html', title='PPT Updates', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
                            page_url=page_url, active=page, backurl=request.referrer, mode="follow_ppt", ppt_id=ppt_id, thumbnail=thumbnail)
    
@@ -142,7 +142,7 @@ def slide_cart():
     page_url = [(i, url_for('ppt.slide_cart',  page=i, ))
                 for i in range(start, end+1)]
     
-    return render_template('ppt/slide_comparison.html', title='Slides-Comparison', entries=entries.items, 
+    return render_template('ppt/slide_comparison.html', title='PPT-Comparison', entries=entries.items, 
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
                            page_url=page_url, active=page, backurl=request.referrer, mode="slide_cart", thumbnail=thumbnail)
 
@@ -182,7 +182,7 @@ def bookmarked():
     page_url = [(i, url_for('ppt.bookmarked',  page=i, ))
                 for i in range(start, end+1)]
 
-    return render_template('ppt/slide_comparison.html', title='Bookmarked-Slides', entries=entries.items,
+    return render_template('ppt/slide_comparison.html', title='PPT-Bookmark', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
                            page_url=page_url, active=page, backurl=request.referrer, mode="bookmarked_ppt", thumbnail=thumbnail)
 

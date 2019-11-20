@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+
+{% block app_content %}
+
+<div>
+    <h1 align='center'>Molecular Weight Calculator</h1>
+</div>
+
+
+<div class='form-group'>
+    <label for="sequence" class='control-label'>Enter Sequence:</label>
+    <textarea class="form-control sequence input" id="sequence" name="sequence" placeholder="Enter Sequence Here"
+        style="height: 200px"></textarea>   
+</div>
+
+<div class = 'sequence'>
+    <h4 id='result'>M.W.: 0</h4>
+</div>
+
+<ul >
+    <li>Z: amino-C6</li>
+    <li>B: 5'-biotin</li>
+    <li>A,T,G,C: 2'F A,U,G,C</li>
+</ul>
+
+
+<script>
+
+$(document).on("change","#sequence",function(event) {
+    let seq = $(event.target).val().split(' ').join('').split('\n').join('').toUpperCase();
+    let nt_weight = {'A':331.19748,'T': 308.15758,'C':307.17278,'G':347.19628,'Z':179.151422,'B':405.444582}; // m.w. of 2'f NMP-H2O
+    let mw = 0;
+    Object.keys(nt_weight).forEach(function(key){
+        let reg = new RegExp(key,'g');
+        mw += (seq.match(reg) || []).length * nt_weight[key]
+    });
+    mw -= 61.971762 // + H2O - HPO3
+    $('#result').text(`M.W.: ${mw.toFixed(3)}`)
+
+    
+})
+
+</script>
+
+
+
+{% endblock %}

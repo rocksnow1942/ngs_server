@@ -33,5 +33,7 @@ class Config():
 
     APP_ERROR_LOG = os.environ.get('APP_ERROR_LOG') or None
 
+        
+    DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'
 
-#
+    ANIMAL_DATA_PATH = os.environ.get('ANIMAL_DATA_PATH') or '.'

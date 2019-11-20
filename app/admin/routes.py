@@ -1,18 +1,23 @@
 from app import db
-from flask import render_template, flash, redirect,url_for,request,current_app
+from flask import render_template, flash, redirect,url_for,request,current_app,jsonify
 from flask_login import current_user,login_required
 from app.admin import bp
-from app.models import Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
+from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
 from datetime import datetime, timedelta
-import glob,shutil,os
+import glob,shutil,os,psutil
+from app.utils.common_utils import get_folder_size
+from app.main.routes import privilege_required
+from flask_user import roles_required
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
+@privilege_required('admin')
 def admin():
     return render_template('admin/index.html',title='Admin Page')
 
 
 @bp.route('/clear_trash', methods=['GET', 'POST'])
+@privilege_required('admin')
 def clear_trash():
     """
     clear tasks that are more than a day old.
@@ -56,6 +61,7 @@ def clear_trash():
 
 
 @bp.route('/reindex_models', methods=['GET', 'POST'])
+@privilege_required('admin')
 def reindex_models():
     """
     reindex all the elastic searach models
@@ -75,6 +81,7 @@ def reindex_models():
 
 
 @bp.route('/clear_ppt_trash', methods=['GET', 'POST'])
+@privilege_required('admin')
 def clear_ppt_trash():
     """
     clear empty project, and ppt that not in project and slides.
@@ -122,6 +129,7 @@ def clear_ppt_trash():
     
 
 @bp.route('/reindex_ppt', methods=['GET', 'POST'])
+@privilege_required('admin')
 def reindex_ppt():
     try:
         # msg = reindex()
@@ -138,3 +146,31 @@ def test():
     time.sleep(40)
     msg=['This is a tests']
     return render_template('admin/result.html', content=msg)
+
+
+@bp.route('/get_system_usage', methods=['POST'])
+def get_system_usage():
+    cpu = psutil.cpu_percent()
+    memory=psutil.virtual_memory().percent
+    return jsonify(dict(cpu=min(cpu, 99.9), memory=min(memory,99.9)))
+
+
+@bp.route('/get_harddrive_usage', methods=['POST'])
+def get_harddrive_usage():
+    total, used, free = shutil.disk_usage("/")
+    disk = round(100*used/total,2)
+    db = get_folder_size(current_app.config['DATABASE_FOLDER'])
+    return jsonify(dict(disk=disk, diskusage=f"{round(used/2**30,2)}GB / {total//2**30}GB",
+                        database=max(round(100*db/used, 2), 15), dbusage=f"{round(db/2**30,2)}GB"))
+
+
+@bp.route('/get_access_log', methods=['POST'])
+def get_access_log():
+    hour = datetime.now().hour+1
+    timepoints = [hour-i if (hour-i)>0 else (24 + hour-i) for i in range(23)]
+    data = [] 
+    for t in timepoints:
+        al = AccessLog.query.get(t)
+        count = al.count if al else 0
+        data.append({'time':t,'value':count})
+    return jsonify(data[::-1])

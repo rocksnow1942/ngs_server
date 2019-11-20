@@ -22,11 +22,16 @@
         <span aria-hidden="true">&rarr;</span>
       </a>
     </li>
-    {% if table != 'sequence_round' and table!='analysis' %}
     <li class='disabled'><span aria-hidden="true">&nbsp;&nbsp;|&nbsp;&nbsp;</span> </li>
+    {% if table != 'sequence_round' and table!='analysis' %}
+   
     <li class="next"><a href="{{url_for('ngs.add',toadd=table)}}"><span class="glyphicon glyphicon-plus"
           aria-hidden="true"></span> {{table.upper()}}</a></li>
-    {% endif %}
+     
+      {% endif %}
+      <li class="next"><a href="javascript:download_sequence()"><span class="glyphicon glyphicon-download-alt"
+            aria-hidden="true"></span> Download</a></li>
+    
   </ul>
 </nav>
 
@@ -60,8 +65,37 @@
       })
   };
 
+  
+// collect page information and generate csv file for download.
+  function download_sequence() {
+   // let sequence_id = [];
+    let current_page = $('span').filter(function () { return $(this).css('text-decoration').includes('underline'); }).text();
+    let table_rows = [];
+    $('tr').each(function(){
+      let id = $(this).attr('id'); //&& id.startsWith('sequence_round_')
+      if (id ){
+        let row = [];
+        //sequence_id.push(id.replace('sequence_round_(', '').split(',')[0]);
+       // let sequence = $(this).find('b').html();
+        row.push($(this).find('.entry_id').text().trim());
+        $(this).find('.display_content').find('li').each(function () { row.push($(this).text().trim().replace(/,/g," ")) });
+        table_rows.push(row);
+      };
+      });
+    
+    let csvContent = "data:text/csv;charset=utf-8,"
+      + table_rows.map(e => e.join(",")).join("\n");
+
+    var encodedUri = encodeURI(csvContent);
+    var link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", current_page+".csv");
+    document.body.appendChild(link); // Required for FF
+    link.click();
+  }
+
 $(document).ready($(".question_tooltip").each(function() {$(this).tooltip()}) )
 
-  
+
 </script>
 {% endblock %}

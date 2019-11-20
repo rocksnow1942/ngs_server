@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block base_scripts %}
+<script src="{{bootstrap_find_resource('jquery.js', cdn='jquery')}}"></script>
+<script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js'></script>
+<script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
+{%- endblock base_scripts %}
+
+{% block app_content %}
+
+<style>
+    .input-group {
+        margin:5px;
+        width:100%;
+    }
+    span.input-group-addon {
+        width: 70px;
+        padding: 0px;
+    }
+    
+    .figure_box {
+        padding: 2px;
+    }
+    .figure_box.active {
+        margin: 2px;
+        padding: 1px;
+        border: 5px solid rgb(255, 0, 0);
+    }
+
+</style>
+
+<div>
+    <h2 align='center'>Animal Data Viewer &nbsp; &nbsp;&nbsp;
+    <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">2</a> 
+    <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">3</a>
+    <a class='btn btn-primary columns_selector' onclick="javascript:reset_columns(event)">4</a>
+    <a class='btn btn-default columns_selector' onclick="javascript:reset_columns(event)">6</a>
+    <a class='btn btn-default' data-toggle='animal_help_tooltip' data-placement="bottom" title="Toggle enable/disable figure scroll."
+     onclick="javascript:toggle_image_scroll(event)" ><span class="glyphicon glyphicon-film" aria-hidden="true"></span></a>
+    <div data-toggle='animal_help_tooltip' data-placement="right" style="padding:6px;display: inline-block; font-size:20px; vertical-align: top;cursor: help;"
+        title="Keyboard shortcuts: w/s/t/b - Move figure up/down/top/bottom; 
+        &uarr;/&darr;: Move figure selection up/down; 
+        r - Reset figure order; Space - Toggle zoom.
+        "><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></div>
+    </h2>
+</div>
+<!-- 
+display: inline-block;
+margin-bottom: 0; // For input.btn
+font-weight: @btn-font-weight;
+text-align: center;
+vertical-align: middle;
+touch-action: manipulation;
+cursor: pointer;
+background-image: none; // Reset unusual Firefox-on-Android default style; see
+https://github.com/necolas/normalize.css/issues/214
+border: 1px solid transparent;
+white-space: nowrap; -->
+
+<div class=' sortable'> 
+   
+    {% for col_number in [1,2,3,4,5,6] %}
+        {% include "apps/animal/animal_data_column.html" %}
+    {% endfor %}
+    
+</div>
+
+<datalist id='experiment_list'> 
+    {% for op in experiment_list %}
+            <option value='{{op}}'></option>
+    {% endfor %}
+</datalist>
+
+<div class="modal bs-example-modal-lg" id='animal_figure_modal'>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id='animal_figure_modal_container'>
+            <div> No Images yet</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+{{super()}}
+<script>
+
+    // add tooltip
+    $(function(){ $("[data-toggle='animal_help_tooltip']").tooltip()})
+
+
+    function toggle_image_scroll(event) {
+        function scroll(e) {
+            var scrollTo = null;
+            if (e.type == 'mousewheel') {
+                scrollTo = (e.originalEvent.wheelDelta * -1);
+            }
+            else if (e.type == 'DOMMouseScroll') {
+                scrollTo = 40 * e.originalEvent.detail;
+            }
+
+            if (scrollTo) {
+                e.preventDefault();
+                $(this).scrollTop(scrollTo + $(this).scrollTop());
+            }
+        };
+        let noscroll = $(event.target).closest('.btn').hasClass('btn-default');
+        if (noscroll) {
+            $('.figure_container').css({ 'overflow-y': 'scroll', 'max-height': $(window).height() });
+            $(event.target).closest('.btn').attr('class', 'btn btn-danger');
+            $('.figure_container').bind('mousewheel DOMMouseScroll', scroll)
+        } else {
+            $('.figure_container').css({ 'overflow-y': '', 'max-height': '' });
+            $(event.target).closest('.btn').attr('class', 'btn btn-default')
+            $('.figure_container').unbind('mousewheel DOMMouseScroll')
+        }
+    }
+
+    $(function () {
+        $(".sortable").sortable();
+        $(".sortable").disableSelection();
+    });
+
+    // reset columns
+    function reset_columns(event) {
+        let col = $(event.target).text();
+        $('.columns_selector').attr('class', 'btn btn-default columns_selector');
+        $(event.target).attr('class', 'btn btn-primary columns_selector');
+
+        let colclass = `col-xs-${12 / col}` + ' columns';
+        for (let i = 6; i > col; i--) {
+            $(`.columns:nth-of-type(${i})`).css('display', 'none');
+        };
+        for (let i = 1; i <= col; i++) {
+            $(`.columns:nth-of-type(${i})`).attr('class', colclass);
+            $(`.columns:nth-of-type(${i})`).css('display', 'block');
+        }
+    }
+
+    // select data form changes
+    $(document).on('change', '.animal_data_form', function (event) {
+        let target = $(event.target).attr('name');
+        if (target == 'note') { return };
+        let form = $(event.target).closest('.form');
+        let data = form.serializeArray();
+        let col = form.attr('id');
+       
+         $.ajax({
+            url: "{{url_for('apps.animal_data_form')}}",
+            type: 'POST',
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            success: function (result) {
+                if (result.form) {
+                    form.html(result.form);
+                    $(`#panel-title-${col[col.length - 1]}`).text(result.title);
+                    $("#figure-" + col[col.length - 1]).html("")
+                }
+            }
+        }) 
+    })
+
+
+    // fetch and display images 
+    function display_figures(event, col) {
+        // $(event.target).blur();
+        let data = $('#form-' + col).serializeArray();
+        $.ajax({
+            url: "{{url_for('apps.animal_data_figure')}}",
+            type: 'POST',
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            success: function (result) {
+                if (result.html) {
+                    $("#figure-" + col).html(result.html);
+                    $('#form-' + col).find('input[name="note"]').val(result.note);
+                    $(".sortable").sortable();
+                    $(".sortable").disableSelection();
+                    figure_box_trigger_event();
+                }
+            }
+        })
+    }
+
+    // save experiment data 
+    function save_experiment(event, col) {
+        //  $(event.target).blur();
+        let data = $('#form-' + col).serializeArray();
+        let order = [];
+        $(`#figure-${col}`).children().each(function () { order.push($(this).attr('name')) });
+        $.ajax({
+            url: "{{url_for('apps.save_animal_data')}}",
+            type: 'POST',
+            data: JSON.stringify({ data: data, order: order }),
+            contentType: "application/json",
+            success: function (result) {
+                display_flash_message(result.html, 1000)
+            }
+        })
+    }
+
+    // change figure_box to active by click
+    function click_active(event) {
+        let target = $(event.target).parent().hasClass('active');
+        $('.figure_box.active').removeClass('active');
+        if (target) {
+            return
+        } else { $(event.target).parent().addClass('active').trigger('becomeActive') }
+    }
+
+    // figure_box class change 
+    function figure_box_trigger_event() {
+        $('.figure_box').on('becomeActive', function () {            
+            $('#animal_figure_modal_container').children().replaceWith($(this).children().clone())
+        })
+    }
+
+    // keyboard to move figures 
+    $(document).ready(function () {
+        $(document).keydown(function (event) {
+            if (!$('.figure_box.active').length) { return }
+            else {
+               // console.log(event.which) //32 space
+                let current = $('.figure_box.active');
+                let current_index = current.index();
+                let left = current.parent().parent().prev().find(`.figure_box:nth-of-type(${current_index+1})`);
+                let right = current.parent().parent().next().find(`.figure_box:nth-of-type(${current_index+1})`);
+                if (event.target.tagName == 'BODY' && [32,37,39,83, 38, 87, 40, 84, 66, 82].includes(event.which)) {
+                    event.preventDefault();                    
+                    let windowheight = $(window).height();
+                    let oldoffset = $(".figure_box.active").offset().top - $(window).scrollTop();
+                    switch (event.which) {
+                       case 32: // space
+                           // $('#animal_figure_modal').css('display','block')
+                            $('#animal_figure_modal').modal('toggle')
+                            break
+                        case 37: // left
+                            if (left.length) {
+                                left.addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
+                        case 39: //right
+                            if (right.length && right.parent().parent().css('display')!='none') {
+                                right.addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
+                        case 38: // up
+                            if (current.prev().length) {
+                                current.prev().addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
+                        case 40: //down
+                            if (current.next().length) {
+                                current.next().addClass('active').trigger('becomeActive')
+                                current.removeClass('active')
+                            }
+                            break
+                        case 87: //  'w' 
+                            current.insertBefore(current.prev())
+                            break
+                        case 83: //  s
+                            current.insertAfter(current.next())
+                            break
+                        case 66: //  "b" key
+                            current.parent().append(current);
+                            current.removeClass('active');
+                            current.parent().find(`.figure_box:nth-of-type(${current_index+1})`).addClass('active').trigger('becomeActive');
+                            break
+                        case 84: //'t' key 
+                            current.parent().prepend(current)
+                            current.removeClass('active');
+                            current.parent().find(`.figure_box:nth-of-type(${current_index+1})`).addClass('active').trigger('becomeActive');
+                            break
+                        case 82: //'r' key 
+                            current.parent().html(current.parent().children().sort(function (a, b) {
+                                let ima = $(a).children().attr('alt');
+                                let imb = $(b).children().attr('alt');
+                                return ima < imb ? -1 : 1;
+                            }))
+                            current.parent().children().on('becomeActive', function () {
+                                $('#animal_figure_modal_container').children().replaceWith($(this).children().clone())
+                            })
+                            break
+                    }
+                    // scroll to current active if scrolling up down 
+
+                    if ([38, 40, 82].includes(event.which)) {
+                        if ($(".figure_box.active").offset().top - $(window).scrollTop() > windowheight - 45) {
+                            $(window).scrollTop($(".figure_box.active").offset().top - 15);
+                        }
+                        else if ($(".figure_box.active").offset().top - $(window).scrollTop() < 15) {
+                            $(window).scrollTop($(".figure_box.active").offset().top - windowheight + 50)
+                        }
+                    } else if ([87, 83].includes(event.which)) {
+                        $(window).scrollTop($(".figure_box.active").offset().top - oldoffset)
+                    }
+                }
+            }
+        })
+    })
+
+</script>
+
+
+{% endblock %}
+
+
+
+
+
+

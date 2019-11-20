@@ -1,10 +1,9 @@
 {% extends "base.html" %}
-{% import 'bootstrap/wtf.html' as wtf %}
 
 {% block app_content %}
 
     <div class="jumbotron">
-      <h1>PLojo Family of APPS</h1>
+      <h1>APPS</h1>
     </div>
 
     <div class="row">
@@ -41,13 +40,33 @@
         </a>
       </div>
       <div class="col-xs-6 col-md-4">
-        <a href="{{url_for('apps.plojo_help')}}" class="thumbnail custom-card alert-info well-md">
+        <a href="{{url_for('apps.plojo_help')}}" class="thumbnail custom-card alert-success well-md">
           <h2 align='center' class="card-title">Plojo Help &nbsp;</h2>
+          <hr>
+        </a>
+      </div>
+
+      <div class="col-xs-6 col-md-4">
+        <a href="{{url_for('apps.mw_calculator')}}" class="thumbnail custom-card alert-warning well-md">
+          <h2 align='center' class="card-title">M.W. Calculator &nbsp;</h2>
           <hr>
         </a>
       </div>
         
     </div>
+
+    <div class="row">
+    
+      <div class="col-xs-6 col-md-4">
+        <a href="{{url_for('apps.animal_data')}}" class="thumbnail custom-card alert-info well-md">
+          <h2 align='center' class="card-title">Animal Data &nbsp; </h2>
+          <hr>
+        </a>
+      </div>
+     
+    
+    </div>
+
 
 {% endblock %}
 

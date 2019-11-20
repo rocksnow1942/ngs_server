@@ -43,7 +43,7 @@
             {% endif %}</a>
         </li>
         <li class="breadcrumb-item">
-          <a href="javascript:void(0)">
+          <a href="{{url_for('ngs.browse',table='sequence_round')}}">
             {% if table!='sequence_round' %}
             Sequence
             {% else %}<span style="color:rgb(0, 26, 255);text-decoration: underline;"><b>Sequence</b></span>
@@ -109,6 +109,29 @@ function set_analysis_count_badge(result) {
   $('#analysis_cart_count').html(result['analysis_count']);
   $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
 }
+
+
+// change synthesis status.
+function add_sequence_to_synthesis(id) {
+      $.ajax({
+        url: "{{url_for('ngs.add_sequence_to_synthesis')}}",
+        type: "POST",
+        data: JSON.stringify({ id: id }),
+        contentType: 'application/json',
+        success: function (result) {
+          display_flash_message(result.html, 1000);
+          let status = result.status;
+          if (status == 'To Synthesis') {
+            $('#add_sequence_to_synthesis' + id).html('Synthesized');
+            $('#sequence_syn_status' + id).css('display', "").html(result.note);
+          } else if (status == 'Synthesized') {
+            $('#add_sequence_to_synthesis' + id).html('To Synthesis');
+            $('#sequence_syn_status' + id).css('display', "").html(result.note)
+          }
+        }
+      })
+  }
+
 
 </script>
 
