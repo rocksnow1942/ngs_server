@@ -78,7 +78,12 @@ class Experiment(object):
         if self.data[monkey].get(eye, None) is None:
             self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}
         if self.data[monkey][eye][measure].get(day,None) is None:
-            self.data[monkey][eye][measure][day] = data
+            self.data[monkey][eye][measure][day] = data # create new data 
+        else:
+            if set(data) == set(self.data[monkey][eye][measure][day]):
+                pass 
+            else:
+                self.data[monkey][eye][measure][day] = data # if day is already there, decide if need to update. 
 
     def create_entry(self, monkey, eye, measure, day, data):
         if self.data.get(monkey, None) is None:
