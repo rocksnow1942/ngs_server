@@ -1141,7 +1141,7 @@ class PPT(db.Model):
     name = Column(String(200))
     note = Column(String(5000))
     project_id = Column(mysql.INTEGER(unsigned=True),ForeignKey('project.id'))
-    path = Column(String(900),unique=True)
+    path = Column(String(500),unique=True)
     md5 = Column(String(200),unique=True)
     revision = Column(db.Integer)
     slides = relationship('Slide', backref='ppt', cascade="all, delete-orphan")
