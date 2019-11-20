@@ -18,8 +18,11 @@
 
 4. create venv and install required python packages:
     $ python -m venv venv
-    $ pip install -r requirements.txt
     $ source venv/bin/activate 
+    // to get gcc: run 
+    $ sudo apt-get -y install build-essential
+    $ pip install -r requirements.txt
+    
     $ pip install gunicorn pymysql 
 
 5. create .env file user project folder:
