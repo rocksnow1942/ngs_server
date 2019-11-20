@@ -30,8 +30,9 @@ class Config():
     PPT_SOURCE_FOLDER = os.environ.get('PPT_SOURCE_FOLDER') or None
     PPT_TARGET_FOLDER = os.environ.get('PPT_TARGET_FOLDER') or None
     PPT_LOG_FILE = os.environ.get('PPT_LOG_FILE') or None
-    
+
     APP_ERROR_LOG = os.environ.get('APP_ERROR_LOG') or None
+
         
     DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'
 
