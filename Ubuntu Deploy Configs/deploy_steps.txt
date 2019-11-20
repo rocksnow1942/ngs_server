@@ -29,16 +29,31 @@
     (check server_env.txt for details)
 
 6. edit .profile file: (or use nano editor)
-    $ echo "export FLASK_APP=microblog.py" >> ~/.profile
+    $ echo "export FLASK_APP=Aptitude_NGS.py" >> ~/.profile
 
 7. create mysql database:
-    mysql> create database DATABASE character set utf8 collate utf8_bin;
+    after install mysql, root password is empty and log in is based on auth_socket plugin.
+    to login, use 
+    $ sudo mysql -u root.
+    then you can update password by 
+    $ alter user 'root'@'localhost' identified with mysql_native_password by 'new-password';
+    restart mysql server:
+    sudo service mysql stop 
+    sudo service mysql start
+    mysql> create database DATABASE character set utf8mb4 collate utf8mb4_unicode_ci;
     If app not using existing user, create new user and grant privilege:
-    mysql> create user 'app-user'@'localhost' identified by '<db-password>';
+    mysql> create user 'ngs_server'@'localhost' identified by '<db-password>';
     mysql> grant all privileges on DATABASE.* to 'app-user'@'localhost';
     mysql> flush privileges;
     mysql> quit;
-
+    to create a remote user; 
+    create user 'myuser'@'%' identified by 'mypass';
+    grant all on *.* to 'myuser'@'%'; 
+    
+    to allow remote access:
+    in /etc/mysql/mysql.conf.d/mysqld.cnf 
+    bind-address = xxx.xxx.xxx.xxx
+    set to 0.0.0.0 if don't want to specify ip
     Then in activated project virtual environment,
     flask db init
     Flask db migrate
@@ -47,7 +62,7 @@
 8. Setup gunicorn under supervisor control:
     Install supervisor globally: if not already done so.
     Then edit supervisor configures (supervisor_setup folder for details.)
-    $ cd /etc/supevisor
+    $ cd /etc/supervisor
     Edit default supervisord.conf: 
     at line 22: to config own server.
     [inet_http_server]         ; inet (TCP) server disabled by default
