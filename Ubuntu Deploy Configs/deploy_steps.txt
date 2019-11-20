@@ -1,4 +1,4 @@
-1. install firewall ufw 
+1. install firewall ufw
     $ sudo apt-get install -y ufw
     $ sudo ufw allow ssh
     $ sudo ufw allow http
@@ -18,12 +18,12 @@
 
 4. create venv and install required python packages:
     $ python -m venv venv
-    $ source venv/bin/activate 
-    // to get gcc: run 
+    $ source venv/bin/activate
+    // to get gcc: run
     $ sudo apt-get -y install build-essential
     $ pip install -r requirements.txt
-    
-    $ pip install gunicorn pymysql 
+
+    $ pip install gunicorn pymysql
 
 5. create .env file user project folder:
     (check server_env.txt for details)
@@ -33,12 +33,12 @@
 
 7. create mysql database:
     after install mysql, root password is empty and log in is based on auth_socket plugin.
-    to login, use 
+    to login, use
     $ sudo mysql -u root.
-    then you can update password by 
+    then you can update password by
     $ alter user 'root'@'localhost' identified with mysql_native_password by 'new-password';
     restart mysql server:
-    sudo service mysql stop 
+    sudo service mysql stop
     sudo service mysql start
     mysql> create database DATABASE character set utf8mb4 collate utf8mb4_unicode_ci;
     If app not using existing user, create new user and grant privilege:
@@ -46,12 +46,12 @@
     mysql> grant all privileges on DATABASE.* to 'app-user'@'localhost';
     mysql> flush privileges;
     mysql> quit;
-    to create a remote user; 
+    to create a remote user;
     create user 'myuser'@'%' identified by 'mypass';
-    grant all on *.* to 'myuser'@'%'; 
-    
+    grant all on *.* to 'myuser'@'%';
+
     to allow remote access:
-    in /etc/mysql/mysql.conf.d/mysqld.cnf 
+    in /etc/mysql/mysql.conf.d/mysqld.cnf
     bind-address = xxx.xxx.xxx.xxx
     set to 0.0.0.0 if don't want to specify ip
     Then in activated project virtual environment,
@@ -63,7 +63,7 @@
     Install supervisor globally: if not already done so.
     Then edit supervisor configures (supervisor_setup folder for details.)
     $ cd /etc/supervisor
-    Edit default supervisord.conf: 
+    Edit default supervisord.conf:
     at line 22: to config own server.
     [inet_http_server]         ; inet (TCP) server disabled by default
     port=139.162.46.17:9001    ; ip_address:port specifier, *:port for all iface
@@ -73,23 +73,23 @@
     [include]
     files = /etc/supervisor/conf.d/*.conf
 
-    In /etc/supervisor/conf.d sub folder’s directory; 
+    In /etc/supervisor/conf.d sub folder’s directory;
     configure tasks want to be controlled.
     check supervisor folder for details.
-    
+
     run
     $ sudo supervisorctl reload
     To start or reload the process.
     if no such file or directory file: usr/lib/python2.7/socket.py
-    check the /etc/supervisor/supervisor.conf 
-    change 
+    check the /etc/supervisor/supervisor.conf
+    change
     [unix_http_server]
-    file=<path to supervisor.sock> sometimes it's in /tmp/supervisor.sock, sometimes its in /run/supervisor.sock 
-    also change 
+    file=<path to supervisor.sock> sometimes it's in /tmp/supervisor.sock, sometimes its in /run/supervisor.sock
+    also change
     [supervisorctl]
     serverurl=unix:///<path to superviosr.sock>
     To check status
-    $ sudo supervisorctl status all 
+    $ sudo supervisorctl status all
     Or go to 127.0.0.1:9001 to check. (with password and user name above.)
 
 9. create ssl certificate if need to use https://
@@ -100,7 +100,7 @@
     add sites configurations at /etc/nginx/sites-enabled
     (check Nginx folder for details)
     To start the nginx server with new configurations:
-    $ sudo service nginx reload 
+    $ sudo service nginx reload
 
 11. setup elastic search server:
     install elastic search (https://tecadmin.net/setup-elasticsearch-on-ubuntu/)
@@ -110,6 +110,7 @@
     then install elasticsearch through repo:
     $ sudo apt-get install apt-transport-https
     $ wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    $ sudo add-apt-repository "deb https://artifacts.elastic.co/packages/7.x/apt stable main"
     $ sudo apt-get update
     $ sudo apt-get install elasticsearch
     To configure elasticsearch:
@@ -125,7 +126,7 @@
     $ sudo systemctl enable elaticsearch.service
     (https://www.elastic.co/guide/en/elasticsearch/reference/2.1/setup-service.html)
 
-13. to automatically update from git: 
+13. to automatically update from git:
     run (ngs_shell_script)
 
 
@@ -134,26 +135,26 @@
         $ sudo systemctl disable systemd-resolved
         $ sudo systemctl stop systemd-resolved
         remove symlinked resolv.conf file.
-        $ ls -lh /etc/resolv.conf 
+        $ ls -lh /etc/resolv.conf
         lrwxrwxrwx 1 root root 39 Aug  8 15:52 /etc/resolv.conf -> ../run/systemd/resolve/stub-resolv.conf
         $ sudo rm /etc/resolv.conf
 
         to disable auto generated resolv.conf by NetworkManager:
         sudo vim /etc/NetworkManager/NetworkManager.conf
         then change dns=none
-        this will prevent is from doing weird updates to resolv.conf 
+        this will prevent is from doing weird updates to resolv.conf
         (/etc/NetworkManager/NetworkManager.conf)
 
         configure dnsmasq to listent to its ip address for dns request:
         (/etc/dnsmasq.conf)
         then start dnsmasq:
         $ sudo systemctl restart dnsmasq.service
-        
+
         add hosts file to a separate file, at the path in addn-hosts field from dnsmasq.conf file.
         (custom_hosts)
 
 
-15. setup PLOJO app .env files 
+15. setup PLOJO app .env files
     in ngs_server/app/APPS/.env
     BOKEH_ALLOW_WS_ORIGIN=www.ams.com,localhost:5006,ams.com,h-kang.com,www.h-kang.com,ams.c,www.ams.c,ams
 
@@ -165,12 +166,12 @@
     in supervisor gunicorn start up: change command to
         command=/home/hui/ngs_server/venv/bin/gunicorn -b localhost:8000 -w 4 --timeout 1200 Aptitude_NGS:app
 
-        
-        
+
+
 17. to use supervisord eventlistener, install following packages:
     pip install superlance
     then add supervisor conf.
-    
+
 18. to allow check database folder size:
-    run 
+    run
     sudo chmod a+rwx /var/lib/mysql
