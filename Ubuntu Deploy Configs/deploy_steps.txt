@@ -76,11 +76,18 @@
     In /etc/supervisor/conf.d sub folder’s directory; 
     configure tasks want to be controlled.
     check supervisor folder for details.
-
+    
     run
     $ sudo supervisorctl reload
     To start or reload the process.
-  
+    if no such file or directory file: usr/lib/python2.7/socket.py
+    check the /etc/supervisor/supervisor.conf 
+    change 
+    [unix_http_server]
+    file=<path to supervisor.sock> sometimes it's in /tmp/supervisor.sock, sometimes its in /run/supervisor.sock 
+    also change 
+    [supervisorctl]
+    serverurl=unix:///<path to superviosr.sock>
     To check status
     $ sudo supervisorctl status all 
     Or go to 127.0.0.1:9001 to check. (with password and user name above.)
