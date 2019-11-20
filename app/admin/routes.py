@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import glob,shutil,os,psutil
 from app.utils.common_utils import get_folder_size
 from app.main.routes import privilege_required
-from flask_user import roles_required
+
 
 @bp.route('/', methods=['GET', 'POST'])
 @login_required
@@ -47,14 +47,14 @@ def clear_trash():
             # delete fastq file
             os.remove(f)
             msg.append('Delete fastq: {}'.format(f))
-    
+
     # clean up analysis files:
     _af = current_app.config['ANALYSIS_FOLDER'] + '/'
     ana_folder = [ _af+ str(i.id) for i in Analysis.query.all()]
     ana_cf = glob.glob(_af+'*')
     for i in ana_cf:
         if i not in ana_folder:
-            # delete folder  
+            # delete folder
             shutil.rmtree(i)
             msg.append('Delete analysis folder: {}'.format(i))
     return render_template('admin/result.html', content=msg)
@@ -88,7 +88,7 @@ def clear_ppt_trash():
     """
     msg=[]
     try:
-        # clear project 
+        # clear project
         projects = [i for i in Project.query.all() if not i.ppts]
         for p in projects:
             db.session.delete(p)
@@ -126,7 +126,7 @@ def clear_ppt_trash():
         flash(str(e), 'danger')
         return render_template('admin/result.html', content=['Shit happened.']+msg)
     return render_template('admin/result.html', content=['Success.']+msg)
-    
+
 
 @bp.route('/reindex_ppt', methods=['GET', 'POST'])
 @privilege_required('admin')
@@ -168,7 +168,7 @@ def get_harddrive_usage():
 def get_access_log():
     hour = datetime.now().hour+1
     timepoints = [hour-i if (hour-i)>0 else (24 + hour-i) for i in range(23)]
-    data = [] 
+    data = []
     for t in timepoints:
         al = AccessLog.query.get(t)
         count = al.count if al else 0
