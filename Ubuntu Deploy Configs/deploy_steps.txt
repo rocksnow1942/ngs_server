@@ -132,6 +132,9 @@
 
 
 14. to setup dnsmasq: (https://www.computers.wtf/posts/dns-in-the-house-with-dnsmasq/)
+    0. install dnsmasq and dnsutils 
+        $ sudo apt install dnsmasq
+        $ sudo apt install dnsutils
     1. Ubuntu 18.04 comes with systemd-resolve which you need to disable since it binds to port 53 which will conflict with Dnsmasq port.
         $ sudo systemctl disable systemd-resolved
         $ sudo systemctl stop systemd-resolved
@@ -141,13 +144,14 @@
         $ sudo rm /etc/resolv.conf
 
         to disable auto generated resolv.conf by NetworkManager:
-        sudo vim /etc/NetworkManager/NetworkManager.conf
-        then change dns=none
+        sudo nano /etc/NetworkManager/NetworkManager.conf
+        then add dns=dnsmasq under [main]
         this will prevent is from doing weird updates to resolv.conf
         (/etc/NetworkManager/NetworkManager.conf)
 
         configure dnsmasq to listent to its ip address for dns request:
         (/etc/dnsmasq.conf)
+        copy the dnsmasq.conf file to /etc folder
         then start dnsmasq:
         $ sudo systemctl restart dnsmasq.service
 
