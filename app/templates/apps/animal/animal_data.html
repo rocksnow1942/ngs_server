@@ -157,6 +157,9 @@ white-space: nowrap; -->
                     form.html(result.form);
                     $(`#panel-title-${col[col.length - 1]}`).text(result.title);
                     $("#figure-" + col[col.length - 1]).html("")
+                };
+                if (result.msg) {
+                    display_flash_message(result.msg)
                 }
             }
         }) 

@@ -49,15 +49,14 @@ class Experiment(object):
         """
         self.path = path
         pa = pathlib.Path(path)
-        self.save_path = pa.parent.__str__()
-        self.name = pa.name
+        
         self.note = ""
         self.data = {}
         self.init_data()
         self.save_json()
 
     def save_json(self):
-        with open(os.path.join(self.save_path, self.name+'.json'), 'wt') as f:
+        with open(self.path+'.json', 'wt') as f:
             json.dump(self.__dict__, f, separators=(',', ':'))
 
     @classmethod
@@ -66,24 +65,98 @@ class Experiment(object):
             data = json.load(f)
         new = cls.__new__(cls)
         new.__dict__ = data
+        # each time loading, set the file and folder path again; incase file is being loaded on different systems. 
+        pa = pathlib.Path(file)
+        new.path=str(pa.parent/pa.stem)
+        new.name = pa.stem 
         return new
 
     def update(self):
-        self.init_data(update=True) 
-        self.save_json()
+        needupdate = self.init_data(update=True) 
+        needupdate = self.remove_dead_files() or needupdate
+        if needupdate:
+            self.remove_empty_data()
+            self.save_json()
+        
+    def remove_dead_files(self):
+        needupdate = False 
+        todelete = []
+        for l1,monkey in self.data.items():
+            for l2,eye in monkey.items():
+                for l3,measure in eye.items():
+                    if l3 in ('FP','OCT'):
+                        for l4,days in measure.items():
+                            newdays = [i for i in days if os.path.isfile(os.path.join(self.path, i))]
+                            if newdays != days:
+                                needupdate=True
+                                self.data[l1][l2][l3][l4]=newdays
+        return needupdate
 
+    def remove_empty_data(self):
+        days = [i for i in self.day_iterator() if not self.get_item(*i)]
+        for d in days:
+            self.get_item(*d[:-1]).pop(d[-1])
+            
+        measures = [i for i in self.measure_iterator() if not self.get_item(*i)]
+        for m in measures:
+            self.get_item(*m[:-1]).pop(m[-1])
+        eyes = [i for i in self.eye_iterator() if (
+            ('FP' not in self.get_item(*i).keys()) and ('OCT' not in self.get_item(*i).keys()))]
+        for e in eyes:
+            self.get_item(*e[:-1]).pop(e[-1])
+        monkeys = [i for i in self.monkey_iterator() if not self.get_item(i)]
+        for m in monkeys:
+            self.data.pop(m)
+
+    def get_item(self,*args):
+        result=self.data 
+        for i in args:
+            result=result.get(i)
+        return result 
+
+    def day_iterator(self):
+        for l1, monkey in self.data.items():
+            for l2, eye in monkey.items():
+                for l3, measure in eye.items():
+                    if l3 in ('FP', 'OCT'):
+                        for l4, days in measure.items():
+                            yield l1,l2,l3,l4
+
+    def measure_iterator(self):
+        for l1, monkey in self.data.items():
+            for l2, eye in monkey.items():
+                for l3, measure in eye.items():
+                    if l3 in ('FP', 'OCT'):
+                        yield l1,l2,l3
+
+    def eye_iterator(self):
+        for l1, monkey in self.data.items():
+            for l2, eye in monkey.items():
+                yield l1,l2 
+    
+    def monkey_iterator(self):
+        yield from self.data.keys()
+
+    def getitem(self,*args):
+        result=self.data
+        for i in args:
+            result = result.get(i)
+        return result
+                     
     def update_entry(self, monkey, eye, measure, day, data):
+        need_update=True
         if self.data.get(monkey, None) is None:
-            self.data[monkey] = {}
+            self.data[monkey] = {}    
         if self.data[monkey].get(eye, None) is None:
-            self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}
+            self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}    
         if self.data[monkey][eye][measure].get(day,None) is None:
-            self.data[monkey][eye][measure][day] = data # create new data 
+            self.data[monkey][eye][measure][day] = data # create new data     
         else:
             if set(data) == set(self.data[monkey][eye][measure][day]):
-                pass 
+                need_update = False
             else:
                 self.data[monkey][eye][measure][day] = data # if day is already there, decide if need to update. 
+        return need_update 
 
     def create_entry(self, monkey, eye, measure, day, data):
         if self.data.get(monkey, None) is None:
@@ -95,6 +168,7 @@ class Experiment(object):
 
     def init_data(self,update=False):
         homedir = pathlib.Path(self.path)
+        need_update=not update
         for root, folder, files in os.walk(self.path):
             pa = pathlib.Path(root)
             pa_parts = pa.parts
@@ -108,8 +182,8 @@ class Experiment(object):
                 L = [os.path.join(relative, i) for i in L]
                 R = [os.path.join(relative, i) for i in R]
                 if update:
-                    self.update_entry(monkey, 'L', 'FP', day, L)
-                    self.update_entry(monkey, 'R', 'FP', day, R)
+                    need_update = self.update_entry(monkey, 'L', 'FP', day, L)
+                    need_update = self.update_entry(monkey, 'R', 'FP', day, R)
                 else:
                     self.create_entry(monkey, 'L', 'FP', day, L)
                     self.create_entry(monkey, 'R', 'FP', day, R)
@@ -124,10 +198,10 @@ class Experiment(object):
                 data.sort()
                 data = [os.path.join(relative, i) for i in data]
                 if update:
-                    self.update_entry(monkey, eye, 'OCT', day, data)
+                    need_update = self.update_entry(monkey, eye, 'OCT', day, data)
                 else:
                     self.create_entry(monkey, eye, 'OCT', day, data)
-                    
+        return need_update          
 
     def list_animal(self):
         return list(self.data.keys())
@@ -142,7 +216,7 @@ class Experiment(object):
         exp_note = self.data.get(animal,{}).get(eye,{}).get('note','')
         measure = data.get('measure',exp_measure[0])
         exp_day =sorted([i for i in self.data.get(animal,{}).get(eye,{}).get(measure,{}).keys() ])
-        day = data.get('day',exp_day[0])
+        day = data.get('day', exp_day and exp_day[0])
         return dict(exp_animal=exp_animal,exp_eye=exp_eye,exp_measure=exp_measure,exp_note=exp_note,exp_day=exp_day,
                 exp=exp,animal=animal,eye=eye,measure=measure,day=day)
        

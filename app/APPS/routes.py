@@ -109,16 +109,19 @@ def animal_data():
 def animal_data_form():
     data_path = current_app.config['ANIMAL_DATA_PATH']
     data = {item['name']: item['value'] for item in request.json}
-    
+    messages=None
+    render_kw = {}
     try:
-        exp = Experiment.load_json(os.path.join(data_path,data['exp']+'.json'))
-        exp.update()
-        render_kw = exp.render_form_kw(data)
+        if data['exp'].strip():
+            exp = Experiment.load_json(os.path.join(data_path,data['exp'].strip()+'.json'))
+            exp.update()
+            render_kw = exp.render_form_kw(data)
     except Exception as e:
-        render_kw={}
+        messages = render_template('flash_messages.html', messages=[
+            ('warning', f"Loading error: {e}")])
     form = render_template('apps/animal/animal_data_form.html', **render_kw)
     title = f"{render_kw.get('animal')}-{render_kw.get('eye')}-{render_kw.get('measure')}-{render_kw.get('day')}"
-    return jsonify(form=form,title=title)
+    return jsonify(form=form,title=title,msg=messages)
 
 
 @bp.route('/animal_data_figure', methods=['POST'])
