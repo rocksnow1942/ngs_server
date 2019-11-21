@@ -92,7 +92,11 @@ class Experiment(object):
                                 self.data[l1][l2][l3][l4]=newdays
         return needupdate
 
-    def remove_empty_data(self):
+    def remove_empty_data(self): 
+        """
+        remove empty monkey or eye or measure or day dictionary
+        avoids dead link options. 
+        """
         days = [i for i in self.day_iterator() if not self.get_item(*i)]
         for d in days:
             self.get_item(*d[:-1]).pop(d[-1])
@@ -148,7 +152,9 @@ class Experiment(object):
         if self.data.get(monkey, None) is None:
             self.data[monkey] = {}    
         if self.data[monkey].get(eye, None) is None:
-            self.data[monkey][eye] = {'note': "", 'FP': {}, 'OCT': {}}    
+            self.data[monkey][eye] = {'note': ""}    
+        if self.data[monkey][eye].get(measure, None) is None:
+            self.data[monkey][eye][measure] = {}
         if self.data[monkey][eye][measure].get(day,None) is None:
             self.data[monkey][eye][measure][day] = data # create new data     
         else:
