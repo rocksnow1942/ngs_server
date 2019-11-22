@@ -96,6 +96,13 @@
 
 $(document).ready($(".question_tooltip").each(function() {$(this).tooltip()}) )
 
+   
+    // making progressbar when page first load.
+    $(document).ready(function () {
+      if ($(".progress-bar").length) {
+        update_progress_bar();
+      };
+    });
 
 </script>
 {% endblock %}

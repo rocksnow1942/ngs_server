@@ -309,10 +309,14 @@
                                 <p style='white-space:pre-wrap'>{{item['doc']}}</p>
                                 <p style='white-space:pre-wrap'><b>Call Signature:</b> {{item['signature']}}</p>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="the saved inputs from last execution">
+                                    <input type="text" class="form-control" id="{{item['name']}}-input" placeholder="{{analysis.advanced_result_call_para(item['name'])}}">
                                     <span class="input-group-btn">
-                                        <button class="btn btn-default" type="button">Run</button>
+                                        <button class="btn btn-default advanced_result_call" type="button" onclick="javascript:advanced_result_call('{{item['name']}}')">Run</button>
                                     </span>
+                                </div>
+                                <div class='result' id="{{item['name']}}-result">
+                                    <!-- if task in process display task progress bar -->
+                                   {% include "ngs/analysis_advanced_result.html" %}
                                 </div>
                         </div> 
                         <hr>
@@ -424,6 +428,36 @@
             })    
         }        
     });
+
+    function advanced_result_call (name) {
+        let input = $('#'+name+'-input').val();
+        console.log(input)
+        $.ajax({
+            url: "{{url_for('ngs.analysis_call_advanced')}}",
+            type: "POST",
+            data: JSON.stringify({name:name,para:input}),
+            contentType: "application/json"
+        }).done(function(result) {
+            console.log(result) 
+            /* 
+                first replace div name-result with progress bar template, rendered in server side. 
+                then  disable all run buttons ; this function should also be called when loading the page. 
+                then start a function, update the progress bar
+                when bar is done, replace name-result div with result. 
+                then re-enable run button. 
+            */
+        })
+    }
+
+    function disable_advanced_result_call (mode) {
+        $('.advanced_result_call').attr('disabled',mode)
+    }
+
+    $(document).ready(function () {
+        if ($('.progress-bar').length) {
+            disable_advanced_result_call(true)
+        }
+    })
 
 
 </script>

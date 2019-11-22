@@ -68,8 +68,43 @@
 {{super()}}
 <script src="{{url_for('static',filename='js/ngs.js')}}"></script>
 <script>
-    function update_progress_bar() {
-      let interval=setInterval(function () {
+  
+  function update_progress_bar() {
+    let interval = setInterval(function () {
+      var barlist = [];
+      $('.progress-bar').each(function () {
+        barlist.push(this.id);
+      });
+      // make ajax request to get  progress info
+      $.ajax({
+        url: "{{ url_for('ngs.get_bar_progress')}}",
+        type: "POST",
+        data: JSON.stringify({ barlist: barlist }),
+        contentType: 'application/json',
+        success: function (result) {
+          let alldone = true;
+          for (let [barid, progress] of Object.entries(result)) {
+            set_bar_progress(barid, progress);
+            if (progress < 100) { alldone = false };
+          };
+          // break out set interval if all done.
+          if (alldone) { clearInterval(interval); window.location.reload() };
+        },
+        error: function (xhr, resp, text) {
+          console.log(xhr, resp, text);
+        }
+      });
+    }, 500);
+  };
+
+// set badge count
+function set_analysis_count_badge(result) {
+  $('#analysis_cart_count').html(result['analysis_count']);
+  $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
+}
+
+ function update_progress_bar() {
+      let interval = setInterval(function () {
         var barlist = [];
         $('.progress-bar').each(function () {
           barlist.push(this.id);
@@ -84,10 +119,10 @@
             let alldone = true;
             for (let [barid, progress] of Object.entries(result)) {
               set_bar_progress(barid, progress);
-              if (progress<100){alldone=false};
+              if (progress < 100) { alldone = false };
             };
             // break out set interval if all done.
-            if (alldone) {clearInterval(interval);window.location.reload()};
+            if (alldone) { clearInterval(interval); window.location.reload() };
           },
           error: function (xhr, resp, text) {
             console.log(xhr, resp, text);
@@ -95,21 +130,6 @@
         });
       }, 500);
     };
-
-    
-// making progressbar when page first load.
-  $(document).ready(function () {
-      if ($(".progress-bar").length) {
-        update_progress_bar();
-      };
-    });
-
-// set badge count
-function set_analysis_count_badge(result) {
-  $('#analysis_cart_count').html(result['analysis_count']);
-  $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
-}
-
 
 // change synthesis status.
 function add_sequence_to_synthesis(id) {

@@ -625,9 +625,6 @@ def get_selection_tree_json():
     return jsonify(dict(tree=sele.json_tree(),))
 
 
-
-
-
 @bp.route('/save_tree', methods=['POST'])
 @login_required
 def save_tree():
@@ -677,3 +674,9 @@ def add_sequence_to_synthesis():
     return jsonify(html=render_template('flash_messages.html', messages=messages),status=status,note=note)
 
 
+@bp.route('/analysis_call_advanced',methods=['POST'])
+@login_required
+def analysis_call_advanced():
+    print(request.json)
+
+    return 'helloe'

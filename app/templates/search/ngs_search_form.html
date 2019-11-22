@@ -42,6 +42,8 @@ $(document).ready(function () {
     $("#search_field option").each(function () { option.push($(this).val()) });
     if (option.includes(table)) {
         $("#search_field").val(table);
+    } else if (table == 'sequence_round') {
+        $("#search_field").val('sequence')
     };
 });
 

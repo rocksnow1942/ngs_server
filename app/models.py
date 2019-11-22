@@ -238,7 +238,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     heatmap=data_string_descriptor('heatmap','')()
     # Order: name, name_link, Seq Iddisplay, Seq Id link, (display,s.id, )
     cluster_table = data_string_descriptor('cluster_table', [])()
-    
+    advanced_result=data_string_descriptor('advanced_result',{})()
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
@@ -246,16 +246,24 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def haschildren(self):
         return (current_user.id!=self.user_id)
 
-    # @property
-    # def analysis_file_link(self):
-    #     parent = current_app.config['ANALYSIS_FOLDER']
-    #     return self.analysis_file.replace(parent,'')[1:]
-    
-    # @property
-    # def pickle_file_link(self):
-    #     parent = current_app.config['ANALYSIS_FOLDER']
-    #     return self.analysis_file.replace(parent, '')[1:]
+    def advanced_result_call_para(self,name):
+        result = self.advanced_result.get(name,{}).get('input',None)
+        if result==None:
+            return 'This function has never been called.'
+        return result
 
+    def advanced_result_task_progress(self,name):
+        return self.advanced_result.get(name,{}).get('output', {}).get('task',None) 
+    
+    def advanced_result_text(self,name):
+        return self.advanced_result.get(name, {}).get('output', {}).get('text', [])
+    
+    def advanced_result_file(self, name):
+        return self.advanced_result.get(name, {}).get('output', {}).get('file', [])
+    
+    def advanced_result_img(self, name):
+        return self.advanced_result.get(name, {}).get('output', {}).get('img', [])
+    
     @property
     def rounds(self):
         return [Rounds.query.get(i) for i in self._rounds]

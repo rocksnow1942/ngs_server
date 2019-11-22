@@ -1,0 +1,21 @@
+{% if analysis.advanced_result_task_progress(item['name']) %}
+<div class="progress ">
+    <div class="progress-bar progress-bar-striped active"
+        id="{{'task:'+ analysis.advanced_result_task_progress(item['name'])}}" role="progressbar" aria-valuenow="0"
+        aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+    {% endif %}
+    {% for text in analysis.advanced_result_text(item['name']) %}
+    <p style='white-space:pre-wrap'>{{text}}</p>
+    {% endfor %}
+
+    {% for imgage in analysis.advanced_result_img(item['name']) %}
+    <img src="{{url_for('apps.analysis_data',filename=image,)}}" class="img-responsive" alt="{{image}}">
+    {% endfor %}
+
+    {% for file in analysis.advanced_result_file(item['name']) %}
+    <h5><a href="{{url_for('ngs.analysis_data',filename=file)}}"> Download {{item['name']}} result {{loop.index}}</a>
+    </h5>
+    {% endfor %}
+
+
+    

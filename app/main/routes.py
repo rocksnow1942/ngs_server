@@ -5,7 +5,7 @@ from datetime import datetime
 from app.main import bp
 from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary , SeqRound,Project,PPT,Sequence,Task
 from flask import g
-from app.main.forms import SearchNGSForm, SearchInventoryForm, TestForm, SearchPPTForm,UserSettingForm
+from app.main.forms import SearchNGSForm, SearchPPTForm,UserSettingForm
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps,reverse_comp,validate_sequence
 from sqlalchemy import or_,func
@@ -19,7 +19,6 @@ from inspect import signature
 @bp.before_app_request
 def before_request():
     formdict = {'NGS': SearchNGSForm,
-                'FOLD': SearchInventoryForm, 'INVENTORY': SearchInventoryForm,
                 'PPT':SearchPPTForm}
     root = urlparse(request.url).path.split('/')[1]
     formtype = root.upper() if root != 'search' else request.args.get(
