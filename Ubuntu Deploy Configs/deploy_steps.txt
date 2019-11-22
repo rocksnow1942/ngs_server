@@ -126,13 +126,13 @@
     $ sudo systemctl enable elaticsearch.service
     (https://www.elastic.co/guide/en/elasticsearch/reference/2.1/setup-service.html)
 
-13. to automatically update from git: 
-    put script in usr/local/bin 
+13. to automatically update from git:
+    put script in usr/local/bin
     run (ngs_shell_script)
 
 
 14. to setup dnsmasq: (https://www.computers.wtf/posts/dns-in-the-house-with-dnsmasq/)
-    0. install dnsmasq and dnsutils 
+    0. install dnsmasq and dnsutils
         $ sudo apt install dnsmasq
         $ sudo apt install dnsutils
     1. Ubuntu 18.04 comes with systemd-resolve which you need to disable since it binds to port 53 which will conflict with Dnsmasq port.
@@ -180,3 +180,9 @@
 18. to allow check database folder size:
     run
     sudo chmod a+rwx /var/lib/mysql
+
+19. to enable open ssh
+    $ sudo apt update
+    $ sudo apt install openssh-server
+    then connect by
+    ssh username@ip address of server
