@@ -532,13 +532,15 @@ class AccessLog(db.Model):
     __tablename__ = 'accesslog'
     id = Column(db.Integer, primary_key=True)
     count = Column(db.Integer)
+    date = Column(DateTime(), default=datetime.now)
 
     def add_count(self):
         self.count+=1 
+        self.date = datetime.now()
         n=self.id + 1 if self.id<24 else 1
         nx=AccessLog.query.get(n)
         if nx:
-            nx.count=0 
+            nx.count=0  
         else:
             db.session.add(AccessLog(id=n,count=0))
     

@@ -166,11 +166,17 @@ def get_harddrive_usage():
 
 @bp.route('/get_access_log', methods=['POST'])
 def get_access_log():
-    hour = datetime.now().hour+1
+    now = datetime.now()
+    hour =now.hour+1
+    day = now.day
     timepoints = [hour-i if (hour-i)>0 else (24 + hour-i) for i in range(23)]
     data = []
     for t in timepoints:
         al = AccessLog.query.get(t)
+        if al:
+            if day - (al.date and al.date.day or 0) > 1:
+                al.count = 0
         count = al.count if al else 0
         data.append({'time':t,'value':count})
+    db.session.commit()
     return jsonify(data[::-1])
