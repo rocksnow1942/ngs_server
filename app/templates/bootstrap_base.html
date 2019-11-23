@@ -12,13 +12,17 @@
 
     {%- block styles %}
     <!-- Bootstrap -->
-    <link href="{{bootstrap_find_resource('css/bootstrap.css', cdn='bootstrap')}}" rel="stylesheet">
+    <link href="{{url_for('static',filename='css/bootstrap.min.css')}}" rel="stylesheet">
     {%- endblock styles %}
     {%- endblock head %}
     
     {% block base_scripts %}
-    <script src="{{bootstrap_find_resource('jquery.js', cdn='jquery')}}"></script>
-    <script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script>
+    <script src="{{url_for('static',filename='js/jquery-3.4.1.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/jquery-ui.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script>
+
+    <!-- <script src="{{bootstrap_find_resource('jquery.js', cdn='jquery')}}"></script>
+    <script src="{{bootstrap_find_resource('js/bootstrap.js', cdn='bootstrap')}}"></script> -->
     {%- endblock base_scripts %}
    
   </head>

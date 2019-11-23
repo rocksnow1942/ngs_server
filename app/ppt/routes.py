@@ -20,7 +20,7 @@ def remove_thurmbnail_from_url(url):
 
 @bp.after_request
 def add_header(response):
-    response.cache_control.max_age = 60
+    response.cache_control.max_age = 15
     return response
 
 @bp.route('/', methods=['GET', 'POST'])
