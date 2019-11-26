@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField,TextAreaField,FieldList,FormField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField,TextAreaField,FieldList,FormField,HiddenField
 from wtforms.validators import DataRequired, ValidationError, Email, EqualTo,Length,Optional
 from app.models import Selection, Rounds, Primers, NGSSampleGroup, NGSSample, KnownSequence, SeqRound, Sequence
 from app import db
@@ -271,9 +271,10 @@ class Known_Sequence_Add(FlaskForm):
 class Sequence_Round_Edit(FlaskForm):
     rd = StringField('Round', render_kw=dict(disabled=''))
     ct = StringField('Count', render_kw=dict(disabled=''))
+    ks_seq = HiddenField()
     sequence = StringField('Sequence',render_kw=dict(disabled=''))
     ks_sequence = StringField('Known As Sequence', render_kw=dict(disabled=''))
-    knownas = StringField('Known As', render_kw=dict(placeholder='Parent Round Name', list='known_sequence'),
+    knownas = StringField('Known As', render_kw=dict(placeholder='Aptamer name (Different sequence can be labeled as the same aptamer)', list='known_sequence'),
                           validators=[Length(min=0, max=50)])
     note = StringField('Note',render_kw=dict(placeholder='Note, (Optional)',list='common_note'))
                           
@@ -286,7 +287,7 @@ class Sequence_Round_Edit(FlaskForm):
     def load_obj(self,id):
         sr = SeqRound.query.get(id)
         if sr:
-            self.sequence.data = sr.sequence.aptamer_seq
+            self.ks_seq.data=self.sequence.data = sr.sequence.aptamer_seq
             self.rd.data = sr.round.round_name
             self.ct.data = sr.count
             self.knownas.data = sr.sequence.knownas and sr.sequence.knownas.sequence_name
@@ -297,6 +298,9 @@ class Sequence_Round_Edit(FlaskForm):
         sr = SeqRound.query.get(id)
         ks = KnownSequence.query.filter_by(sequence_name=self.knownas.data).first()
         if sr:
+            if ks:
+                if not ks.target:
+                    ks.target = sr.round.target
             sq = sr.sequence
             sq.knownas = ks
             sq.note = self.note.data
@@ -304,12 +308,22 @@ class Sequence_Round_Edit(FlaskForm):
                 sq.date = datetime.now()
     
     def validate_knownas(self,knownas):
+        #TODO
+        # istead of raise validation error, create a new aptamer object and save. 
         if knownas.data == '':
             return 0
         ks = KnownSequence.query.filter_by(
             sequence_name=knownas.data).first()
         if not ks:
-            raise ValidationError('Aptamer {} is not created.'.format(knownas.data))
+            ks= KnownSequence.query.filter_by(rep_seq=self.ks_seq.data).first() 
+            if (not ks): 
+                ks = KnownSequence(sequence_name=knownas.data, rep_seq=self.ks_seq.data, note=self.note.data)
+                db.session.add(ks)
+                return 0
+            else:
+                raise ValidationError(f'Sequence "{ks.rep_seq}" is already named <{ks.sequence_name}>.')
+        
+            # raise ValidationError('Aptamer {} is not created.'.format(knownas.data))
 
             
 

@@ -1182,7 +1182,8 @@ class Project(db.Model):
     def uri(self):
         # self.ppts.sort(key=lambda x: x.date, reverse=True)
         if self.ppts:
-            return self.ppts[0].uri
+            self.ppts.sort(key=lambda x: x.date,)
+            return self.ppts[-1].uri
         else:
             return 'FolderEmpty.png'
 
