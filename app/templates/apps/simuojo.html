@@ -6,10 +6,10 @@
 
 
 {% block app_content %}
-<div align='center'>
-    <div align='left' style='position: relative;margin:auto;' id="embeded_bokeh">
+
+    <div  id="embeded_bokeh">
 {{script|safe}}
-    </div>
+   
 </div>
 <datalist id='usernamelist'>
     <option value="{{current_user.username}}"></option>
@@ -60,7 +60,10 @@
                 $("#embeded_bokeh").html(
                     `<h1>Load Application Failed ! &#128565;</h1>
                 <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
-            } };},3000);
+            } } else {
+                $('.bk-root').children().css('margin','auto');
+            }
+            ;},3000);
     }
     )
 
