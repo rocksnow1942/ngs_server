@@ -7,8 +7,9 @@
 
 {% block app_content %}
 <div align='center' id="embeded_bokeh">
-    <div align='left'>
+    <div align='left' id="embeded_bokeh">
 {{script|safe}}
+    </div>
     </div>
 <datalist id='usernamelist'>
     <option value="{{current_user.username}}"></option>
