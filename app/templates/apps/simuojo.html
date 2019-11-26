@@ -60,14 +60,14 @@
                 $("#embeded_bokeh").html(
                     `<h1>Load Application Failed ! &#128565;</h1>
                 <img src="{{url_for('static',filename='images/loadfailed.gif')}}" class="img-responsive" alt="Responsive image">`)
-            } } else {
-                $('.bk-root').children().css('margin','auto');
-            }
+            } } 
             ;},3000);
     }
     )
 
-   
+  $(document).ready(function(){
+      $('.bk-root').children().css('margin', 'auto')
+  }) 
 
 </script>
 {% endblock %}
