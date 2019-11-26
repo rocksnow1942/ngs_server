@@ -6,8 +6,7 @@
 
 
 {% block app_content %}
-
-    <div  id="embeded_bokeh">
+<div id="embeded_bokeh" style="margin:auto;max-width: 1200px;">
 {{script|safe}}
    
 </div>
@@ -31,14 +30,14 @@
         $("#embeded_bokeh").children().each(function(){
             let id= $(this).attr('class');
         if (id || count>=10) {
-            if (id){result=true;console.log('id loaded')};
+            if (id){result=true;};
 
             let count2 = 0;
             var interval2 = setInterval(function () {
                 count2 += 1;
                 
                 if ($("input[placeholder='username']").attr('list')=='usernamelist' || count2 >= 20) {
-                    console.log('namelist attached.')
+                    
                     clearInterval(interval2);
                 }
                 $("input[placeholder='username']").attr('list', 'usernamelist');
@@ -55,7 +54,7 @@
     
 
        setTimeout(function() {if (!result){
-           console.log(result);
+           
             if (!result) {
                 $("#embeded_bokeh").html(
                     `<h1>Load Application Failed ! &#128565;</h1>
@@ -65,9 +64,7 @@
     }
     )
 
-  $(document).ready(function(){
-      $('.bk-root').children().css('margin', 'auto')
-  }) 
+  
 
 </script>
 {% endblock %}

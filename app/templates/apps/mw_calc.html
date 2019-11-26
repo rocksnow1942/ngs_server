@@ -3,43 +3,113 @@
 
 {% block app_content %}
 
+<div style='margin:auto;max-width: 1200px;'>
 <div>
-    <h1 align='center'>Molecular Weight Calculator</h1>
+    <h1 align='center' style="font-family: cursive;">Molecular Weight Calculator</h1>
 </div>
 
 
 <div class='form-group'>
-    <label for="sequence" class='control-label'>Enter Sequence:</label>
+    <label for="sequence" class='control-label'>Enter Sequence: <span id="sequence_info"></span></label>
     <textarea class="form-control sequence input" id="sequence" name="sequence" placeholder="Enter Sequence Here"
         style="height: 200px"></textarea>   
 </div>
 
 <div class = 'sequence'>
-    <h4 id='result'>M.W.: 0</h4>
+    <h3 id='result'>M.W.: 0</h3>
 </div>
 
-<ul >
-    <li>Z: amino-C6</li>
-    <li>B: 5'-biotin</li>
-    <li>A,T,G,C: 2'F A,U,G,C</li>
-</ul>
+<div class='row' style='font-family: monospace;'>
+    <div class='col-xs-3'>
+        <ul>
+            <li>Z: 5'-aminoC6, 179.1514</li>
+            <li>B: 5'- biotin, 405.4446</li>
+            <li>ATGC: 2'F    AUGC</li>
+            <li>atgc: 2'O-Me AUGC</li>
+        </ul>
+    </div>
+    <div class='col-xs-3'>
+        <ul>
+            <li>2'F A: 331.1975</li>
+            <li>2'F U: 308.1576</li>
+            <li>2'F C: 307.1728</li>
+            <li>2'F G: 347.1963</li>
+        </ul>
+    </div>
+    <div class='col-xs-3'>
+        <ul>
+            <li>2'O-Me A:343.2323</li>
+            <li>2'O-Me U:320.1924</li>
+            <li>2'O-Me C:319.2076</li>
+            <li>2'O-Me G:359.2311</li>
+        </ul>
+    </div>
+    <div class='col-xs-3'>
+        <ul>
+            <li>DMT: +302.3638</li>
+            <li>MMT: +272.3384</li>
+        </ul>
+    </div>
+</div>
+
+<div id='extra_result'>
+
+</div>
+
+</div>
+
+
+
 
 
 <script>
 
 $(document).on("change","#sequence",function(event) {
-    let seq = $(event.target).val().split(' ').join('').split('\n').join('').toUpperCase();
-    let nt_weight = {'A':331.19748,'T': 308.15758,'C':307.17278,'G':347.19628,'Z':179.151422,'B':405.444582}; // m.w. of 2'f NMP-H2O
-    let mw = 0;
-    Object.keys(nt_weight).forEach(function(key){
-        let reg = new RegExp(key,'g');
-        mw += (seq.match(reg) || []).length * nt_weight[key]
-    });
-    mw -= 61.971762 // + H2O - HPO3
-    $('#result').text(`M.W.: ${mw.toFixed(3)}`)
+    let seq = $(event.target).val().split(' ').join('').split('\n').join('');
+    $('#sequence_info').text(` Length: ${seq.length} n.t.`);
+    $('#sequence').val(seq);
+     // + H2O - HPO3
+    let mw = mw_calculator(seq);
+    $('#result').text(`M.W.: ${mw.toFixed(3)}`); 
+    $('#extra_result').html(`
+<h3 align='center' style='font-family: monospace;'>Possible Byproduct M.W.</h3>
+<div class='row' style='font-family: monospace;'>
+<div class='col-xs-3'>
+    <ul>
+        <li>n-1: ${ mw_calculator(seq.slice(1,seq.length)).toFixed(3) }</li>
+        <li>n-2: ${ mw_calculator(seq.slice(2,seq.length)).toFixed(3) }</li>
+        <li>n-3: ${ mw_calculator(seq.slice(3,seq.length)).toFixed(3) }</li>
+        <li>n-4: ${ mw_calculator(seq.slice(4,seq.length)).toFixed(3) }</li>
+        <li>n-5: ${ mw_calculator(seq.slice(5,seq.length)).toFixed(3) }</li>
+    </ul>
+</div>
+<div class='col-xs-3'>
+    <ul>
+        <li>+DMT: ${(mw + 302.3638).toFixed(3) }</li>
+        <li>+MMT: ${ (mw + 272.3384).toFixed(3) }</li>
+        <li>+Ac : ${ (mw + 42.0361).toFixed(3)}</li>
+        
+    </ul>
+</div>    
+</div>     
+        `)
 
     
 })
+
+function mw_calculator(seq) {
+    let nt_weight = {
+        'A': 331.19748, 'T': 308.15758, 'C': 307.17278, 'G': 347.19628, 'Z': 179.151422, 'B': 405.444582,
+        'a': 343.232297, 't': 320.192397, 'c': 319.207597, 'g': 359.231097,
+    }; // m.w. of 2'f NMP-H2O
+    let mw = 0;
+    Object.keys(nt_weight).forEach(function (key) {
+        let reg = new RegExp(key, 'g');
+        mw += (seq.match(reg) || []).length * nt_weight[key]
+    });
+    mw -= 61.971762;
+    return mw
+}
 
 </script>
 
