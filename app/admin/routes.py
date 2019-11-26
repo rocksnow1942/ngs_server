@@ -160,7 +160,7 @@ def get_harddrive_usage():
     total, used, free = shutil.disk_usage("/")
     disk = round(100*used/total,2)
     db = get_folder_size(current_app.config['DATABASE_FOLDER'])
-    return jsonify(dict(disk=max(disk,30), diskusage=f"{round(used/2**30,2)}GB / {total//2**30}GB",
+    return jsonify(dict(disk=disk, diskusage=f"{round(used/2**30,2)}GB / {total//2**30}GB",
                         database=max(round(100*db/used, 2), 15), dbusage=f"{round(db/2**30,2)}GB"))
 
 
