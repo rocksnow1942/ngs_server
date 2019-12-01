@@ -185,7 +185,7 @@
     $ sudo apt update
     $ sudo apt install openssh-server
     then connect by
-    ssh username@ip address of server
+    ssh username@ip address of server  or the DNS name of that ip address
 
 20. backup and restore mysql server data 
     $ sudo apt-get install automysqlbackup
