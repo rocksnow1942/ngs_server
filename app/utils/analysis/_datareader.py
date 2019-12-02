@@ -15,7 +15,7 @@ import textwrap
 from inspect import signature
 from datetime import datetime
 from matplotlib.figure import Figure
-
+from app.tasks.ngs_data_processing import _set_task_progress
 """
 Note:
 if alignscore is used as a condition, filter will not scan all tree nodes.
@@ -29,6 +29,8 @@ Modified for advanced use on 20191201
 
 datareader_API = []
 datareader_API_dict = {}
+
+progress_callback=_set_task_progress
 
 def register_API(multithread=False):
     def decorator(func):
@@ -130,7 +132,7 @@ class DataReader(Reader):
         zero=zero.loc[zero==0].index.tolist()
         self.df.drop(labels=zero,inplace=True,axis=1)
 
-    def load_from_ngs_server(self,rounds,callback=None):
+    def load_from_ngs_server(self, rounds, callback=None):
         """
         loads data from ngs server to a dataframe.
         rounds: list of round names to load
@@ -353,7 +355,7 @@ class DataReader(Reader):
         return ["{self.datestamp} Current DataFrame: \n {self.df.head()}\n"],
 
     @register_API(True)
-    def df_cluster(self, distance=5, cutoff=(35, 45), count_thre=1, clusterlimit=5000, findoptimal=False, callback=None, savepickle=True) -> "text,file":
+    def df_cluster(self, distance=5, cutoff=(35, 45), count_thre=1, clusterlimit=5000, findoptimal=False, callback=progress_callback, savepickle=True) -> "text,file":
         """
         STEP 1: Cluster sequence in Raw dataframe.
         count_thre: threshold of read to be included.
@@ -382,7 +384,7 @@ class DataReader(Reader):
         return [f'{self.datestamp} Cluster Done. \n {self.processing_para}'], [self.relative_path(savename)]
 
     @register_API(True)
-    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None,savepickle=True) ->"text,file":
+    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=progress_callback,savepickle=True) ->"text,file":
         """
         STEP 2: Align sequences in each cluster.
         In cluster_para, define following parameters for in cluster align
@@ -401,7 +403,7 @@ class DataReader(Reader):
         return [f"{self.datestamp} In cluster align done. \n {self.processing_para}"], [self.relative_path(savename)]
 
     @register_API(True)
-    def build_tree_and_align(self, align_para={'offset': True, 'k': 4, 'count': True, 'gap': 4, 'gapext': 1, 'distance': 'hybrid_distance'}, callback=None, savepickle=True) -> "text,file":
+    def build_tree_and_align(self, align_para={'offset': True, 'k': 4, 'count': True, 'gap': 4, 'gapext': 1, 'distance': 'hybrid_distance'}, callback=progress_callback, savepickle=True) -> "text,file":
         """
         STEP 3: Build a tree based on cluster distance by neighbor join and align all clusters together.
         In align_para, define following parameters:
@@ -762,8 +764,8 @@ class DataReader(Reader):
         elif isinstance(seq,list):
             return [(self.translate(i[0]),)+i[1:] for i in seq]
 
-    @register_API()
-    def search_sequence(self,query="AGCAG",threshold=5,reverse=False,method='lev_distance',scope='cluster',callback=None,**kwargs)->"text":
+    @register_API(True)
+    def search_sequence(self,query="AGCAG",threshold=5,reverse=False,method='lev_distance',scope='cluster',callback=progress_callback,**kwargs)->"text":
         """
         find alignment that match a pattern by its distance to query sequence,
         search scope is within cluster.
@@ -1661,7 +1663,7 @@ class DataReader(Reader):
             return fig
 
     @register_API(True)
-    def plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,callback=None) -> "img,file,text":
+    def plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,callback=progress_callback) -> "img,file,text":
         """
         plt heatmap of cluster percentage in all rounds.
         condition: refer to filter for details. 

@@ -421,12 +421,7 @@ class Primers(db.Model, BaseDataModel):
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
 
-    def align(self, query):
-        align = Alignment(self.sequence)
-        align = align.align(query)
-        return align.format(link=True, maxlength=95).split('\n')
-
-
+   
     def display(self):
         l1 = f"{self.name}"
         l2 = f"{self.sequence}"
