@@ -355,7 +355,7 @@ class DataReader(Reader):
     @register_API(True)
     def df_cluster(self, distance=5, cutoff=(35, 45), count_thre=1, clusterlimit=5000, findoptimal=False, callback=None, savepickle=True) -> "text,file":
         """
-        cluster sequence in Raw dataframe.
+        STEP 1: Cluster sequence in Raw dataframe.
         count_thre: threshold of read to be included.
         cluster limit is the maximum numbers of clusters will allow.
         findoptimal: set to True to search all clusters and find closest cluster for an incoming sequence.
@@ -384,7 +384,8 @@ class DataReader(Reader):
     @register_API(True)
     def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None,savepickle=True) ->"text,file":
         """
-        within cluster_para, define following parameters for in cluster align
+        STEP 2: Align sequences in each cluster.
+        In cluster_para, define following parameters for in cluster align
         offset: whether shift sequence back and forth to find best alignment.
         k: for use in kmmer distance to determine offset value
         count:  consider sequence count weight during alignment
@@ -402,8 +403,8 @@ class DataReader(Reader):
     @register_API(True)
     def build_tree_and_align(self, align_para={'offset': True, 'k': 4, 'count': True, 'gap': 4, 'gapext': 1, 'distance': 'hybrid_distance'}, callback=None, savepickle=True) -> "text,file":
         """
-        Align all clusters together by neighbor join.
-        within align_para, define following parameters:
+        STEP 3: Build a tree based on cluster distance by neighbor join and align all clusters together.
+        In align_para, define following parameters:
         offset: whether shift sequence back and forth to find best alignment.
         k: for use in kmmer distance to determine offset value
         count:  consider sequence count weight during alignment
@@ -484,6 +485,7 @@ class DataReader(Reader):
     @register_API(True)
     def df_trim(self,  savepickle=True) -> "text,file":
         """
+        STEP 4: Clean up raw dataframe for later calculations. 
         Remove unused sequence from df. rename and group sequence based on their cluster name.
         calculate the percentage of each joint and append to df.
         df index will be align name like C1 or J1. 
