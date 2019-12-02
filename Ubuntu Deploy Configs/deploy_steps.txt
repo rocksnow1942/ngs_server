@@ -4,8 +4,9 @@
     $ sudo ufw allow http
     $ sudo ufw allow 443/tcp
     $ sudo ufw --force enable
-    $ sudo ufw status
+    $ sudo ufw status / status numbered
     to delete a rule: sudo ufw delete ssh
+    sudo ufw -h
 
 2. install required services: [redis], [msql-server], [supervisor], [nginx], [git]
     $ sudo apt-get -y update
@@ -186,10 +187,12 @@
     $ sudo apt install openssh-server
     then connect by
     ssh username@ip address of server
+    sudo systemctl status ssh
+    sudo systemctl restart ssh
 
-20. backup and restore mysql server data 
+20. backup and restore mysql server data
     $ sudo apt-get install automysqlbackup
-    $ sudo automysqlbackup # to run a manual backup 
-    $ sudo nano /etc/default/automysqlbackup # to edit settings 
-    backup folder is in BACKUPDIR 
-    MDBNAMES is the name to back up. set to "mysql ngs_server" to only backup this table. 
+    $ sudo automysqlbackup # to run a manual backup
+    $ sudo nano /etc/default/automysqlbackup # to edit settings
+    backup folder is in BACKUPDIR
+    MDBNAMES is the name to back up. set to "mysql ngs_server" to only backup this table.

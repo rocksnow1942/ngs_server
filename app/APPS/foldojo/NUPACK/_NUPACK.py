@@ -42,7 +42,7 @@ if systemname.startswith('huis-mac-mini'):
 elif systemname.startswith('huis-mbp'):
     os.environ['NUPACKHOME']='/Users/hui/Documents/Scripts/plojo_app/foldojo/NUPACK/nupack3.0.6'#os.path.join(filepath,'nupack3.0.6')
 else:
-    os.environ['NUPACKHOME']='/home/hui/Documents/linux_RNApackages/nupack3.0.6'#os.path.join(filepath,'nupack3.0.6')
+    os.environ['NUPACKHOME']='/home/hui/ngs_server/app/APPS/foldojo/NUPACK/nupack3.0.6'#os.path.join(filepath,'nupack3.0.6')
 
 # filepath=os.path.dirname(__file__)
 # os.environ['PATH']+=(':'+filepath)
