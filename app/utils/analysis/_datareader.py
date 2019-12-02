@@ -15,7 +15,7 @@ import textwrap
 from inspect import signature
 from datetime import datetime
 from matplotlib.figure import Figure
-from app.tasks.ngs_data_processing import _set_task_progress
+
 """
 Note:
 if alignscore is used as a condition, filter will not scan all tree nodes.
@@ -30,7 +30,8 @@ Modified for advanced use on 20191201
 datareader_API = []
 datareader_API_dict = {}
 
-progress_callback=_set_task_progress
+def progress_callback(*args,**kwargs):
+    pass
 
 def register_API(multithread=False):
     def decorator(func):
