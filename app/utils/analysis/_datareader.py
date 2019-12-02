@@ -1226,13 +1226,15 @@ class DataReader(Reader):
     #     return _
 
     @register_API()
-    def set_round_order(self,neworder=[]) -> "text":
+    def set_round_order(self,neworder=[],savepickle=True) -> "text":
         """
         rearrange round order by providing the new order of rounds.
         """
         assert set(neworder)==set(self.list_all_rounds()),('Must enter all rounds.')
         new = ['sum_count'] +neworder+[i+'_per' for i in neworder]
         self.df = self.df.loc[:,new]
+        if savepickle:
+            self.save_pickle()
         return [f"Generated on {self.datestamp}"]+[f"Round order changed to {neworder}"]
 
     @register_API()
