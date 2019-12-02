@@ -30,13 +30,12 @@ Modified for advanced use on 20191201
 datareader_API = []
 datareader_API_dict = {}
 
-def progress_callback(*args,**kwargs):
-    pass
+progress_callback = "progress_callback"
 
 def register_API(multithread=False):
     def decorator(func):
         sig = signature(func)
-        para = str(sig).replace('self, ', "") 
+        para = str(sig).replace('self, ', "").replace("'progress_callback'",'progress_callback') 
         sigdict = {'name': func.__name__,'multithread':multithread, 'doc':func.__doc__ and func.__doc__.strip(),'defaultpara':para.split('->')[0].strip()[1:-1], 'signature':para}
         datareader_API.append(sigdict)
         datareader_API_dict.update({sigdict['name']:sigdict})
