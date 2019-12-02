@@ -13,6 +13,7 @@ from app.utils.analysis._alignment import lev_distance
 from functools import partial
 from app.utils.analysis._utils import poolwrapper
 from datetime import datetime
+from inspect import signature
 
 app = create_app(keeplog=False)
 app.app_context().push()
@@ -443,10 +444,10 @@ def build_cluster(id):
     dr.in_cluster_align(callback=_set_task_progress)
     dr.df_trim()
     dr.alias={}
-    dr.rename_from_ks_server(ks=KnownSequence.query.all())
+    dr.rename_from_known_sequence()
     analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
-    hname,df=dr.plot_heatmap(save=True)
-    analysis.heatmap = os.path.join(str(analysis.id), hname)
+    hname,df=dr._plot_heatmap(returndf=True)
+    analysis.heatmap = hname[0]
     roundnamedict = dict(zip(df.columns.tolist(),analysis._rounds))
     maxrounddict = {k:roundnamedict[i] for k,i in df.idxmax(axis=1).to_dict().items()}
     topcluster = df.index.tolist()
@@ -513,6 +514,32 @@ def lev_distance_search(query,table):
     result = result[0:50]
     _set_task_progress(100)
     return dict(result=result,query=query)
+
+def advanced_task(id,funcname,para):
+    progress_callback = _set_task_progress
+    analysis = Analysis.query.get(id)
+    try:
+        para = eval(f"dict({para})")
+        dr = analysis.get_adavanced_datareader()
+        progress_callback(5)
+        func=getattr(dr, funcname)
+        _return = signature(func).return_annotation.split(',')
+        result = func(**para) 
+        if len(_return)==1:
+            result = [result]
+        output = dict(zip(_return,result))
+        analysis.advanced_result[funcname]['output'].update(output) 
+        analysis.advanced_result[funcname]['output']['task'] = None 
+        analysis.save_data()
+        db.session.commit()
+    except Exception as e:
+        analysis.advanced_result[funcname]['output']['text']=[f"Error: {e}"]
+        analysis.advanced_result[funcname]['output']['task'] = None
+        analysis.save_data()
+        db.session.commit()
+
+    progress_callback(100)
+        
 
 if __name__ == '__main__':
     """test data processing module"""

@@ -14,6 +14,7 @@ from ._utils import mapdistance,poolwrapper
 import textwrap
 from inspect import signature
 from datetime import datetime
+from matplotlib.figure import Figure
 
 """
 Note:
@@ -27,15 +28,21 @@ Modified for NGS_server use
 # add count distribution / length distribution /
 
 datareader_API = []
+datareader_API_dict = {}
 
-def register_API(func):
-    sig = signature(func)
-    datareader_API.append({'name': func.__name__,'doc':func.__doc__.strip(),'signature':str(sig)})
-    def wrapper(*args,**kwargs):
-        return func(*args,**kwargs)
-    wrapper.__signature__ = sig
-    wrapper.__name__=func.__name__
-    return wrapper
+def register_API(multithread=False):
+    def decorator(func):
+        sig = signature(func)
+        para = str(sig).replace('self, ', "") 
+        sigdict = {'name': func.__name__,'multithread':multithread, 'doc':func.__doc__ and func.__doc__.strip(),'defaultpara':para.split('->')[0].strip()[1:-1], 'signature':para}
+        datareader_API.append(sigdict)
+        datareader_API_dict.update({sigdict['name']:sigdict})
+        def wrapper(*args,**kwargs):
+            return func(*args,**kwargs)
+        wrapper.__signature__ = sig
+        wrapper.__name__=func.__name__
+        return wrapper
+    return decorator 
 
 
 class Reader(object):
@@ -196,6 +203,13 @@ class DataReader(Reader):
     def saveas(self,name):
         return os.path.join(self.filepath,name)
 
+
+    def relative_path(self,name):
+        """
+        create relative path to use in database save of output files. 
+        """
+        return os.path.join(self.filepath.split('/')[-1],name)
+
     def save_json(self,affix=""):
         tosave = self.name+affix+'.json'
         with open(self.saveas(tosave),'wt') as f:
@@ -229,6 +243,9 @@ class DataReader(Reader):
         return a
 
     def save_pickle(self, affix=""):
+        """
+        affix is used for save pick as "advanced" file
+        """
         self.affix = affix = affix or self.affix
         tosave= self.name+affix+'.pickle'
         with open(self.saveas(tosave), 'wb') as f:
@@ -293,17 +310,27 @@ class DataReader(Reader):
             plt.clf()
             return name
 
-    @register_API
-    def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True,savepickle=False) ->str:
+    # @register_API()
+    # def test_method(self, arg1=0, arg2=2, callback=None) -> 'text,file,img':
+    #     import time
+    #     for i in range(10):
+    #         time.sleep(1)
+    #         callback(i*10,10,90)
+    #     return [f"this is result {arg1},{arg2}"], [self.relative_path('test_advanced.pickle'), self.relative_path('test.txt')], [self.relative_path('newCOUNT_hist.svg'), self.relative_path('newCOUNT_hist.svg'), self.relative_path('newCOUNT_hist.svg')]
+
+    @register_API()
+    def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True,savepickle=True) ->"text":
         """
-        clean up raw DataFrame by
+        clean up RAW DataFrame by (If DataFrame is already trimmed, will reset dataframe to Raw DF.)
         1. remove unwanted columns from ngs table.
         2. remove sequence with length outside of length threshold; not use if None.
         3. remove sequence with sum count number <= count
         4. remove sequence with sum percent <= per
-        and remove zero count sequences
+        5. remove sequences that have zero count in all rounds
         savepickle: whether to save the filtered data.
         """
+        if getattr(self, '_df', None) is not None:
+            self.df = self._df
         if toremove:
             for i in self.df.columns.tolist():
                 if (i in toremove) or (i.rstrip('_per') in toremove):
@@ -323,16 +350,17 @@ class DataReader(Reader):
         # print('Current Dataframe:')
         # print(self.df.head())
         if savepickle: self.save_pickle()
-        return f"{self.datestamp}Current DataFrame: \n {self.df.head()}\n"
+        return ["{self.datestamp} Current DataFrame: \n {self.df.head()}\n"],
 
-    @register_API
-    def df_cluster(self,distance=5,cutoff=(35,45),count_thre=1,clusterlimit=5000,findoptimal=False,callback=None,savepickle=False) ->str:
+    @register_API(True)
+    def df_cluster(self, distance=5, cutoff=(35, 45), count_thre=1, clusterlimit=5000, findoptimal=False, callback=None, savepickle=True) -> "text,file":
         """
-        cluster sequence in dataframe.
+        cluster sequence in Raw dataframe.
         count_thre: threshold of read to be included.
-        cluster limit is the maximum of clusters it will allow.
+        cluster limit is the maximum numbers of clusters will allow.
         findoptimal: set to True to search all clusters and find closest cluster for an incoming sequence.
-        callback: set to _set_task_progress to display progress.
+        callback: set to progress_callback to display progress. 
+        calling this function on an already clustered analysis will reset dataframe and redo analysis.
         """
         if getattr(self, '_df', None) is not None:
             self.df = self._df
@@ -350,29 +378,29 @@ class DataReader(Reader):
         self.processing_para.update({'df_cluster':{'distance':distance,'cutoff':cutoff,
                                 'count_thre':count_thre,'stop_cluster_index':noncluster_count[0],'stop_cluster_count':noncluster_count[1]}})
         if savepickle:
-            self.save_pickle()
-        return f'{self.datestamp}Custer Done. \n {self.processing_para}'
+            savename=self.save_pickle()
+        return [f'{self.datestamp} Cluster Done. \n {self.processing_para}'], [self.relative_path(savename)]
 
-    @register_API
-    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None,savepickle=False) ->str:
+    @register_API(True)
+    def in_cluster_align(self,cluster_para={'offset':False,'k':4,'count':True,'gap':5,'gapext':1},callback=None,savepickle=True) ->"text,file":
         """
         within cluster_para, define following parameters for in cluster align
         offset: whether shift sequence back and forth to find best alignment.
         k: for use in kmmer distance to determine offset value
         count:  consider sequence count weight during alignment
         gap, gapext: penalty score for gap and gap extension.
-        callback: set to _set_task_progress to display progress.
+        callback: set to progress_callback to display progress.
         """
         data = self.cluster
         cluster = align_clustered_seq(data,**cluster_para,callback=callback)
         self.align = cluster
         self.processing_para.update({'cluster_para':cluster_para})
         if savepickle:
-            self.save_pickle()
-        return f"{self.datestamp}In cluster align done. \n {self.processing_para}"
+            savename=self.save_pickle()
+        return [f"{self.datestamp} In cluster align done. \n {self.processing_para}"], [self.relative_path(savename)]
 
-    @register_API
-    def build_tree_and_align(self,align_para={'offset':True,'k':4,'count':True,'gap':4,'gapext':1,'distance':'hybrid_distance'},callback=None,savepickle=True):
+    @register_API(True)
+    def build_tree_and_align(self, align_para={'offset': True, 'k': 4, 'count': True, 'gap': 4, 'gapext': 1, 'distance': 'hybrid_distance'}, callback=None, savepickle=True) -> "text,file":
         """
         Align all clusters together by neighbor join.
         within align_para, define following parameters:
@@ -381,6 +409,7 @@ class DataReader(Reader):
         count:  consider sequence count weight during alignment
         gap, gapext: penalty score for gap and gap extension.
         distance: method for distance calculation, can be: nw_distance or hybrid_distance.
+        callback: set to progress_callback to display progress.
         """
         cluster = self.align
         name_list = [i for i,j in cluster.items() if i.startswith('C')]
@@ -392,8 +421,8 @@ class DataReader(Reader):
         self.align=alignment
         self.processing_para.update({'align_para':align_para})
         if savepickle:
-            self.save_pickle()
-        return f"{self.datestamp}Build tree and align done. \n {self.processing_para}"
+            savename=self.save_pickle()
+        return [f"{self.datestamp} Build tree and align done. \n {self.processing_para}"], [self.relative_path(savename)]
 
     def lazy_build(self,mode='default',save=False): # not used in this version.
         para={'default':[{},{},{}],
@@ -412,7 +441,7 @@ class DataReader(Reader):
     def tree_guide_align(self,target='root',tree=None,dict_of_alignment=None,start=True,count_=None,replace=True,**kwargs):
         """
         Re-align based on self's tree, will return and update the alignment dict.
-        kwargs are for align parameters, include: (defalut values after =)
+        kwargs are for align parameters, include: (default values after =)
         gap=4, gapext=1, offset=True, count=True, k=4 (for kmmer adjust offset)
         the realign will also realign inside cluster alignment.
         """
@@ -452,14 +481,15 @@ class DataReader(Reader):
         return a
 
     # data clean up methods, run before or after construct a data reader object from scratch.
-    @register_API
-    def df_trim(self,  savepickle=True) -> str:
+    @register_API(True)
+    def df_trim(self,  savepickle=True) -> "text,file":
         """
         Remove unused sequence from df. rename and group sequence based on their cluster name.
         calculate the percentage of each joint and append to df.
-        df index will be align name like C1 or J1.
+        df index will be align name like C1 or J1. 
+        This step is necessary for downstream analysis.
         """
-        df=self.df
+        df=self.df if getattr(self,'_df',None) is None else getattr(self,'_df')
         seq_list = [i[0] for k in self.cluster.values() for i in k]
         msg=""
         try:
@@ -480,8 +510,8 @@ class DataReader(Reader):
         except AttributeError:
             msg=('Dataframe already trimmed.')
         if savepickle:
-            self.save_pickle()
-        return f"{self.datestamp}{msg}"
+            savename=self.save_pickle()
+        return [f"{self.datestamp} - {msg}"],[self.relative_path(savename)]
 
     def rename(self, sequence, newname,method='match',**kwargs):
         """
@@ -509,22 +539,26 @@ class DataReader(Reader):
     def _discalc(self,seq,method,kwargs,alignlist):
         return  [i.distances(method)(seq,**kwargs) for i in alignlist]
 
-    @register_API
-    def rename_from_known_sequence(self, method='match', threshold=0.1, scope='cluster', alignscore=None, **kwargs):
+    @register_API(True)
+    def rename_from_known_sequence(self, method='match', threshold=0.1, scope='cluster', alignscore=None, savepickle=True, **kwargs) -> "text":
         """
-        method can be hybrid_distance,nw_distance,sw_distance,lev_distance
-        alignscore is to prevent rename bad alignments.
-        threshold is depend on rename method, how close the cluster distance need to be for it to be renamed.
-        hybrid_distance,nw_distance,sw_distance: 0-1
-        lev_distance: 0- sequence length
+        Use known aptamer sequence and name to rename clusters in the analysis file.
+        method can be 'match',hybrid_distance,nw_distance,sw_distance,lev_distance
+        threshold is depend on rename method, how close the cluster distance need to be for it to be renamed. 
+        for hybrid_distance,nw_distance,sw_distance: threshold between 0-1
+        for lev_distance: threshold 0 - sequence length
+        scope can be "cluster" or "align" or "joint". cluster is Cx, joint is Jx, align is combination of C and J.  
+        alignscore is a threshold between 0-100 to prevent rename bad alignments. 100 is perfect align. 
         """
         from app.models import KnownSequence
-        self.rename_from_ks_server(ks=KnownSequence.query.all(),method=method,threshold=threshold,scope=scope,alignscore=alignscore,**kwargs)
-
-
-    def rename_from_ks_server(self,ks,**kwargs):
-        ksdict={i.rep_seq:i.name for i in ks}
-        self.rename_from_known(ksdict,**kwargs)
+        ks = KnownSequence.query.all()
+        ksdict = {i.rep_seq: i.name for i in ks}
+        msg = self.rename_from_known(
+            ksdict, method=method, threshold=threshold, scope=scope, alignscore=alignscore, **kwargs)
+        if savepickle:
+            self.save_pickle()
+        return [f"Generated on {self.datestamp}"]+["\n".join(msg)]
+        
 
     def rename_from_known(self,knownsequence,method='match',threshold=0.1,scope='cluster',alignscore=None,**kwargs):
         """
@@ -532,6 +566,7 @@ class DataReader(Reader):
         method can be hybrid_distance,nw_distance,sw_distance,lev_distance
         alignscore is to prevent rename bad alignments.
         """
+        msg = []
         if isinstance(knownsequence,str):
             with open(knownsequence,'rt') as f:
                 ks = json.load(f)
@@ -559,12 +594,12 @@ class DataReader(Reader):
             for i,j in enumerate(min_dis_list):
                 toalias = scope_[i]
                 aliasname=''
-                if len(j)>1:print('Warning: {} have {} possible alias.'.format(toalias,len(j)))
+                if len(j)>1: msg.append('Warning: {} have {} possible alias.'.format(toalias,len(j)))
                 for k in j:
                     aliasname += ks[ks_list[k]]
                 if aliasname:
                     if alignscore and self.align[toalias].align_score()<alignscore:
-                        print('{} alignscore {} < {} cannot alias to {}.'
+                        msg.append('{} alignscore {} < {} cannot alias to {}.'
                             .format(toalias,self.align[toalias].align_score(),alignscore,aliasname))
                         continue
                     if toalias not in old:
@@ -572,49 +607,56 @@ class DataReader(Reader):
                     else:
                         if self.alias[toalias]!=aliasname:
                             collison.append((toalias,aliasname))
-                            print('Collison: {} alias collision {} => {}.'.format(toalias,self.alias[toalias],aliasname))
+                            msg.append('Collison: {} alias collision {} => {}.'.format(
+                                toalias, self.alias[toalias], aliasname))
         new = set(self.alias.keys()) - old
-        print('\n Sequence Renamed: ')
+        msg.append('Sequence Renamed: ')
         for i in new:
-            print(i+ ' => '+self.alias[i])
-        if collison: print('Collision found, rename collison manually if needed.')
-        return collison
+            msg.append(i + ' => '+self.alias[i])
+        if collison:
+            msg.append('Collision found, rename collison manually if needed.')
+        return msg 
 
-    @register_API
-    def rename_joint(self,method='heuristic',alignscore=70,**kwargs):
+    @register_API(True)
+    def rename_joint(self, alignscore=70, savepickle=True, ) -> "text":
         """
         rename joint by the already renamed clades (method='heuristic')
-        kwargs need to have threshold for align_score threshold to rename an align.
-        or rename joint by rename_from_known method (method='match' or 'hybrid_distance'/'sw_distance'/'lev_distance'),
-        with scope='align' to include renaming joints.
+        alighscore is the threshold for a joint to be named the same as its parent or children.
+        
+        if want to rename joint by distance, refer to "rename_from_known_sequence" method.
         """
-        if method == 'heuristic':
-            def node_check(node,newdict):
-                parent = self.tree._get_parent(node).name
-                children = [i.name for i in self.tree[node].clades]
-                sister = [i.name for i in self.tree[parent].clades if i.name!=node]
-                alias = self.alias[node]
-                if self.align[parent].align_score() >= alignscore:
-                    newalias=alias
-                    oldalias = self.alias.get(parent,None)
-                    for i in sister:
-                        if i in self.alias.keys() and (sum(self.align[i].count) > sum(self.align[node].count)):
-                            newalias = self.alias[i]
-                    if newalias!=oldalias:
-                        newdict.update({parent:newalias})
-                for i in children:
-                    if i not in self.alias.keys():
-                        newdict.update({i:alias})
-            newdict=self.alias
-            while newdict:
-                self.alias.update(newdict)
-                newdict={}
-                for i in self.alias.keys():
-                    node_check(i,newdict)
-        else:
-            knownsequence=kwargs.get('knownsequence',None)
-            assert knownsequence, ('Must provide known sequence.')
-            self.rename_from_known(knownsequence,method=method,scope='joint',alignscore=alignscore,**kwargs)
+        msg=[]
+        def node_check(node,newdict):
+            parent = self.tree._get_parent(node).name
+            children = [i.name for i in self.tree[node].clades]
+            sister = [i.name for i in self.tree[parent].clades if i.name!=node]
+            alias = self.alias[node]
+            if self.align[parent].align_score() >= alignscore:
+                newalias=alias
+                oldalias = self.alias.get(parent,None)
+                for i in sister:
+                    if i in self.alias.keys() and (sum(self.align[i].count) > sum(self.align[node].count)):
+                        newalias = self.alias[i]
+                if newalias!=oldalias:
+                    newdict.update({parent:newalias})
+            for i in children:
+                if i not in self.alias.keys():
+                    newdict.update({i:alias})
+        newdict=self.alias
+        while newdict:
+            self.alias.update(newdict)
+            newdict={}
+            for i in self.alias.keys():
+                node_check(i,newdict)
+            for k,i in newdict.items():
+                msg.append(f"{k} => {i}") 
+        if savepickle:
+            self.save_pickle()
+        return [f"Generated on {self.datestamp}"]+["\n".join(msg)]
+
+            # knownsequence=kwargs.get('knownsequence',None)
+            # assert knownsequence, ('Must provide known sequence.')
+            # self.rename_from_known(knownsequence,method=method,scope='joint',alignscore=alignscore,**kwargs)
 
     def re_align(self,target,replace=False,**kwargs):
         """
@@ -626,13 +668,16 @@ class DataReader(Reader):
         target = self.find(target)[0]
         return self.tree_guide_align(target=target,replace=replace,**kwargs)[target]
 
-    @register_API
-    def normalize_df(self):
+    @register_API()
+    def normalize_df(self, savepickle=True) -> "text,file":
         """
-        normalize percentage of DataFrame
+        normalize percentage of DataFrame to make each round always add up to 100%.
         """
         per=[i for i in self.df.columns if i.endswith('_per')]
         self.df[per]=self.df[per].div(0.01*self.df[per].max(axis=0),axis=1)
+        if savepickle:
+            savename = self.save_pickle()
+        return [f"{self.datestamp} - Dataframe normalized."], [self.relative_path(savename)]
 
     # utility methods
     def __getitem__(self,name):
@@ -659,7 +704,19 @@ class DataReader(Reader):
             scope_= self.align.keys()
         return list(scope_)
 
-    @register_API
+    @register_API()
+    def find_sequence(self,seq="ATCGAGA") -> "text":
+        """
+        find a sequence with certain n.t. in the cluster and return the name of cluster. (like C1)
+        or use the alias name and find the corresponding cluster or joint name. 
+        the result is always a list. if multiple names match the alias, will include all and in the order of counts.
+        """
+        try:
+            result = self.find(seq)
+            return [f"Generated on {self.datestamp}"]+[", ".join(result)]
+        except Exception as e:
+            return [f"Generated on {self.datestamp}"]+[f"Error: {e}"]
+        
     def find(self, seq):
         """
         find a specific sequence in the alignment and
@@ -690,14 +747,34 @@ class DataReader(Reader):
                 else:
                     raise KeyError('sequence {} not found.'.format(seq))
 
+    @register_API()
+    def translate_sequence(self,seq="C1") -> "text":
+        """
+        Return the alias name of a Joint or Cluster if there is. 
+        """
+        return [f"Generated on {self.datestamp}"]+[self.translate(seq)]
+
     def translate(self,seq):
         if isinstance(seq,str):
             return self.alias.get(seq,seq)
         elif isinstance(seq,list):
             return [(self.translate(i[0]),)+i[1:] for i in seq]
 
-    @register_API
-    def search(self,query,threshold=5,reverse=False,method='lev_distance',scope='cluster',**kwargs):
+    @register_API()
+    def search_sequence(self,query="AGCAG",threshold=5,reverse=False,method='lev_distance',scope='cluster',callback=None,**kwargs)->"text":
+        """
+        find alignment that match a pattern by its distance to query sequence,
+        search scope is within cluster.
+        threshold is between 0-1. 0 is looking for exact match. If use Lev_distance, between 0-sequence length. 
+        input can be a alignment or sequence
+        method can be 'hybrid_distance' or 'sw_distance' or 'lev_distance' or 'nw_distance': latter 3 are time expensive.
+        kwargs: pass to distances methods,gap=4, gapext=1, offset=False, count=True 
+        callback: set to progress_callback to display progress. 
+        """
+        result = self.search(query,threshold,reverse,method,scope,callback,**kwargs)
+        return [f"Generated on {self.datestamp}"]+[", ".join(result)] if result else ["Nothing found."]
+
+    def search(self,query,threshold=5,reverse=False,method='lev_distance',scope='cluster',callback=None,**kwargs):
         """
         find alignment that match a pattern by its sw_distance,
         search scope is within cluster.
@@ -712,14 +789,24 @@ class DataReader(Reader):
         scope_=self._scope_(scope)
         scope__=[self.align[i] for i in scope_]
         func=partial(query.distances(method=method),threshold=threshold,**kwargs)
-        dis_=poolwrapper(func,scope__,chunks=100,desc='Searching',showprogress=True)
+        dis_=poolwrapper(func,scope__,chunks=100,callback=callback,progress_gap=(5,90))
         for key,score in zip(scope_,dis_):
             if score<=threshold:
                 result.append((key,score))
         result = sorted(result,key=lambda x:x[1],reverse=reverse)
         return result
 
-    @register_API
+    @register_API()
+    def tree_path(self,sequence="C1/ATCG",show=['name'])->'text':
+        """
+        sequence is either a name like C1 or sequence like AGTGA
+        find the path of tree joints to root or path between 2 points
+        show mode is a list of tags: 'name', 'score', 'count'
+        """
+        result = self.path(sequence,show)
+        return [f"Generated on {self.datestamp}"]+["\n".join([", ".join([str(j) for j in i]) for i in result])]
+
+    
     def path(self, sequence='', show=['name']):
         """
         find the path of tree joints to root or path between 2 points
@@ -742,7 +829,7 @@ class DataReader(Reader):
                                for i in _path])
         return result
 
-    @register_API
+   
     def slice_df(self,round='all'):
         """
         slice off the df by selection round name. round name can be string or a list.
@@ -760,7 +847,7 @@ class DataReader(Reader):
         nd_per,nd_count = self.df[per_],self.df[count_]
         return nd_per,nd_count
 
-    @register_API
+    
     def sort_align(self,round='all',scope='cluster'):
         """
         sort cluster based on count or percentage in a round. return list of tuples,
@@ -772,6 +859,7 @@ class DataReader(Reader):
         nd_per,nd_count = res[0].sum(axis=1),res[1].sum(axis=1)
         return sorted([(i,int(nd_count[i]),nd_per[i]) for i in self._scope_(scope)],key=lambda x:x[1],reverse=True)
 
+    @register_API()
     def filter(self,condition='',listonly=False,scope='align'):
         """
         filter clusters or alignments that satisfy conditions provided.
@@ -896,7 +984,14 @@ class DataReader(Reader):
         """
         pass
 
-    def list_all_rounds(self):
+    @register_API()
+    def display_all_rounds(self,show=True) -> "text":
+        """
+        show name of all rounds.
+        """
+        return [f"Generated on {self.datestamp}"]+[", ".join(self.list_all_rounds())]
+    
+    def list_all_rounds(self) :
         a=self.df.columns.tolist()
         temp=[]
         for i in a:
@@ -950,10 +1045,10 @@ class DataReader(Reader):
         new = self.copy(tree=newtree,cluster=cluster,align=align,name=table_name,alias=alias)
         return new
 
-    @register_API
-    def list_alias(self,contain=''):
+    @register_API()
+    def list_alias(self,show=True) -> "text":
         """
-        list all alias
+        list all alias 
         """
         alias = self.alias
         result={}
@@ -963,10 +1058,12 @@ class DataReader(Reader):
         #     if k[0]!='J' and (k[0] not in 'ACGT') and (k[1] not in 'ACGT'):
         #         if contain in k:
         #             result.append(k)
-        return result
+        m = ["{:>10} : {}".format(k, ', '.join(i)) for k, i in result.items()]
+    
+        return [f"Generated on {self.datestamp}"]+['\n'.join(m)]
 
-    @register_API
-    def df_info(self,show=True):
+    @register_API()
+    def df_info(self,show=True) -> "text,file":
         """
         print the description of dataframe.
         """
@@ -1000,13 +1097,17 @@ class DataReader(Reader):
         if show:
             pd.set_option('display.max_columns', None)
             pd.set_option('display.expand_frame_repr', False)
-            print(a)
+            a.to_csv(self.saveas('df_info.csv'))
+            return [f"Generated on {self.datestamp}"]+[str(a)], [self.relative_path('df_info.csv')]
         else:
             return a
 
 
     def df_table(self):
         # in order of name, count, anaread, total read, percent, 80% read, Max read
+        """
+        used in ngs_server to display df table
+        """
         result = []
         df= self.df_info(show=False).to_dict()
         for rn in self.list_all_rounds():
@@ -1016,10 +1117,24 @@ class DataReader(Reader):
                 df[rn]['80%'],df[rn]['Max']))
         return result
 
-    @register_API
-    def cluster_summary(self):
+    @register_API()
+    def show_cluster_summary(self,show=True) -> "text":
         """
-        return summary of cluster info
+        return summary of cluster info 
+        used in ngs_server 
+        """
+        result = self.cluster_summary() 
+        if len(result) > 2:
+            result = [result[0]] + ["Percentile: {:>6}, Total Count: {:>10}, Unique count: {:<5}".format(i,j,k) for i,j,k in result[1:]]
+            return [f"Generated on {self.datestamp}"]+["\n".join(result)]
+        else:
+            return [f"Generated on {self.datestamp}"]+result
+
+    
+    def cluster_summary(self,) :
+        """
+        return summary of cluster info 
+        used in ngs_server 
         """
         # in order of percentile, count, sequence count.
         result=[]
@@ -1039,36 +1154,44 @@ class DataReader(Reader):
         return result
 
     # tools methods
-    @register_API
-    def compare(self,a,b,format=(1,1,1,0,0),show=True,**kwargs):
+    @register_API()
+    def compare_clusters(self,a='C1',b='V42',format=(1,1,1,5,1,1),**kwargs) -> "text":
         """
-        if show;
+        a, b are name of two clusters or joints. 
         align two sequence a and b, print their hybrid distance, and nw distance.
-        otherwise return nw alignscore.
+        otherwise return nw alignscore. 
+        kwargs are parameters for calculating distance. 
+        format in order:
+        1. Whether show name of two aligned sequence (C1, C2 etc.).
+        2. Whether show count of sequences. 
+        3. Whether show the offset of current sequence. 
+        4. Whether collapse sequence based on provided distance threshold 
+        5. Whether order sequence based on their count. 
+        6. show index on top: linking style. 
         """
         a=self.align[self.find(a)[0]] if isinstance(a,str) else a
         b=self.align[self.find(b)[0]] if isinstance(b,str) else b
         align = a.align(b,**kwargs)
-        if show:
-            output=[]
-            output.append(">>> Compare {} with {} <<<".format(repr(a),repr(b)))
-            output.append("nw_align_score: {:.3f}".format(align.align_score()))
-            dis = ['hybrid_distance','sw_distance','lev_distance']
-            for i in dis:
-                output.append("{}: {:.3f}".format(i,a.distances(i)(b,**kwargs)))
-            output.append('>>>Alignment: Sequence Collapse Thres: {:<2}{}<<<'.format(format[3],
-                            ' '*(len(align)//8*8-33)+'Name\t'*bool(format[0])+
-                            'Count\t'*bool(format[1])+'Offset\t'*bool(format[2])))
-            output.append(align.format(*format))
-            output = '\n'.join(output)
-            print(output)
-        else:
-            return align.align_score()
-
-    @register_API
-    def show_round(self,round='',top=100):
+        output=[]
+        output.append(">>> Compare {} with {} <<<".format(repr(a),repr(b)))
+        output.append("nw_align_score: {:.3f}".format(align.align_score()))
+        dis = ['hybrid_distance','sw_distance','lev_distance']
+        for i in dis:
+            output.append("{}: {:.3f}".format(i,a.distances(i)(b,**kwargs)))
+        output.append('>>>Alignment: Sequence Collapse Thres: {:<2}{}<<<'.format(format[3],
+                        ' '*(len(align)//8*8-33)+'Name\t'*bool(format[0])+
+                        'Count\t'*bool(format[1])+'Offset\t'*bool(format[2])))
+        output.append(align.format(*format))
+        output = '\n'.join(output)
+        return [f"Generated on {self.datestamp}"]+[output]
+        
+    @register_API()
+    def show_clusters_in_round(self,round='',top=100,show=True,) -> "text,file":
         """
         show the slice of clusters in a round, ranked by percentage.
+        round: name of round.
+        top: number of top N to display. Or use (100,200) to slice from top 100 to 200 rank. 
+        show: set to False to use avoid display too much. 
         """
         _slice=slice(0,top) if isinstance(top,int) else slice(*top)
         countcol=(self.df.loc[[i for i in self.df.index if i.startswith('C')],
@@ -1077,27 +1200,40 @@ class DataReader(Reader):
         ccol['A.K.A']=ccol.index.map(self.translate)
         ccol['Sequence']=ccol.index.map(lambda x:self.align[x].rep_seq())
         ccol.index.name=None
-        return ccol
+        ccol.to_csv(self.saveas('show_clusters_in_round.csv'))
+        files = [self.relative_path("show_clusters_in_round.csv")]
+        if show:
+            text = str(ccol)
+        else:
+            text = "Download to view."
+        return [f"Generated on {self.datestamp}"]+[text], files
 
+    
+    # def round_align(self,target='',round='all',table=None):
+    #     """
+    #     show alignment of a target cluster in a specific round.
+    #     """
+    #     _=self.plot_logo_trend(target=target,rounds=round,plot=False,table=table,save=False)
+    #     return _
 
-    def round_align(self,target='',round='all',table=None):
-        _=self.plot_logo_trend(target=target,rounds=round,plot=False,table=table,save=False)
-        return _
-
-    def order_round(self,neworder=[]):
+    @register_API()
+    def set_round_order(self,neworder=[]) -> "text":
         """
         rearrange round order by providing the new order of rounds.
         """
         assert set(neworder)==set(self.list_all_rounds()),('Must enter all rounds.')
         new = ['sum_count'] +neworder+[i+'_per' for i in neworder]
         self.df = self.df.loc[:,new]
+        return [f"Generated on {self.datestamp}"]+[f"Round order changed to {neworder}"]
 
-    @register_API
-    def call_mutation(self,target:str,seq:(str,Alignment),count=True)->str:
+    @register_API()
+    def call_mutation(self,target="C1",sequence="ATCGA",count=True)->"text":
         """
         find mutations in a target compare to a known sequence
+        target is 'Cx' or 'Jx' or an alias name or an sequence can be found in analysis. 
+        sequence is a ATCG sequence. 
         """
-        seq = Alignment(seq) if isinstance(seq,str) else seq
+        seq = Alignment(sequence) if isinstance(sequence, str) else sequence
         a=seq.align(self[self.find(target)[0]].rep_seq(count).replace('-',''),offset=False)
         mutation=[]
         position=0
@@ -1106,16 +1242,16 @@ class DataReader(Reader):
             if j!=k:
                 m = j+str(position)+k
                 mutation.append(m)
-        return '/'.join(mutation)
+        return [f"Generated on {self.datestamp}"]+['/'.join(mutation)]
 
     # method that save txt files
-    @register_API
-    def info(self,save=False,show=True):
+    @register_API()
+    def analysis_info(self,show=True) -> "text,file":
         """
-        print basic information about alignment, dataframe, sequence counts, round name, etc.
+        Provide basic information about alignment, dataframe, sequence counts, round name, etc.
         """
-        if save:
-            _save = self.ifexist('INFO_'+save+'.txt' if isinstance(save,str) else 'INFO_{}.txt'.format(self.name))
+        # if save:
+        #     _save = self.ifexist('INFO_'+save+'.txt' if isinstance(save,str) else 'INFO_{}.txt'.format(self.name))
         result = []
         content = self.__dict__
         for key,item in content.items():
@@ -1150,7 +1286,7 @@ class DataReader(Reader):
         if align:
             result.append('Align Summary:')
             align_score = np.array([i.align_score() for j,i in align.items() if j not in self.cluster.keys()])
-            if align_score:
+            if align_score.any():
                 percent=[0,10,20,30,40,50,60,70,80,90,100]
                 per = np.percentile(align_score,percent)
                 result.append('Align counts: {}'.format(len(align_score)))
@@ -1175,26 +1311,27 @@ class DataReader(Reader):
             result.append('Doesn\'t contain processing parameters.')
         result.append('\n')
         result = '\n'.join(result)
-        if save:
+    
+        with open(self.saveas('analysis_info.txt'), 'wt') as f:
+            f.write(result)
+        if not show:
+            result = "Download file to view result."
+        return [f"Generated on {self.datestamp}"]+[result], [self.relative_path('analysis_info.txt')]
 
-            with open(_save,'wt') as f:
-                f.write(result)
-        if show:
-            print(result)
-        return result
-
-    @register_API
-    def describe(self,target=[],format=(1,1,1,0,0),count=True,save=False,show=True):
+    @register_API()
+    def describe_cluster(self, target=[], format=(1, 1, 1, 5, 1, 1), count=True, show=False) -> "text,file":
         """
+        target: a single "C1" or a list of clusters. 
         print out information of a joint in the tree: include it's parents and children, it's align score and align.
-        format is a tuple, id=1, count=1, offset=1, collapse=0, order=0 see Alignment.format()
-        count is to change the way rep_seq was calculated.
+        format: see compare_clusters for details. 
+        count is to change the way rep_seq was calculated. True will consider count of sequence. False will consier unique sequence.  
+        Avoid using show=True. 
         """
 
         target = [target] if isinstance(target,str) else target
-        if save:
-            _save= 'ALN_'+save+'.txt' if isinstance(save,str) else 'ALN_{}{}.txt'.format(self.translate(target[0]),('_'+str(len(target)-1)+'etc_')*bool(len(target)-1))
-            _save=self.ifexist(_save)
+        # if save:
+        #     _save= 'ALN_'+save+'.txt' if isinstance(save,str) else 'ALN_{}{}.txt'.format(self.translate(target[0]),('_'+str(len(target)-1)+'etc_')*bool(len(target)-1))
+        #     _save=self.ifexist(_save)
         target = [self.find(i)[0] for i in target]
         output = []
         for i in target:
@@ -1215,92 +1352,93 @@ class DataReader(Reader):
             'Offset\t'*bool(format[2])))
             output.append(self.align[t.name].format(*format))
         output = '\n'.join(output)
-        if save:
-            with open(_save,'wt') as f:
-                f.write(output)
-        if show:
-            print(output)
+       
+        with open(self.saveas('describe_cluster.txt'), 'wt') as f:
+            f.write(output)
+        if not show:
+            output = "Download file to view result."
+        return [f"Generated on {self.datestamp}"]+[output], [self.relative_path('describe_cluster.txt')]
 
-    @register_API
-    def correlation(self,target='',position=[1,2],save=False,show=True):
+    @register_API()
+    def site_correlation(self,target='C1',position=[1,2],show=True) -> "text,file":
         """
         show contigency table of 2 positions of a target alignment.
         caution: the index is 1 based, first position is 1
         """
         align = self.align[self.find(target)[0]]
-        if save:
-            i,j=position
-            save = 'CorM_'+save+'.csv' if isinstance(save,str) else 'CorM_'+target+'_N'+str(i)+'_N'+str(j)+'.csv'
-            save = self.ifexist(save)
-        return align.correlation(position=position,save=save,show=show)
+        i,j=position
+        save = self.saveas('site_correlation.csv')
+        df = align.correlation(position=position, save=save, show=False)
+        return [f"Plot generated on {self.datestamp}"]+[str(df) if show else "Download file to view result."], [self.relative_path('site_correlation.csv')]
 
     # method that can generate plots
     def _plot_trend(self,result,title,save):
-        ax = result.plot(marker='o', title=title)
+        fig = Figure()
+        ax = fig.subplots()
+        result.plot(marker='o', title=title , ax = ax)
         ax.set_xticks(range(len(result)))
         result.index.tolist()
         ax.set_xticklabels(result.index.tolist(), rotation=45)
-        plt.tight_layout()
+        
+        fig.set_tight_layout(True)
         if save:
-            plt.savefig(save)
-            plt.clf()
-        else:
-            plt.show()
+            fig.savefig(save,format="svg")
+            
+       
 
-    @register_API
-    def plot_cluster_trend(self, clade, query='all', plot=True, save=False):
+    @register_API()
+    def plot_cluster_trend(self, cluster="C1", query='all', plot=True) -> "img,file,text":
         """
         give an tree element name, find its round percentage trend.
-        if query is all, find all round percentage, otherwise find stuff in query.
+        if query is all, find all round percentage, otherwise find rounds in query.
         """
         if query == 'all':
             query = self.df.columns.tolist()
             query = [i for i in query if i.endswith('per')]
-        clade = self.find(clade)[0]
-        result = self.df.loc[clade][query]
+        cluster = self.find(cluster)[0]
+        result = self.df.loc[cluster][query]
         result.index = [i[:-4] for i in query]
-        result.name=self.translate(clade)
-        if save:
-            save=self.ifexist('TREND_'+self.translate(result.name)+'.svg')
+        result.name=self.translate(cluster)
         if plot:
-            self._plot_trend(result,self.translate(clade),save)
+            self._plot_trend(result,self.translate(cluster) + " % Trend",self.saveas("plot_cluster_trend.svg"))
+            result.to_csv(self.saveas('plot_cluster_trend.csv'))
+            return [self.relative_path("plot_cluster_trend.svg")], [self.relative_path("plot_cluster_trend.csv")], [f"Plot generated on {self.datestamp}"]
         return result
 
-    @register_API
-    def plot_compare_cluster_trend(self,clade1,clade2,query='all', plot=True, norm=1,save=False):
+    @register_API()
+    def plot_compare_cluster_trend(self,cluster1="C1",cluster2="C2",query='all',  norm=False,) -> "img,file,text":
         """
-        plot trend of two clusters
+        plot the ratio trend of two clusters. cluster1/cluster2
+        if query is all, find all round percentage, otherwise find rounds in query.
+        if norm = True, normalize to max ratio. 
         """
-        c1=self.plot_cluster_trend(clade1,plot=False)
-        c2=self.plot_cluster_trend(clade2,plot=False)
-        if save:save=self.ifexist('TREND_'+self.translate(c1.name)+'vs'+self.translate(c2.name)+'.svg')
+        c1=self.plot_cluster_trend(cluster1,query,plot=False)
+        c2=self.plot_cluster_trend(cluster2,query,plot=False)
         ratio=c1/c2
         if norm:
             ratio=ratio/ratio.max()
-        if plot:
-            self._plot_trend(ratio,self.translate(c1.name)+' / '+self.translate(c2.name),save)
-        return ratio
+        self._plot_trend(ratio, self.translate(
+            c1.name)+' / '+self.translate(c2.name) + " Trend", self.saveas("plot_compare_cluster_trend.svg"))
+        ratio.to_csv(self.saveas("plot_compare_cluster_trend.csv"))
+        return [self.relative_path('plot_compare_cluster_trend.svg')], [self.relative_path("plot_compare_cluster_trend.csv")], [f"Plot generated on {self.datestamp}"]
 
-    @register_API
-    def plot_pie(self,top=10,condition='sumcount>10',rank='per',scope='cluster',columns=4,plot=True,size=2,save=False,savedf=False,translate=True):
+    @register_API()
+    def plot_pie(self, top=10, condition='sumcount>10', rank='per', scope='cluster', columns=4, size=2, translate=True,  plot=True,) -> "img,file,text":
         """
         plot the pie chart of selection rounds
         condition is used to filter out align in the plot, if conditon is integer, it wil be intepreted as align score limit.
         if condition is False, will plot top number of clusters based on their count.
         top is how many individuals will be plotted; or a tuple (10,100,step) for slice.
         rank is the criteria for top ranking, will affect which clusters are displayed.
-        rank can be :
+        rank can be : 
         'round': will display each round's higest count separately.
         'per':max percentage in rounds;
         'count': total count in all rounds.
         caution: if not restricting the alignscore in condition, consider change scope to 'cluster' to avoid overlapping.
+        columns: how many columns, size: size of each panel. 
+        translate: change cluster name to alias. 
         """
-        if save:
-            _save_= save if isinstance(save,str) else '{}_{}_top{}{}_{}'.format(self.name,condition,top,rank,scope)
-            _save_=self.ifexist('PIE_'+_save_+'.svg')
-        if savedf:
-            _savedf_ = savedf if isinstance(savedf,str) else '{}_{}_top{}{}_{}'.format(self.name,condition,top,rank,scope)
-            _savedf_=self.ifexist('TAB_'+_savedf_+'.csv')
+       
         per_=[i for i in self.df.columns.tolist() if i.endswith('per')]
         align=self.filter_align(condition,listonly=True,scope=scope)
         if rank=='per':
@@ -1315,7 +1453,9 @@ class DataReader(Reader):
             title= df.columns.tolist()
             layout = (math.ceil(len(title)/columns),columns)
             figsize = (layout[1]*size,layout[0]*size)
-            fig,axes=plt.subplots(*layout,figsize=figsize)
+            fig = Figure(figsize=figsize)
+            axes = fig.subplots(*layout)
+            # fig,axes=plt.subplots(*layout,figsize=figsize)
             if layout==(1,1):
                 axes = [axes]
             elif layout[0]>1 and layout[1]>1:
@@ -1335,30 +1475,30 @@ class DataReader(Reader):
                 i.spines['bottom'].set_visible(False)
                 i.spines['right'].set_visible(False)
                 i.spines['left'].set_visible(False)
-            plt.tight_layout()
-            if save:
-                plt.savefig(_save_)
-                plt.clf()
-            else:
-                plt.show()
+            # plt.tight_layout()
+            fig.set_tight_layout(True)
+            fig.savefig(self.saveas('plot_pie.svg'), format='svg')
+            
+            temp_index = df.index.tolist()
+            df['Sequence']=[self.align.get(x,Alignment('')).rep_seq() for x in temp_index ]
+            df.to_csv(self.saveas("plot_pie_table.csv"))
+            return [self.relative_path('plot_pie.svg')], [self.relative_path('plot_pie_table.csv')], [f"Plot generated on {self.datestamp}"]
+
         df = df.loc[align[_slice],:]
         df.loc['Others'] = 100-df.sum()
         if translate:
             df.index=df.index.map(self.translate)
-        if savedf:
-            temp_index = df.index.tolist()
-            df['Sequence']=[self.align.get(x,Alignment('')).rep_seq() for x in temp_index ]
-            df.to_csv(_savedf_)
         return df
 
-    @register_API
-    def plot_cluster_3d(self,top=10,condition=50,scope='align',rank='per',save=False):
+    @register_API()
+    def plot_cluster_3d(self,top=10,condition=50,scope='align',rank='per',) -> "img,text":
         """
         similar to plot_pie, instead plot on 3d plot.
+        refer to plot pie for details. 
         """
-        if save:
-             _save = save if isinstance(save,str) else '{}_{}_top{}'.format(self.name,condition,top)
-             _save = self.ifexist('B3D_'+_save+'.svg')
+        # if save:
+        #      _save = save if isinstance(save,str) else '{}_{}_top{}'.format(self.name,condition,top)
+        #      _save = self.ifexist('B3D_'+_save+'.svg')
         df = self.plot_pie(top=top,condition=condition,scope=scope,rank=rank,plot=False)
         df = df.iloc[::-1]
         rounds_list = [i[:-4] for i in df.columns.tolist()]
@@ -1369,7 +1509,7 @@ class DataReader(Reader):
         xs, ys = _xx.ravel(), _yy.ravel()
         zs = df.values.T.reshape(-1)
         bottom = np.zeros_like(zs)
-        fig = plt.figure(figsize=(8,6))
+        fig = Figure(figsize=(8,6))
         ax = fig.add_subplot(111, projection='3d')
         width = 0.3
         depth = 0.4
@@ -1381,23 +1521,17 @@ class DataReader(Reader):
         ax.set_yticks(_ys+0.4)
         ax.set_yticklabels(rounds_list,ha='left')
         ax.set_xticklabels(cluster,rotation=45,ha='right')
-        if save:
-           plt.savefig(_save)
-           plt.clf()
-        else:
-           plt.show()
+        fig.set_tight_layout(True)
+        fig.savefig(self.saveas('plot_cluster_3d.svg'),format='svg')
+        return [self.relative_path('plot_cluster_3d.svg')], [f"Plot generated on {self.datestamp}"]
 
     def _plot_tree(self, node='root',save=False, label='score,seq_count,count', translate=True,size=None,color='count'):
         """
-        size: size=(10,10) in inches
-        mode : draw use build in draw function, graph use graphviz layout
         label: separate tag with comma. can use 'seq,seq_count,score,count'
         size: auto choose size between 10-30 in height, 10 width. or specify size.
         color: how to label color, methods separated by comma, color = 'count,alias,roundname'
-        'count' label based on ranking of total count in all rounds.
-        'roundname' label based on count in a certain round.
-        'alias' label indicate the alias alignments.
-        'None' no labeling.
+        'count' label based on ranking of total count in all rounds; 'roundname' label based on count in a certain round; 
+        'alias' label indicate the alias alignments; 'None' no labeling.        
         """
         def wrap(self, method):
             def short(x):
@@ -1429,10 +1563,10 @@ class DataReader(Reader):
                 return r
             return result
 
-        if save:
-            save=self.ifexist(('TREE_'+node+'.svg') if isinstance(save, bool) else 'TREE_'+save+'.svg')
+        # if save:
+        #     save=self.ifexist(('TREE_'+node+'.svg') if isinstance(save, bool) else 'TREE_'+save+'.svg')
         if node != 'root':
-            p = Tree(root=self.tree[self.find(node)[0]], name=self.tree.name+'_'+node,rooted=False)
+            p = Tree(root=self.tree[self.find(node)[0]], name=self.tree.name+'_'+node,)
         else:
             p = self.tree
             node = self.tree.name
@@ -1468,29 +1602,31 @@ class DataReader(Reader):
         draw(p, do_show=not save, save=save,
              label_func=wrap(self, label), size=size,label_colors=colormap,colorbar=True if colormap else False)
 
-    @register_API
-    def plot_tree(self,node='root',condition='',scope='cluster',mode='minimal',**kwargs):
-        """
-        wrap around _plot_tree method. see it for kwargs usage.
-        condition passed to filter_cluster method to filter the clusters to plot.
-        if mode is 'minimal', the tree will only contain fitltered clusters (trimmed)
-        if mode is 'full', the tree will be every nodes.
+    @register_API(True)
+    def plot_tree(self,node='J111',condition='',scope='cluster',mode='minimal',**kwargs) -> "img,text":
+        """ 
+        node: node='root' will plot whole tree, set to a Jx to plot only below that joint, or set to an alias name.  
+        condition passed to filter_cluster method to filter the clusters to plot. set to "" will bypass filter. 
+        if mode is 'minimal', the tree will only contain fitltered clusters (trimmed); 'full', the tree will be every nodes.
+        kwargs options: 
+        label: separate tag with comma. can use 'seq,seq_count,score,count'
+        size: auto choose size between 10-30 in height, 10 width. or specify size.
+        color: how to label color, methods separated by comma, color = 'count,alias,roundname'
+        'count' label based on ranking of total count in all rounds; 'roundname' label based on count in a certain round; 
+        'alias' label indicate the alias alignments; 'None' no labeling.   
         """
         if condition:
             target= self.filter(scope=scope,condition=condition,listonly=True)
             tree=self.sub_tree(target,minimal=(mode=='minimal'))
         else:
             tree = self
-        if kwargs.get('save',False):
-            save = kwargs.get('save')
-            save = ('TREE_'+save) if isinstance(save, str) else 'TREE_{}_{}_{}'.format(node,condition,mode)
-            kwargs.update(save=save)
-
+       
         node = self.tree.common_ancestor(*self.find(node)).name
-        tree._plot_tree(node=node,**kwargs)
+        tree._plot_tree(node=node, save=self.saveas('plot_tree.svg'), **kwargs)
+        return [self.relative_path('plot_tree.svg')], [f"Generated on {self.datestamp}"]
 
-    @register_API
-    def plot_correlation(self,target='',save=False,**kwargs):
+    @register_API()
+    def plot_correlation(self,target='C1',**kwargs) -> "img,file,text":
         """
         plot correlation matrix of an alignment, using only unique sequences.
         for theils_u, the plot is given x cordinate sequence, predictability of y cordinate.
@@ -1500,75 +1636,121 @@ class DataReader(Reader):
         annot = True for annotate correlation numbers
         linewidth = 0.1 for showing the grid line
         figsize = (10,8) for figure size.
-        return_results=False return result correlation matrix.
         """
         align = self.align[self.find(target)[0]]
-        if save:
-            _save = self.ifexist('CorM_'+save+'.svg' if isinstance(save,str) else 'CorM'+target+'.svg')
-        else:
-            _save=save
-        _=align.plot_correlation(save=_save,**kwargs)
-        if _:return _
+        corr=align.plot_correlation(save=self.saveas('plot_correlation.svg'),return_results=True,**kwargs) 
+        corr.to_csv(self.saveas('plot_correlation_matrix.csv'))
+        return [self.relative_path('plot_correlation.svg')], [self.relative_path('plot_correlation_matrix.csv')], [f"Plot generated on {self.datestamp}"]
 
-    @register_API
-    def plot_logo(self,target='',save=False,count=True):
+    @register_API()
+    def plot_logo(self,target='C1',save=True,count=True) -> "img,text":
         """
-        plot logo of a specific target.
+        plot logo of a specific target cluster.
+        count: use count weight.
         """
-        if save:
-            _save = self.ifexist('LOGO_'+save+'.svg' if isinstance(save,str) else 'LOGO_'+target+'.svg')
+        # if save:
+        #     _save = self.ifexist('LOGO_'+save+'.svg' if isinstance(save,str) else 'LOGO_'+target+'.svg')
         align=self.align[self.find(target)[0]]
         if save:
-            align.dna_logo(save=_save,show=False,count=count)
+            align.dna_logo(save=self.saveas('plot_logo.svg'),show=False,count=count)
+            return [self.relative_path('plot_logo.svg')], [f"Plot generated on {self.datestamp}"]
         else:
             fig=align.dna_logo(save=False,show=False,count=count)
-        return fig
+            return fig
 
-    @register_API
-    def plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,save=False,savedf=False):
+    @register_API(True)
+    def plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,callback=None) -> "img,file,text":
+        """
+        plt heatmap of cluster percentage in all rounds.
+        condition: refer to filter for details. 
+        contrast is an interger>=1, for enhancing low percentage sequence.
+        order can be 'per'/'??_distance'/'trend' to sort the cluster along y axis based on percentage or distance or trend.
+        Order can also be a formula to calculate a score using round names. E.g. : order = 'Round1 / Round2 + Round3/Round2'.
+        '??_distance' is the distance method, 'nw_distance'/'hybrid_distance'/'lev_distance'
+        if norm = 0, normalize is based on the whole dataframe, using original percentage.
+        if norm = 1, normalize along x axis to make biggest number 1.
+        exp: condition='alias,sumcount>0',scope='cluster'
+        set callback=progress_callback to show progress.
+        """
+        img,file =self._plot_heatmap(top,condition,scope,order,norm,contrast,labelthre,callback,returndf=False) 
+        return img,file,[f"Plot Heatmap on {self.datestamp}"]
+
+    
+    def _plot_heatmap(self,top=50,condition='sumcount>10',scope='cluster',order='per',norm=0,contrast=1,labelthre=0.0001,callback=None,returndf=False):
         """
         plt heatmap of cluster percentage in all rounds.
         contrast is an interger>=1, for enhancing low percentage sequence.
         order can be 'per'/'??_distance'/'trend' to sort the cluster along y axis based on percentage or distance or trend.
         '??_distance' is the distance method, 'nw_distance'/'hybrid_distance'/'lev_distance'
-        if norm = 0, normalize is based on the whole dataframe.
-        if norm = 1, normalize along x axis.
+        if norm = 0, normalize is based on the whole dataframe, using original percentage.
+        if norm = 1, normalize along x axis to make biggest number 1.
         exp: condition='alias,sumcount>0',scope='cluster'
         """
         # check if save location is legit first
-        if save:
-            _save_= save if isinstance(save,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
-            _save_=self.ifexist('HEAT_'+_save_+'.svg')
-        if savedf:
-            _savedf_ = savedf if isinstance(savedf,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
-            _savedf_=self.ifexist('TAB_'+_savedf_+'.csv')
+        # if save:
+        #     _save_= save if isinstance(save,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
+        #     _save_=self.ifexist('HEAT_'+_save_+'.svg')
+        # if savedf:
+        #     _savedf_ = savedf if isinstance(savedf,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
+        #     _savedf_=self.ifexist('TAB_'+_savedf_+'.csv')
         # preprocess data frame for plotting.
-        df = self.plot_pie(top=top,condition=condition,scope=scope,plot=False,translate=False).drop(labels='Others',axis=0)
+        df = self.plot_pie(top=(0,None),condition=condition,scope=scope,plot=False,translate=False).drop(labels='Others',axis=0)
         if norm:
             df = df.div(df.max(axis=1),axis=0)
+
+        _slice = slice(0, top) if isinstance(top, int) else slice(*top)
+        # set index order according to order option. return a new_index list
         index = df.index.tolist()
-        new_index = [index.pop(0)]
-        while index:
-            score = 1e9
-            _index = index[0]
-            for i in index:
-                if 'distance' in order:
-                    t = self.align[i].distances(method=order)(self.align[new_index[-1]])
-                elif order == 'trend':
-                    t = ((df.loc[i]/df.loc[i].max()-df.loc[new_index[-1]]/df.loc[new_index[-1]].max())**2).sum()
-                else:
-                    t = 1e10
-                if t<score:
-                    score = t
-                    _index = i
-            new_index.append(_index)
-            index.remove(_index)
+        order_score = None
+        if ('distance' in order) or (order=='trend'):
+            index = index[_slice]
+            
+            new_index = [index.pop(0)]
+            startlength= len(index)
+            while index:
+                if callback:
+                    callback((startlength-len(index))/startlength * 100, start=5, end=90)
+                score = 1e9
+                _index = index[0]
+                for i in index:
+                    if 'distance' in order:
+                        t = self.align[i].distances(method=order)(self.align[new_index[-1]])
+                    elif order == 'trend':
+                        t = ((df.loc[i]/df.loc[i].max()-df.loc[new_index[-1]]/df.loc[new_index[-1]].max())**2).sum()
+                    else:
+                        t = 1e10
+                    if t<score:
+                        score = t
+                        _index = i
+                new_index.append(_index)
+                index.remove(_index)
+        elif order == 'per':
+            new_index = index 
+        else: # calculate score column 
+            old_df = df.copy() 
+            for c in df.columns: # first fill 0 in the dataframe with minimal value in each column. 
+                df[c]=df[c].replace([0],df[c].replace(to_replace=[0],value=1).min())
+
+            # calculate score column
+            roundlist = self.list_all_rounds()
+            exes = order
+            for r in roundlist:
+                exes = exes.replace(r, f"df['{r}']")
+            order_score = eval(exes)
+            new_index = order_score.sort_values(ascending=False).index.to_list()
+            df = old_df # swap back df to with 0s. 
+
         df = df.loc[new_index]
+        
+        # start plotting  only top n values
+        
+        df_slice = df.loc[new_index[_slice], :]
         correction = 1 if norm else 100
-        df_np=np.flip((df.values/correction)**(1/contrast),axis=0)
-        rounds = df.columns.tolist()
-        cluster = df.index.map(self.translate).tolist()
-        fig = plt.figure(figsize=(max(8,round(len(rounds)*0.7)),min(12,max(5,0.4*len(cluster)))))
+        df_np = np.flip((df_slice.values/correction)**(1/contrast), axis=0)
+        rounds = df_slice.columns.tolist()
+        # translate C1 to alias names.
+        cluster = df_slice.index.map(self.translate).tolist()
+        fig = Figure(figsize=(max(8,round(len(rounds)*0.7)),min(12,max(5,0.4*len(cluster)))))
         gs = gridspec.GridSpec(1,max(9,round(len(rounds)*0.8)),fig)
         ax = fig.add_subplot(gs[0,:-1])
         df_np=df_np[::-1]
@@ -1612,28 +1794,31 @@ class DataReader(Reader):
         cax.tick_params(axis='both', which='both', bottom=False, top=False,
                 labelbottom=True, left=True, right=False, labelleft=True)
         # cax.set_axis_off()
+
         fig.set_tight_layout(True)
-        if save:
-            name = self.name+'HEATMAP.svg'
-            tosave=self.saveas(name)
-            plt.savefig(tosave)
-            plt.clf()
-        if savedf:
+        fig.savefig(self.saveas('plot_heatmap'+self.affix+'.svg'),format='svg')
+
+        if returndf:
+            return [self.relative_path('plot_heatmap'+self.affix+'.svg')],df_slice
+        else:
+            if order_score is not None:
+                df['Score: '+order] = order_score
             df['Sequence']=df.index.map(lambda x: self.align[x].rep_seq())
             new= self.df.loc[df.index,:]
             df=pd.concat([df,new],axis=1)
             df.index=df.index.map(self.translate)
-            df.to_csv(_savedf_)
-        return name,df
+            df.to_csv(self.saveas('plot_heatmap'+self.affix+'.csv'))
+            return [self.relative_path('plot_heatmap'+self.affix+'.svg')], [self.relative_path('plot_heatmap'+self.affix+'.csv')]
 
-    @register_API
-    def plot_logo_trend(self,target='',rounds='all',plot=True,table=None,save=False):
+    @register_API(True)
+    def plot_logo_trend(self,target='C1',rounds='all',format=(1, 1, 1, 3, 1, 1)) -> "img,file,text":
         """
         plot DNA_LOGO trend in all rounds; or provide a list of rounds ['round1','round2'] and will only
         plot LOGO for the provided rounds.
+        format is for formatting alignment text. refer to compare_clusters for details. 
         """
-        if save:
-            _save_=self.ifexist('LOTR_'+save+'.svg' if isinstance(save,str) else 'LOTR_'+target+'.svg')
+        # if save:
+        #     _save_=self.ifexist('LOTR_'+save+'.svg' if isinstance(save,str) else 'LOTR_'+target+'.svg')
 
         align = self.align[self.find(target)[0]].copy()
         seq = [i.replace('-','') for i in self.align[self.find(target)[0]].seq]
@@ -1643,9 +1828,10 @@ class DataReader(Reader):
         df = self._df.loc[self._df.aptamer_seq.isin(seq) ,:]
         nonzero = df.loc[:,rounds].sum(axis=0)
         nonzero = nonzero.loc[nonzero>0].index.tolist()
-        if plot:
-            fit,ax = plt.subplots((len(nonzero) + 1*(len(nonzero)!=len(rounds))),
-                    1,figsize=(8,1*(len(nonzero) + 1*(len(nonzero)!=len(rounds)))))
+        
+        fig = Figure(figsize=(8,1*(len(nonzero) + 1*(len(nonzero)!=len(rounds)))))
+        ax = fig.subplots((len(nonzero) + 1*(len(nonzero) != len(rounds))),1)
+            
         alignmentdict=dict.fromkeys(nonzero)
         for axindex,r in enumerate(nonzero):
             align.count=[df.loc[df.aptamer_seq==i,r].item() for i in seq]
@@ -1655,10 +1841,9 @@ class DataReader(Reader):
             title ='{} in {}, Read: {}, Percent: {:.2f}%'.format(target,r,int(sum(align.count)),percent)
             align.refresh_freq()
             align.name= title
-            if plot:
-                align.dna_logo(show=False,ax=ax[axindex])
+            align.dna_logo(save=False,show=False,ax=ax[axindex])
             alignmentdict.update({r:align.copy().remove_null()})
-        if len(nonzero)!=len(rounds) and plot:
+        if len(nonzero)!=len(rounds):
             ax[-1].set_title('{} doesn\'t exist in following rounds:'.format(target))
             nonex = [i for i in rounds if i not in nonzero]
             lll=0
@@ -1672,13 +1857,18 @@ class DataReader(Reader):
                     lll=0
             ax[-1].text(0.5,0.5,nonexist, transform=ax[-1].transAxes, fontsize=10,va='center',ha='center') #bbox=props
             ax[-1].set_axis_off()
-        if plot:
-            plt.tight_layout()
-            if save:
-                plt.savefig(_save_)
-            else:
-                plt.show()
-        return alignmentdict
+        
+        with open(self.saveas('plot_logo_trend.txt'),'wt') as f:
+            for k,a in alignmentdict.items():
+                f.write(f">>> Cluster {target} in round {k} <<<\n\n")                
+                f.write(a.format(*format))
+                f.write('\n\n'+'*'*70+'\n\n')
+    
+        fig.set_tight_layout(True)
+        fig.savefig(self.saveas('plot_logo_trend.svg'),format='svg')
+
+        return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
+           
 ##############################################################################
 
 

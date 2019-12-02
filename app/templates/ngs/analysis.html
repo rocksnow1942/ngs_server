@@ -309,16 +309,38 @@
                                 <p style='white-space:pre-wrap'>{{item['doc']}}</p>
                                 <p style='white-space:pre-wrap'><b>Call Signature:</b> {{item['signature']}}</p>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="{{item['name']}}-input" placeholder="{{analysis.advanced_result_call_para(item['name'])}}">
+                                    <input style="font-family: monospace;font-size: 12px;" type="text" class="form-control" id="{{item['name']}}-input" placeholder="{{item['defaultpara']}}" value="{{analysis.advanced_result_call_para(item['name'], item['defaultpara'])}}">
                                     <span class="input-group-btn">
-                                        <button class="btn btn-default advanced_result_call" type="button" onclick="javascript:advanced_result_call('{{item['name']}}')">Run</button>
+                                        <button class="btn btn-default advanced_result_call" type="button" onclick="javascript:advanced_result_call('{{item['name']}}')"><span class="glyphicon glyphicon-play"></span></button>
                                     </span>
                                 </div>
-                                <div class='result' id="{{item['name']}}-result">
-                                    <!-- if task in process display task progress bar -->
-                                   {% include "ngs/analysis_advanced_result.html" %}
-                                </div>
+
+
+<div class="panel panel-default" style="color:black">
+    <div class="panel-heading" role="tab">
+        <h3 class="panel-title">
+        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#{{item['name']}}-result-panel" aria-expanded="true"
+            aria-controls="{{item['name']}}-result-panel" class="advanced_result_panel custom-card" style="padding-right:70%;">
+             Result Panel 
+        </a>
+        <div class="panel-toggle-button " style="display:inline;">
+        <span class="glyphicon glyphicon-collapse-up " onclick="javascript: toggle_collapse()" style="margin-left:50px;cursor: pointer;"></span></div>
+    </h3>
+    </div>
+    <div id="{{item['name']}}-result-panel" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingQuickLink">
+      
+
+        <div class='panel-body result' id="{{item['name']}}-result" >
+            <!-- if task in process display task progress bar -->
+            {% include "ngs/analysis_advanced_result.html" %}
+        </div>
+
+      
+    </div>
+</div>
+                                
                         </div> 
+                        
                         <hr>
                         {% endfor %}      
                         <div style="height: 800px;">
@@ -383,10 +405,10 @@
         })}
     });
 
-    function replace_with_progressbar(id,result) {
+    function replace_with_progressbar(id,taskid) {
             $(id).html(
                 `<div class="progress ">
-                <div class="progress-bar progress-bar-striped active" id="task:`+ result.id + `" role="progressbar"
+                <div class="progress-bar progress-bar-striped active" id="task:`+ taskid + `" role="progressbar"
                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%;">
                     0%
              </div>
@@ -401,7 +423,7 @@
             data:JSON.stringify({id:{{analysis.id}}}),
             contentType:"application/json",
         }).done(function(result) {
-            replace_with_progressbar("#load_progress",result);            
+            replace_with_progressbar("#load_progress",result.id);            
             update_progress_bar(); 
         })    
         }        
@@ -421,7 +443,7 @@
             contentType: "application/json",
         }).done(function (result) {
                 if (result.id) {
-                    replace_with_progressbar("#cluster_progress", result);
+                    replace_with_progressbar("#cluster_progress", result.id);
                     update_progress_bar(); 
                 }
                 else { alert('Wrong Parameters\n'+result.error)};                
@@ -431,23 +453,68 @@
 
     function advanced_result_call (name) {
         let input = $('#'+name+'-input').val();
-        console.log(input)
         $.ajax({
             url: "{{url_for('ngs.analysis_call_advanced')}}",
             type: "POST",
-            data: JSON.stringify({name:name,para:input}),
+            data: JSON.stringify({name:name,para:input,id:"{{analysis.id}}"}),
             contentType: "application/json"
         }).done(function(result) {
-            console.log(result) 
-            /* 
-                first replace div name-result with progress bar template, rendered in server side. 
-                then  disable all run buttons ; this function should also be called when loading the page. 
-                then start a function, update the progress bar
-                when bar is done, replace name-result div with result. 
-                then re-enable run button. 
-            */
+            if (result.id) {
+                replace_with_progressbar('#' + name + '-result', result.id);
+                disable_advanced_result_call(true);
+                update_advanced_analysis_progress_bar('#' + name + '-result')
+            } else if (result.html) {
+                $('#' + name + '-result').html(result.html);                
+            }
+
+
         })
     }
+
+
+// special method to display advanced result on the same page 
+
+    function update_advanced_analysis_progress_bar(container_id) {
+        let interval = setInterval(function () {
+            var barlist = [];
+            $(container_id).find('.progress-bar').each(function () {
+                barlist.push(this.id);
+            });
+            // make ajax request to get  progress info
+            $.ajax({
+                url: "{{ url_for('ngs.get_bar_progress')}}",
+                type: "POST",
+                data: JSON.stringify({ barlist: barlist }),
+                contentType: 'application/json',
+                success: function (result) {
+                    let alldone = true;
+                    for (let [barid, progress] of Object.entries(result)) {
+                        set_bar_progress(barid, progress);
+                        if (progress < 100) { alldone = false };
+                    };
+                    // break out set interval if all done.
+                    if (alldone) { 
+                        clearInterval(interval); 
+                        replace_progressbar_with_result(container_id)};
+                },
+            });
+        }, 300);
+    };
+
+    // replace finished progress bar with advanced result. 
+    function replace_progressbar_with_result(container_id) {
+        $.ajax({
+            url: "{{ url_for('ngs.analysis_advanced_result')}}",
+            type: "POST",
+            data: JSON.stringify({ name: container_id , id: "{{analysis.id}}"}),
+            contentType: 'application/json',
+            success: function (result) {
+                $(container_id).html(result.html);
+                disable_advanced_result_call(false);
+            },
+        });
+    }
+
 
     function disable_advanced_result_call (mode) {
         $('.advanced_result_call').attr('disabled',mode)
@@ -455,10 +522,18 @@
 
     $(document).ready(function () {
         if ($('.progress-bar').length) {
-            disable_advanced_result_call(true)
+            disable_advanced_result_call(true);
+            update_advanced_analysis_progress_bar('#'+$('.progress-bar').parent().parent().attr('id'));
         }
     })
 
-
+    function toggle_collapse() { 
+        if($('.panel-toggle-button').hasClass('down') ){
+            $('.panel-collapse').collapse('show');
+            $('.panel-toggle-button').removeClass('down').html('<span class="glyphicon glyphicon-collapse-up " onclick="javascript: toggle_collapse()" style="margin-left:50px;cursor: pointer;"></span>')
+        } else {
+            $('.panel-collapse').collapse('hide');
+            $('.panel-toggle-button').addClass('down').html('<span class="glyphicon glyphicon-collapse-down " onclick="javascript: toggle_collapse()" style="margin-left:50px;cursor: pointer;"></span>')
+        } }
 </script>
 {% endblock %}

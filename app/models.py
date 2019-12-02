@@ -1,3 +1,4 @@
+from app.utils.analysis import DataReader, Alignment
 import numpy as np
 from matplotlib.figure import Figure
 from collections import Counter
@@ -19,6 +20,9 @@ from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
 import os,gzip
+from inspect import signature,_empty
+
+
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -246,10 +250,10 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def haschildren(self):
         return (current_user.id!=self.user_id)
 
-    def advanced_result_call_para(self,name):
+    def advanced_result_call_para(self,name,default=""):
         result = self.advanced_result.get(name,{}).get('input',None)
         if result==None:
-            return 'This function has never been called.'
+            return default
         return result
 
     def advanced_result_task_progress(self,name):
@@ -264,6 +268,42 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def advanced_result_img(self, name):
         return self.advanced_result.get(name, {}).get('output', {}).get('img', [])
 
+    def init_advanced_task(self, funcname, para):
+        if datareader_API_dict[funcname]['multithread']:
+            job = current_app.task_queue.enqueue(
+                'app.tasks.ngs_data_processing.advanced_task',self.id,funcname,para,job_timeout=3600*10)
+            t = Task(id=job.get_id(), name=f"Advanced call {self}.")
+            self.advanced_result[funcname]={'input':para,'output':{'task':t.id,'file':[],'text':[],'img':[]}}
+            self.save_data()
+            db.session.add(t)
+            db.session.commit()
+            return t 
+        else:
+            try:
+                self.advanced_result[funcname]={'input':para,'output':{'task':None,'file':[],'text':[],'img':[]}}
+                para = eval(f"dict({para})")
+                dr = self.get_adavanced_datareader()
+                func = getattr(dr, funcname)
+                return_annotation = signature(func).return_annotation
+                if return_annotation == _empty:
+                    return None
+                else:
+                    _return = return_annotation.split(',')
+                    result = func(**para)
+                    if len(_return) == 1:
+                        result = [result]
+                    output = dict(zip(_return, result))
+                    self.advanced_result[funcname]['output'].update(output)
+                    self.save_data()
+                    db.session.commit()
+            except Exception as e:
+                self.advanced_result[funcname]['output']['text'] = [f"Error: {e}"]
+                self.save_data()
+                db.session.commit()
+            return None
+        
+
+
     @property
     def rounds(self):
         return [Rounds.query.get(i) for i in self._rounds]
@@ -276,6 +316,12 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         l4 = f"Note : {self.note}"
         return l1, l2, l3, l4
 
+    def get_adavanced_datareader(self):
+        f = os.path.join(
+            current_app.config['ANALYSIS_FOLDER'], self.pickle_file)
+        return DataReader.load(f)
+        
+
     @lazyproperty
     def get_datareader(self):
         """
@@ -285,10 +331,6 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             f = os.path.join(
                 current_app.config['ANALYSIS_FOLDER'], self.analysis_file)
             return DataReader.load(f)
-            # if self.analysis_file.endswith('.json'):
-            #     return DataReader.load_json(f)
-            # elif self.analysis_file.endswith('.pickle'):
-            #     return DataReader.load_pickle(f)
 
     def load_rounds(self):
         job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600*10)
@@ -369,8 +411,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
 
     def plot_logo(self,cluster):
         dr=self.get_datareader
-        return dr.plot_logo(cluster)
-
+        return dr.plot_logo(cluster,save=False,count=True)
 
 
     def plot_heatmap(self):
@@ -1197,4 +1238,6 @@ models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSampl
 'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
 # from app.tasks.ngs_data_processing import
 from app.utils.ngs_util import reverse_comp,file_blocks
-from app.utils.analysis import DataReader,Alignment
+from app.utils.analysis import DataReader,Alignment,datareader_API_dict
+
+
