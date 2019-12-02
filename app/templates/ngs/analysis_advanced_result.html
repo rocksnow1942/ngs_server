@@ -3,19 +3,30 @@
     <div class="progress-bar progress-bar-striped active"
         id="{{'task:'+ analysis.advanced_result_task_progress(item['name'])}}" role="progressbar" aria-valuenow="0"
         aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
-    {% endif %}
-    {% for text in analysis.advanced_result_text(item['name']) %}
-    <p style='white-space:pre-wrap'>{{text}}</p>
-    {% endfor %}
+{% endif %}
 
-    {% for imgage in analysis.advanced_result_img(item['name']) %}
-    <img src="{{url_for('apps.analysis_data',filename=image,)}}" class="img-responsive" alt="{{image}}">
-    {% endfor %}
+{% if analysis.advanced_result_text(item['name']) %}
+    <h5> <span style="font-family: monospace;background-color:rgb(31, 99, 189);color:white;">{{item['name']}}</span>   Text Output:</h5>
+        {% for text in analysis.advanced_result_text(item['name']) %}
+        <p style='white-space:pre-wrap;font-family: monospace;background-color:black;color:white;'>{{text}}</p>
+        {% endfor %}
+{% endif %}
 
-    {% for file in analysis.advanced_result_file(item['name']) %}
-    <h5><a href="{{url_for('ngs.analysis_data',filename=file)}}"> Download {{item['name']}} result {{loop.index}}</a>
-    </h5>
-    {% endfor %}
+{% if analysis.advanced_result_img(item['name']) %}
+<h5> <span style="font-family: monospace;background-color:rgb(175, 61, 128);color:white;">{{item['name']}}</span> Image Output:</h5>
+{% for image in analysis.advanced_result_img(item['name']) %}
+<img src="{{url_for('ngs.analysis_data',filename=image,randid=range(11999, 9999999) | random)}}" class="img-responsive" alt="{{image}}"/>
+{% endfor %}
+{% endif %}
 
 
+{% if analysis.advanced_result_file(item['name']) %}
+<h5> <span style="font-family: monospace;background-color:rgb(28, 156, 28);color:white;">{{item['name']}}</span> File Output:</h5>
+        {% for file in analysis.advanced_result_file(item['name']) %}
+        <a href="{{url_for('ngs.analysis_data',filename=file,as_attachment=True,randid=range(11999, 9999999) | random)}}" style="font-size:14px;"><span class="glyphicon glyphicon-download-alt"></span> {{file}}</a>
+        {% endfor %} </h5>
+
+{% endif %}
+
+    
     

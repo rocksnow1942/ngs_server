@@ -549,15 +549,19 @@ def edit_analysis():
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
 def analysis_data(filename):
+    as_attachment=request.args.get('as_attachment',None) 
     if filename.endswith('.pickle'):
         f = os.path.join(
             current_app.config['ANALYSIS_FOLDER'], filename)
-        dr=DataReader.load_pickle(f)
+        dr = DataReader.load_pickle(f)
         data = json.dumps(dr.jsonify(), separators=(',', ":"))
         return Response(data, mimetype="text/json",
-            headers={"Content-disposition": f"attachment; filename={filename[0:-7]}.json"})
-        
-    as_attachment =  filename.endswith('.json')
+                        headers={"Content-disposition": f"attachment; filename={filename[0:-7]}.json"})
+
+    if as_attachment==None:
+        as_attachment =  filename.endswith('.json') 
+    else:
+        as_attachment=as_attachment 
     return send_from_directory(current_app.config['ANALYSIS_FOLDER'], filename, as_attachment=as_attachment)
 
 
@@ -677,6 +681,25 @@ def add_sequence_to_synthesis():
 @bp.route('/analysis_call_advanced',methods=['POST'])
 @login_required
 def analysis_call_advanced():
-    print(request.json)
+    # print(request.json)
+    name = request.json.get('name')
+    para = request.json.get('para')
+    id=request.json.get('id')
+    analysis = Analysis.query.get(id)
+    task = analysis.init_advanced_task(name,para)
+    if task:
+        return jsonify(id=task.id)
+    else:
+        return jsonify(html=render_template('ngs/analysis_advanced_result.html', analysis=analysis, item={'name':name}))
 
-    return 'helloe'
+@bp.route('/analysis_advanced_result', methods=['POST'])
+@login_required
+def analysis_advanced_result():
+    # print(request.json)
+    name = request.json.get('name')[1:-7]
+    id = request.json.get('id')
+    analysis = Analysis.query.get(id)
+   
+    item = {'name':name}
+
+    return jsonify(html=render_template('ngs/analysis_advanced_result.html',analysis=analysis,item=item))

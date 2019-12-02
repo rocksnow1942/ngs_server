@@ -1,3 +1,4 @@
+from app.utils.analysis import DataReader, Alignment
 import numpy as np
 from matplotlib.figure import Figure
 from collections import Counter
@@ -19,6 +20,9 @@ from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
 import os,gzip
+from inspect import signature,_empty
+
+
 
 def data_string_descriptor(name,mode=[]):
     class Data_Descriptor():
@@ -47,7 +51,7 @@ class DataStringMixin():
         self.data_string = json.dumps(self.data, separators=(',', ':'))
 
 class SearchableMixin():
-    @classmethod 
+    @classmethod
     def search(cls,expression,page,per_page):
         ids, total = query_index(cls.__tablename__,expression,page,per_page)
         if total==0:
@@ -55,14 +59,14 @@ class SearchableMixin():
         when = [ (k,i) for i,k in enumerate(ids) ]
         return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
 
-    @classmethod 
+    @classmethod
     def before_commit(cls,session,*args,**kwargs):
         session._changes = {'add':list(session.new),
         'update':list(session.dirty),
         'delete': list(session.deleted)}
 
-        
-    @classmethod 
+
+    @classmethod
     def after_commit(cls,session,*args,**kwargs):
         for obj in session._changes['add']:
             if isinstance(obj, SearchableMixin):
@@ -74,9 +78,9 @@ class SearchableMixin():
             if isinstance(obj, SearchableMixin):
                 remove_from_index(obj.__tablename__, obj)
         session._changes = None
-        
-    
-    @classmethod 
+
+
+    @classmethod
     def reindex(cls):
         for obj in cls.query:
             add_to_index(cls.__tablename__,obj)
@@ -100,21 +104,21 @@ class User(UserMixin,db.Model,DataStringMixin):
     follow_ppt = data_string_descriptor('follow_ppt',{})()
     bookmarked_ppt = data_string_descriptor('bookmarked_ppt', [])()
     quick_link = data_string_descriptor('quick_link',[])() # format is [(name,url)]
-   
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
     def set_password(self,password):
         self.password_hash=generate_password_hash(password)
-    
+
     def is_following_ppt(self,ppt_id):
         return str(ppt_id) in self.follow_ppt
-    
+
     @property
-    def follow_ppt_update_count(self): 
+    def follow_ppt_update_count(self):
         update = self.follow_ppt_update()
-        return sum(len(i) for i in update.values()) 
-    
+        return sum(len(i) for i in update.values())
+
     def remove_dead_ppt_link(self):
         slide_cart,bookmarked_ppt = [],[]
         for i in self.slide_cart:
@@ -150,17 +154,17 @@ class User(UserMixin,db.Model,DataStringMixin):
                 slides = [i.id for i in ppt.slides]
                 new = set(slides) - set(self.follow_ppt[k])
                 if new:
-                    update[k]=list(new)     
+                    update[k]=list(new)
         return update
 
-    @property 
+    @property
     def ngs_per_page(self):
         return self.user_setting.get('ngs_per_page', 10)
 
-    @property 
+    @property
     def thumbnail(self):
         return self.user_setting.get('thumbnail', 'small')
-    
+
     @property
     def slide_per_page(self):
         return self.user_setting.get('slide_per_page', 40)
@@ -168,7 +172,7 @@ class User(UserMixin,db.Model,DataStringMixin):
     def check_password(self,password):
         if self.password_hash:
             return check_password_hash(self.password_hash,password)
-        
+
     def avatar(self,size):
         digest=md5(self.email.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
@@ -177,7 +181,7 @@ class User(UserMixin,db.Model,DataStringMixin):
     @property
     def slide_cart_count(self):
         return len(self.slide_cart)
-    
+
     @property
     def follow_ppt_count(self):
         return len(self.follow_ppt)
@@ -197,11 +201,11 @@ class User(UserMixin,db.Model,DataStringMixin):
         except:
             return
         return User.query.get(id)
-        
+
     def test_task(self,n):
         job = current_app.task_queue.enqueue(
             "app.tasks.ngs_data_processing.test_worker", n, job_timeout=3600)
-    
+
     @property
     def isadmin(self):
         return self.privilege=='admin'
@@ -246,24 +250,60 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def haschildren(self):
         return (current_user.id!=self.user_id)
 
-    def advanced_result_call_para(self,name):
+    def advanced_result_call_para(self,name,default=""):
         result = self.advanced_result.get(name,{}).get('input',None)
         if result==None:
-            return 'This function has never been called.'
+            return default
         return result
 
     def advanced_result_task_progress(self,name):
-        return self.advanced_result.get(name,{}).get('output', {}).get('task',None) 
-    
+        return self.advanced_result.get(name,{}).get('output', {}).get('task',None)
+
     def advanced_result_text(self,name):
         return self.advanced_result.get(name, {}).get('output', {}).get('text', [])
-    
+
     def advanced_result_file(self, name):
         return self.advanced_result.get(name, {}).get('output', {}).get('file', [])
-    
+
     def advanced_result_img(self, name):
         return self.advanced_result.get(name, {}).get('output', {}).get('img', [])
-    
+
+    def init_advanced_task(self, funcname, para):
+        if datareader_API_dict[funcname]['multithread']:
+            job = current_app.task_queue.enqueue(
+                'app.tasks.ngs_data_processing.advanced_task',self.id,funcname,para,job_timeout=3600*10)
+            t = Task(id=job.get_id(), name=f"Advanced call {self}.")
+            self.advanced_result[funcname]={'input':para,'output':{'task':t.id,'file':[],'text':[],'img':[]}}
+            self.save_data()
+            db.session.add(t)
+            db.session.commit()
+            return t 
+        else:
+            try:
+                self.advanced_result[funcname]={'input':para,'output':{'task':None,'file':[],'text':[],'img':[]}}
+                para = eval(f"dict({para})")
+                dr = self.get_adavanced_datareader()
+                func = getattr(dr, funcname)
+                return_annotation = signature(func).return_annotation
+                if return_annotation == _empty:
+                    return None
+                else:
+                    _return = return_annotation.split(',')
+                    result = func(**para)
+                    if len(_return) == 1:
+                        result = [result]
+                    output = dict(zip(_return, result))
+                    self.advanced_result[funcname]['output'].update(output)
+                    self.save_data()
+                    db.session.commit()
+            except Exception as e:
+                self.advanced_result[funcname]['output']['text'] = [f"Error: {e}"]
+                self.save_data()
+                db.session.commit()
+            return None
+        
+
+
     @property
     def rounds(self):
         return [Rounds.query.get(i) for i in self._rounds]
@@ -275,7 +315,13 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         l3 = f"User : {self.user.username}, Date : {self.date}"
         l4 = f"Note : {self.note}"
         return l1, l2, l3, l4
-    
+
+    def get_adavanced_datareader(self):
+        f = os.path.join(
+            current_app.config['ANALYSIS_FOLDER'], self.pickle_file)
+        return DataReader.load(f)
+        
+
     @lazyproperty
     def get_datareader(self):
         """
@@ -285,20 +331,16 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             f = os.path.join(
                 current_app.config['ANALYSIS_FOLDER'], self.analysis_file)
             return DataReader.load(f)
-            # if self.analysis_file.endswith('.json'):
-            #     return DataReader.load_json(f)
-            # elif self.analysis_file.endswith('.pickle'):
-            #     return DataReader.load_pickle(f)
-            
+
     def load_rounds(self):
         job = current_app.task_queue.enqueue('app.tasks.ngs_data_processing.load_rounds',self.id,job_timeout=3600*10)
         t = Task(id=job.get_id(),name=f"Load analysis {self}.")
-        self.task_id=t.id 
+        self.task_id=t.id
         self.save_data()
         db.session.add(t)
         db.session.commit()
         return t
-    
+
     def build_cluster(self):
         job = current_app.task_queue.enqueue(
             'app.tasks.ngs_data_processing.build_cluster', self.id,job_timeout=3600*10)
@@ -324,7 +366,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         if self.task_id:
             task=Task.query.get(self.task_id).name
             return task.split()[0]
-    
+
     @property
     def clustered(self):
         return bool(self.cluster_para) and (not self.task_id)
@@ -369,9 +411,8 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
 
     def plot_logo(self,cluster):
         dr=self.get_datareader
-        return dr.plot_logo(cluster)
+        return dr.plot_logo(cluster,save=False,count=True)
 
-    
 
     def plot_heatmap(self):
         dr=self.get_datareader
@@ -407,19 +448,19 @@ class SeqRound(db.Model):
         l3=f"{ks} Count: {self.count} Ratio: {self.percentage}% in {self.round.round_name} pool."
         l2=f"Length: {len(self.sequence.aptamer_seq)} n.t."
         return l1,l2,l3
-    
+
     @property
     def synthesis_status(self):
         if self.sequence.note:
             return f"{self.sequence.note} - {self.sequence.date}"
         else:
-            return None 
+            return None
 
     def align(self,query):
         align = Alignment(self.sequence.aptamer_seq)
         align=align.align(query,offset=False)
         return align.format(link=True,maxlength=95).split('\n')
-   
+
     @property
     def aka(self):
         ks = self.sequence.knownas or ''
@@ -439,7 +480,7 @@ class SeqRound(db.Model):
     def RP(self):
         return self.round.RP
 
-    
+
     @lazyproperty
     def sequence_display(self):
         return f"{self.sequence.aptamer_seq}"
@@ -447,7 +488,7 @@ class SeqRound(db.Model):
     @property
     def percentage(self):
         return round(self.count/self.round.totalread*100,2)
-    
+
     def percentage_in_selection(self):
         rd = db.session.query(Rounds.id).filter(Rounds.selection_id==self.round.selection_id)
         u= SeqRound.query.filter(SeqRound.sequence_id==self.sequence_id,SeqRound.rounds_id.in_(rd)).all()
@@ -465,7 +506,7 @@ class SeqRound(db.Model):
     @property
     def id_display(self):
         return convert_id_to_string(self.id[0])
-    
+
     @property
     def percentage_rank(self):
         rd = sorted([i.count for i in self.round.sequences],reverse=True)
@@ -494,22 +535,22 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     @property
     def name(self):
         return self.sequence_name
-    
-    @property 
+
+    @property
     def length(self):
         return len(self.rep_seq)
 
     def __repr__(self):
         return f"KnownSequence <{self.sequence_name}> ID:{self.id}"
-    
+
     def haschildren(self):
         f = Sequence.query.filter_by(known_sequence_id=self.id).first()
         return bool(f)
-    
+
     @property
     def id_display(self):
         return self.id
-    
+
     def display(self):
         l1 = "Name: {}".format(self.sequence_name)
         l2 = "Sequence: {}".format(self.rep_seq)
@@ -519,7 +560,7 @@ class KnownSequence(SearchableMixin,db.Model, BaseDataModel):
     def plot_structure(self):
         fs = Structure(self.rep_seq, name=self.sequence_name)
         return fs.quick_plot()
-    
+
 
     def found_in(self):
         result = db.session.query(Selection.selection_name, Rounds.selection_id, Rounds.round_name, SeqRound.rounds_id, func.sum(SeqRound.count) /
@@ -535,15 +576,15 @@ class AccessLog(db.Model):
     date = Column(DateTime(), default=datetime.now)
 
     def add_count(self):
-        self.count+=1 
+        self.count+=1
         self.date = datetime.now()
         n=self.id + 1 if self.id<24 else 1
         nx=AccessLog.query.get(n)
         if nx:
-            nx.count=0  
+            nx.count=0
         else:
             db.session.add(AccessLog(id=n,count=0))
-    
+
 class Sequence(db.Model,BaseDataModel):
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
@@ -559,17 +600,17 @@ class Sequence(db.Model,BaseDataModel):
         align = align.align(query)
         return align.format(link=True, maxlength=95).split('\n')
 
-    @property 
+    @property
     def name(self):
         return self.id_display
-   
+
     def __repr__(self):
         return f"Sequence ID: {self.id_display} A.K.A.: {self.knownas and self.knownas.sequence_name}"
 
     def haschildren(self):
         return False
 
-    @property 
+    @property
     def length(self):
         return len(self.aptamer_seq)
 
@@ -590,7 +631,7 @@ class Sequence(db.Model,BaseDataModel):
         similarity = [(ks, i) for ks, i in similarity if i <=
                       (n+abs(ks.length-self.length))]
         return similarity
-    
+
     def plot_structure(self):
         fs=Structure(self.aptamer_seq,name=self.id_display)
         return fs.quick_plot()
@@ -618,15 +659,15 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     def __repr__(self):
         return f"Round <{self.round_name}>, ID:{self.id}"
 
-    @property 
+    @property
     def tree_color(self):
         return 'red' if self.totalread else 'black'
-   
+
     @property
     def name(self):
         return self.round_name
-    
-    @property 
+
+    @property
     def sequenced(self):
         return bool(self.samples)
 
@@ -640,7 +681,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         l3=f"Primers: {fp} + {rp}, Date:{self.date}"
         l4=f"Note: {self.note}"
         return l1,l2,l3,l4
-    
+
     def _top_seq(self,n):
         seq = sorted(self.sequences, key=lambda x: x.count, reverse=True)
         oldread = self.totalread
@@ -648,12 +689,12 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         if oldread != self.totalread:
             db.session.commit()
         return seq[0:n]
-    
+
     def top_seq(self,n):
         seq = ["{}: {:.2%}".format(
             i.sequence.aka, i.count/(self.totalread)) for i in self._top_seq(n)]
         return "; ".join(seq)
-    
+
     def info(self):
         l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
         l2="Top Seq: {}".format(self.top_seq(5))
@@ -694,7 +735,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         start = sum(i for i in data[:-1] if i>0.05)
         start += 0.5*sum(i for i in data[:-1] if i<=0.05)
         wedges, texts, autotexts = ax.pie(data, wedgeprops=dict(width=0.5), autopct=lambda pct: "{:.1f}%".format(pct),
-                                        textprops=dict(color="w", fontsize=6), pctdistance=0.75,startangle=180-360*start)       
+                                        textprops=dict(color="w", fontsize=6), pctdistance=0.75,startangle=180-360*start)
         kw = dict(arrowprops=dict(arrowstyle="-"),zorder=0, va="center")
         lastxy=(1,0)
         ax.set_title(self.round_name, weight='bold')
@@ -725,7 +766,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
     note = Column(String(5000))
     rounds = relationship('Rounds',backref='selection')
     date = Column(DateTime(), default=datetime.now)
-    
+
     @property
     def name(self):
         return self.selection_name
@@ -757,7 +798,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
             'url': url_for('ngs.details', table='round', id=r.id), 'children': []})
                 todel.append(r)
         for i in todel: sr.remove(i)
-       
+
         while sr:
             toremove = []
             for i in sr:
@@ -767,19 +808,19 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
                     'url': url_for('ngs.details', table='round', id=i.id),'children':[]})
                     toremove.append(i)
             for i in toremove:
-                
+
                 sr.remove(i)
-        return result 
+        return result
 
     def search_tree(self,ele,tree):
         def dfs(tree):
-            yield tree 
-            for v in tree['children']:
+            yield tree
+            for v in tree.get('children',[]):
                 for u in dfs(v):
-                    yield u 
+                    yield u
         for i in dfs(tree):
             if i['name'] == ele:
-                return i 
+                return i
         return False
 
         # TODO why this is wrong?
@@ -788,7 +829,7 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         # else:
         #     for i in tree['children']:
         #         return self.search_tree(ele,i)
-        
+
 
 
     def display(self):
@@ -814,7 +855,7 @@ class Primers(SearchableMixin,db.Model, BaseDataModel):
     sequence = Column(mysql.VARCHAR(200, charset='ascii'), unique=True)
     role = Column(String(10)) # can be PD
     note = Column(String(3000))
-   
+
     def __repr__(self):
         return f"Primer {self.name}, ID:{self.id}"
 
@@ -877,7 +918,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     task_id = Column(db.String(36), ForeignKey('task.id', ondelete='SET NULL'),nullable=True)
     data_string = Column(mysql.TEXT, default="{}")
     commit_threshold = data_string_descriptor('commit_threshold',2)()
-    
+
     commit_result = data_string_descriptor('commit_result',{})()
     temp_result = data_string_descriptor('temp_result', '')()
     temp_commit_result = data_string_descriptor('temp_commit_result', {})()
@@ -893,10 +934,10 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
 
     def haschildren(self):
         return self.processed
-    
+
     def get_commit_result(self,round_id):
         return self.commit_result.get(str(round_id),None)
-    
+
     def get_temp_commit_result(self, round_id):
         return self.temp_commit_result.get(str(round_id), None)
 
@@ -907,7 +948,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
             return '\n'.join(['File 1',data['file1'],'File 2', data['file2']])
         else:
             return None
-    @property 
+    @property
     def files(self):
         if self.datafile:
             uf = current_app.config['UPLOAD_FOLDER'] + '/'
@@ -935,7 +976,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
         return l1,l2,l3,l4
 
     def launch_task(self, commit,filters):
-        if commit == 'retract': 
+        if commit == 'retract':
             filters = self.filters
             if not filters:
                 filters = [0,1,0,30,self.commit_threshold]
@@ -986,7 +1027,7 @@ class NGSSampleGroup(SearchableMixin, db.Model, BaseDataModel, DataStringMixin):
     def read_lines(self,filename,n=2000):
         """
         determine file type is fastq or gz, then return n lines read into file.
-        """ 
+        """
         lines=[]
         f = self.reader_obj(filename)
         if f:
@@ -1052,7 +1093,7 @@ class NGSSample(db.Model,BaseDataModel):
         return f"ID:{self.id},Round:{self.round_id}"
 
     def info(self):
-        """ return information in the order of 
+        """ return information in the order of
         round name, round FP, round RP, index FP, index RP"""
         rd  = self.round
         fp = Primers.query.get(rd.forward_primer or 0)
@@ -1070,7 +1111,7 @@ class Task(db.Model,BaseDataModel):
     date = Column(DateTime(), default=datetime.now)
     ngssample = relationship(
         'NGSSampleGroup', backref=db.backref('task', passive_deletes=True))
-   
+
     def __repr__(self):
         return f"Task:{self.name}, ID:{self.id}"
 
@@ -1134,7 +1175,7 @@ class Slide(SearchableMixin,db.Model):
             base = {'bool': {'must': [base], 'filter':{"terms": {"ppt_id":ids}}}}
         result = current_app.elasticsearch.search(\
             index='slide', body={'query': base, 'from': (page - 1) * per_page,'size':per_page})
-        
+
         ids = [int(hit['_id']) for hit in result['hits']['hits']]
         total = result['hits']['total']
         # to account for difference between elastic search version on mac and ubuntu.
@@ -1144,7 +1185,7 @@ class Slide(SearchableMixin,db.Model):
             return cls.query.filter_by(id=0),0
         when = [ (k,i) for i,k in enumerate(ids) ]
         return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
-        
+
 class PPT(db.Model):
     __tablename__ = 'powerpoint'
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -1158,7 +1199,7 @@ class PPT(db.Model):
     date = Column(DateTime(), default=datetime.now)
     def __repr__(self):
         return f"<PPT {self.id}>"
-    
+
     @property
     def uri(self):
         self.slides.sort(key=lambda x: (x.date,x.page), reverse=True)
@@ -1174,7 +1215,7 @@ class Project(db.Model):
     note = Column(String(2000))
     ppts = relationship('PPT', backref='project')
     date = Column(DateTime(), default=datetime.now)
-    
+
     def __repr__(self):
         return f"<Project {self.id}>"
 
@@ -1192,9 +1233,11 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample, 
+models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSample,
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
 'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
-# from app.tasks.ngs_data_processing import 
+# from app.tasks.ngs_data_processing import
 from app.utils.ngs_util import reverse_comp,file_blocks
-from app.utils.analysis import DataReader,Alignment
+from app.utils.analysis import DataReader,Alignment,datareader_API_dict
+
+

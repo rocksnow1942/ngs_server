@@ -219,11 +219,19 @@ class Alignment():
                         counter=c
         return (seq, count, offset), (seq_, count_, offset_)
 
-    def format(self, id=False, reverseindex=False,maxlength=0,count=False, offset=False, collapse=0,order=False,index=False,link=False,returnraw=False):
+    def format(self, id=False, count=False, offset=False, collapse=0, order=False, index=False, link=False, returnraw=False, reverseindex=False, maxlength=0,):
         """
-        option to show ID or Count number or Offset
-        collapse will collapse sequence with a hamming distance < given number.
-        order will rearrange sequence according to count number.
+        Format the alignment in different ways. In Order:
+        1. Whether show name of two aligned sequence (C1, C2 etc.).
+        2. Whether show count of sequences. 
+        3. Whether show the offset of current sequence. 
+        4. Whether collapse sequence based on provided distance threshold 
+        5. Whether order sequence based on their count. 
+        6. show index on top: linking style. 
+        7. show linking between sequences. 
+        8. return list of lines instead of joint string. 
+        9. reverse the sequence 
+        10. maximum display length, will cause line break. 
         """
         if collapse != 0:
             up, down = self._collapse(collapse)
@@ -704,7 +712,7 @@ class Alignment():
         i,j=position
         J1_1= align[i-1][0]
         J1_2 = align[j-1][0]
-        df = pd.crosstab(pd.Series(J1_1,name='pos'+str(i)+'\\'+'pos'+str(j)),pd.Series(J1_2,name='pos'+str(j)))
+        df = pd.crosstab(pd.Series(J1_1,name='pos'+str(i)+'\\'+'pos'+str(j)),pd.Series(J1_2,name=self.name))
         total = df.sum().sum()
         df['col_sum']=df.sum(axis=1)
         df.loc['row_sum',:]=df.sum(axis=0)
@@ -744,6 +752,7 @@ class Alignment():
         if ax:
             ax = ax
             drawx=False
+            fig=None
         else:
             fig = Figure(figsize=(7, 2))
             ax = fig.subplots()
@@ -766,12 +775,11 @@ class Alignment():
         ax.set_xlim((0, len(height)+1))
         ax.set_ylim((0, 2.33))
         ax.tick_params(axis='both', which='both', labelsize=6)
-        fig.set_tight_layout(True)
         if save:
-            plt.tight_layout()
+            fig.set_tight_layout(True)
             save = save if isinstance(
                 save, str) else str(self.name)+'_logo.svg'
-            plt.savefig(str(save))
+            fig.savefig(save,format='svg')
         if show:
             plt.tight_layout()
             plt.show()
@@ -792,15 +800,14 @@ class Alignment():
         align=self
         dataset = np.array([align[i][0] for i in range(len(align))]).T
         dataset=pd.DataFrame(dataset,columns=range(1,(dataset.shape[1]+1)))
-        _=associations(dataset=dataset,**kwargs)
+        fig,corr=associations(dataset=dataset,**kwargs)
         if save:
-            _save = save if isinstance(save,str) else 'CorM'+self.name+'.svg'
-            plt.savefig(_save)
-            plt.clf()
+            save = save if isinstance(save,str) else 'CorM'+self.name+'.svg'
+            fig.savefig(save,format='svg')
         else:
             plt.show()
         if kwargs.get('return_results',False):
-            return _
+            return corr
 
 
     # to plot strucutre from rep sequence:
@@ -971,10 +978,14 @@ def associations(dataset, theil_u=True, plot=True,return_results = False, **kwar
     corr.fillna(value=np.nan, inplace=True)
     corr=corr.reindex(index=corr.index[::-1])
     annot= corr*10 if kwargs.get('annot',False) else False
+    fig=None
     if plot:
-        plt.figure(figsize=kwargs.get('figsize',(10,8)))
+        fig=Figure(figsize=kwargs.get('figsize',(10,8)))
+        ax = fig.subplots()
         sns.heatmap(corr, annot=annot,cmap=kwargs.get('cmap',None),linewidths=kwargs.get('linewidth',0),
-                    fmt=kwargs.get('fmt','.0f'),xticklabels=1,yticklabels=1,square=True)#,cmap='YlGnBu'
+                    fmt=kwargs.get('fmt','.0f'),xticklabels=1,yticklabels=1,square=True,ax=ax)#,cmap='YlGnBu'
+        fig.set_tight_layout(True)
+        return fig,corr
     if return_results:
         return corr
 

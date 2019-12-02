@@ -4,7 +4,6 @@ from app.models import models_table_name_dictionary, NGSSampleGroup, Primers, Ro
 from app import create_app
 import os,gzip
 from flask import current_app
-
 from itertools import islice, zip_longest
 from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist,lev_distance
 from collections import Counter
@@ -14,6 +13,7 @@ from app.utils.analysis._alignment import lev_distance
 from functools import partial
 from app.utils.analysis._utils import poolwrapper
 from datetime import datetime
+from inspect import signature
 
 app = create_app(keeplog=False)
 app.app_context().push()
@@ -37,20 +37,8 @@ class ProgressHandler():
 
 _set_task_progress = ProgressHandler()
 
-#
-# def _set_task_progress(progress):
-#     job = get_current_job()
-#     if job:
-#         task = Task.query.get(job.get_id())
-#         task.progress = round(progress,2)
-#         if progress >= 100:
-#             task.complete = True
-#         db.session.commit()
-
 def illumina_nt_score(n):
     return """!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHI""".index(n)
-
-    
 
 class NGS_Sample_Process:
     """
@@ -66,20 +54,20 @@ class NGS_Sample_Process:
         self.sampleinfo_rc = []
         for i in self.sampleinfo:
             self.sampleinfo_rc.append((reverse_comp(i[2]),reverse_comp(i[1]),reverse_comp(i[4]),reverse_comp(i[3])))
-        
-        
+
+
         self.filters = filters
         *_,self.score_threshold,self.commit_threshold = filters
         self.collection = Counter()
         self.primer_collection=Counter() # log wrong primers
         self.index_collection=Counter() # log wrong index
         self.length_count=Counter() # log sequence length
-        # self.commit_result = Counter() # log commit , key is (round_id, sequence) 
+        # self.commit_result = Counter() # log commit , key is (round_id, sequence)
         self.unique_commit = Counter() # log unique sequence commited count in round
         self.total_commit = Counter() # log total commit in rounds
         self.failure_collection = Counter()
         self.failure = 0 # log other un explained.
-        self.score_filter = 0 
+        self.score_filter = 0
         self.length_filter = 0
         self.aberrant_primers = 0
         # self.total = 0 # total reads
@@ -102,7 +90,7 @@ class NGS_Sample_Process:
 
     def filter_display(self):
         return " & ".join(i for i in ["Eq-Len"*bool(self.filters[0]),"Rev-Comp"*bool(self.filters[1]) ,
-                f"Q-score>{self.score_threshold}"*bool(self.filters[2]) , 
+                f"Q-score>{self.score_threshold}"*bool(self.filters[2]) ,
                 f"Count>{self.commit_threshold}"*bool(self.commit_threshold) ] if i)
 
     def reader_obj(self, filename):
@@ -122,7 +110,7 @@ class NGS_Sample_Process:
             yield fw_fs_rev_rs
         if self.f1: f.close()
         if self.f2: r.close()
-        
+
     def _fr_equal_length_filter(self,f,r):
         if len(f) == len(r):
             self.length_filter += 1
@@ -131,16 +119,16 @@ class NGS_Sample_Process:
             # print(f'F: {f}')
             # print(f'R: {r}')
             return False
-    
+
     def _rev_comp_filter(self,f,r):
         if f == r:
             self.revcomp+=1
-            return f 
+            return f
         else:
             # print(f'F: {f}')
             # print(f'R: {r}')
-            return False 
-    
+            return False
+
     def _q_score_filter(self, forward, forward_score, reverse, reverse_score):
         best_score_nts = [(f, fs) if fs >= rs else (r, rs) for f, fs, r, rs in zip_longest(
             forward, forward_score, reverse, reverse_score,fillvalue=-1)]
@@ -159,12 +147,12 @@ class NGS_Sample_Process:
         filter_result = [r for r, f in zip((fr_eq, rev_com, q_score), self.filters) if f]
         if all(filter_result):
             if filter_result:
-                return filter_result[-1] # the final result is after passing Q score filter, if it passes rev comp filter, the same sequence will pass q score. 
+                return filter_result[-1] # the final result is after passing Q score filter, if it passes rev comp filter, the same sequence will pass q score.
             else:
                 return forward or reverse
         else:
             return None
-    
+
     def process_seq(self, fw_fs_rev_rs):
         nomatch = True
         fw, fs,rev,rs = fw_fs_rev_rs
@@ -172,15 +160,15 @@ class NGS_Sample_Process:
             fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
             rmatch =  rev and self.match_pattern(rev,primers_rc,patterns,rs)
             if rmatch:
-                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) # if reverse match found, make the found part reverse complement. 
+                rmatch = (reverse_comp(rmatch[0]),rmatch[1][::-1]) # if reverse match found, make the found part reverse complement.
             if fmatch or rmatch:
                 nomatch = False
                 self.success+=1
                 matchresult = self.result_filter(fmatch,rmatch)
-                if matchresult:  
+                if matchresult:
                     self.collection[(rdid,matchresult)]+=1
                 break
-        if nomatch:    
+        if nomatch:
             self.log_unmatch(fw or rev)
 
     # def process_seq(self, fw_fs_rev_rs):
@@ -193,15 +181,15 @@ class NGS_Sample_Process:
     #             nomatch = False
     #             self.success+=1
     #             matchresult = self.result_filter(fmatch,rmatch)
-    #             if matchresult:  
+    #             if matchresult:
     #                 self.collection[(rdid,matchresult)]+=1
     #             break
-    #     if nomatch:    
+    #     if nomatch:
     #         self.log_unmatch(fw or rev)
-               
+
     def match_pattern_slow(self,seq,primers,patterns,score):
         """
-        using re match to search. 
+        using re match to search.
         """
         match = False
         if all([i in seq for i in primers]):
@@ -216,15 +204,15 @@ class NGS_Sample_Process:
             return match, [illumina_nt_score(i) for i in score[findex:rindex]]
         else:
             return None
-    
+
     def match_pattern(self,seq,primers,patterns,score):
         match=False
-        fpi,rpi,fp,rp = primers 
-        findex = seq.find(fpi+fp) 
+        fpi,rpi,fp,rp = primers
+        findex = seq.find(fpi+fp)
         rindex = seq.rfind(rp+rpi)
         if findex>-1 and rindex>-1:
             match = seq[findex+ len(fpi+fp):rindex]
-        
+
         if match:
             # print(seq)
             # print("*"*(findex)+(fpi+fp[:-1])+"|"+match+"|"+rp[1:]+rpi)
@@ -252,7 +240,7 @@ class NGS_Sample_Process:
                         # self.primer_collection[(n, n2)] += 1
                         break
                         # self.index_collection[n2]+=1
-                if temp: 
+                if temp:
                     self.primer_collection[temp]+=1
                 else:
                     self.primer_collection[(n,None)]+=1
@@ -300,19 +288,19 @@ class NGS_Sample_Process:
                 if count > self.commit_threshold:
                     # self.collection.pop(k)
                     sequence = Sequence.query.filter_by(
-                        aptamer_seq=seq).first()                    
+                        aptamer_seq=seq).first()
                     seqround = SeqRound.query.filter_by(
                         sequence=sequence, rounds_id=rd_id).first()
-                    if seqround:                    
+                    if seqround:
                         seqround.count -= count
                         if seqround.count < 1:
-                            db.session.delete(seqround)                   
+                            db.session.delete(seqround)
             db.session.commit()
         else:
             for (rd_id, seq), count in self.collection.items():
                 if count > self.commit_threshold:  # only over 2 count sequence will be committed.
                     # self.collection.pop(k)
-                    self.length_count[len(seq)] += count 
+                    self.length_count[len(seq)] += count
                     # self.commit_result[k] += count
                     self.set_commit_result(rd_id,count)
 
@@ -339,13 +327,13 @@ class NGS_Sample_Process:
     def set_commit_result(self, round_id, count):
         self.unique_commit[round_id]+=1
         self.total_commit[round_id]+=count
-       
+
     def commit_result_dict(self):
         return {i: f"{self.unique_commit[i]}/{self.total_commit[i]}" for i in self.unique_commit.keys()}
 
     def write_failures(self):
         tosave = current_app.config['UPLOAD_FOLDER'] + '/processing_failuresequences.txt'
-        fail = list(self.failure_collection.items()) 
+        fail = list(self.failure_collection.items())
         with open(tosave,'a') as f:
             f.write("="*100+'\n'+"="*100+'\n')
             f.write(f'Processing files: \nFile1:{self.f1}\nFile2:{self.f2}\nDate:{datetime.now().strftime("%Y/%m/%d %H:%M")}\n')
@@ -390,13 +378,12 @@ class NGS_Sample_Process:
         # for i, j in index[0:5]:
             # smry += "<{}>-{} ".format(i, j)
         smry+="\nNo match failures: {} / {:.2%}".format(self.failure,self.failure/ttl)
-    
-        return smry
 
+        return smry
 
 def parse_ngs_data(nsg_id, commit, filters):
     f1,f2,sampleinfo=generate_sample_info(nsg_id)
-    
+
     NSProcessor = NGS_Sample_Process(f1, f2, sampleinfo, filters)
     result, commit_result = NSProcessor.process(commit)
     NSProcessor.write_failures()
@@ -422,11 +409,9 @@ def parse_ngs_data(nsg_id, commit, filters):
     db.session.commit()
     _set_task_progress(100)
 
-
 def test_worker(n):
     for i in range(n):
         print("****runging test -", i)
-
 
 def load_rounds(id):
     analysis = Analysis.query.get(id)
@@ -459,10 +444,10 @@ def build_cluster(id):
     dr.in_cluster_align(callback=_set_task_progress)
     dr.df_trim()
     dr.alias={}
-    dr.rename_from_ks_server(ks=KnownSequence.query.all())
+    dr.rename_from_known_sequence()
     analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
-    hname,df=dr.plot_heatmap(save=True)
-    analysis.heatmap = os.path.join(str(analysis.id), hname)
+    hname,df=dr._plot_heatmap(returndf=True)
+    analysis.heatmap = hname[0]
     roundnamedict = dict(zip(df.columns.tolist(),analysis._rounds))
     maxrounddict = {k:roundnamedict[i] for k,i in df.idxmax(axis=1).to_dict().items()}
     topcluster = df.index.tolist()
@@ -500,7 +485,6 @@ def dynamic_lev_distance(seq,fix_seq="",diff_ratio=0.4):
         return dis
     return None
 
-
 def lev_distance_search(query,table):
     #table can be sequence, primer, known_sequence
     query=query.strip()
@@ -531,6 +515,31 @@ def lev_distance_search(query,table):
     _set_task_progress(100)
     return dict(result=result,query=query)
 
+def advanced_task(id,funcname,para):
+    progress_callback = _set_task_progress
+    analysis = Analysis.query.get(id)
+    try:
+        para = eval(f"dict({para})")
+        dr = analysis.get_adavanced_datareader()
+        progress_callback(5)
+        func=getattr(dr, funcname)
+        _return = signature(func).return_annotation.split(',')
+        result = func(**para) 
+        if len(_return)==1:
+            result = [result]
+        output = dict(zip(_return,result))
+        analysis.advanced_result[funcname]['output'].update(output) 
+        analysis.advanced_result[funcname]['output']['task'] = None 
+        analysis.save_data()
+        db.session.commit()
+    except Exception as e:
+        analysis.advanced_result[funcname]['output']['text']=[f"Error: {e}"]
+        analysis.advanced_result[funcname]['output']['task'] = None
+        analysis.save_data()
+        db.session.commit()
+
+    progress_callback(100)
+        
+
 if __name__ == '__main__':
     """test data processing module"""
-    

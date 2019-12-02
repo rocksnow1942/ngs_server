@@ -103,34 +103,6 @@ function set_analysis_count_badge(result) {
   $('#analysis_cart_count_container').css('display', result['analysis_count'] ? 'block' : 'none');
 }
 
- function update_progress_bar() {
-      let interval = setInterval(function () {
-        var barlist = [];
-        $('.progress-bar').each(function () {
-          barlist.push(this.id);
-        });
-        // make ajax request to get  progress info
-        $.ajax({
-          url: "{{ url_for('ngs.get_bar_progress')}}",
-          type: "POST",
-          data: JSON.stringify({ barlist: barlist }),
-          contentType: 'application/json',
-          success: function (result) {
-            let alldone = true;
-            for (let [barid, progress] of Object.entries(result)) {
-              set_bar_progress(barid, progress);
-              if (progress < 100) { alldone = false };
-            };
-            // break out set interval if all done.
-            if (alldone) { clearInterval(interval); window.location.reload() };
-          },
-          error: function (xhr, resp, text) {
-            console.log(xhr, resp, text);
-          }
-        });
-      }, 500);
-    };
-
 // change synthesis status.
 function add_sequence_to_synthesis(id) {
       $.ajax({

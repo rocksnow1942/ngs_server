@@ -235,7 +235,8 @@ def neighbor_join(dm,name_list,list_align,record_path=False,offset=True,count=Tr
         dict_align = dict(zip(name_list,list_align))
     looplength = lenth
     while looplength > 2:
-        callback( (lenth-looplength)*100/lenth ,start=70,end=95)
+        if callback:
+            callback( (lenth-looplength)*100/lenth ,start=70,end=95)
         dm_sum = np.sum(dm,axis=0)/(len(dm) -2)
         new_dm = dm -  dm_sum - dm_sum[:,None]
         np.fill_diagonal(new_dm,0)
