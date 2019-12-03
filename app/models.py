@@ -233,7 +233,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     user_id = Column(db.Integer, ForeignKey('user.id'))
     data_string = Column(db.Text, default="{}")
     note = Column(String(5000))
-    _rounds = data_string_descriptor('rounds')()
+    _rounds = data_string_descriptor('_rounds')()
     analysis_file = data_string_descriptor('analysis_file','')()
     pickle_file = data_string_descriptor('pickle_file','')()
     task_id = data_string_descriptor('task_id', '')()
@@ -277,7 +277,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             self.save_data()
             db.session.add(t)
             db.session.commit()
-            return t 
+            return t
         else:
             try:
                 self.advanced_result[funcname]={'input':para,'output':{'task':None,'file':[],'text':[],'img':[]}}
@@ -301,7 +301,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
                 self.save_data()
                 db.session.commit()
             return None
-        
+
 
 
     @property
@@ -320,7 +320,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         f = os.path.join(
             current_app.config['ANALYSIS_FOLDER'], self.pickle_file)
         return DataReader.load(f)
-        
+
 
     @lazyproperty
     def get_datareader(self):
@@ -1239,5 +1239,3 @@ models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSampl
 # from app.tasks.ngs_data_processing import
 from app.utils.ngs_util import reverse_comp,file_blocks
 from app.utils.analysis import DataReader,Alignment,datareader_API_dict
-
-
