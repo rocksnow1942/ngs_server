@@ -781,7 +781,7 @@ class DataReader(Reader):
         callback: set to progress_callback to display progress. 
         """
         result = self.search(query,threshold,reverse,method,scope,callback,**kwargs)
-        return [f"Generated on {self.datestamp}"]+["\n".join(["{:>15}:{:<5}".format(i[0],i[1]) for i in result])] if result else ["Nothing found."]
+        return [f"Generated on {self.datestamp}"]+["\n".join(["{:>15} : {:<5}".format(i[0],i[1]) for i in result])] if result else ["Nothing found."]
 
     def search(self,query,threshold=5,reverse=False,method='lev_distance',scope='cluster',callback=None,**kwargs):
         """
