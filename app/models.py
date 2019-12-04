@@ -274,6 +274,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         analysis.cluster_table=''
         analysis.save_data()
         db.session.commit()
+        return "Done."
 
 
 
