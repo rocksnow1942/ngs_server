@@ -256,10 +256,11 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             raise ValueError('Need to commit analysis to get id first.')
         analysis_id = str(self.id)
         analysis = self
-        dr = DataReader(name=analysis.name, filepath=os.path.join(
-            current_app.config['ANALYSIS_FOLDER'], analysis_id))
+        filepath = os.path.join(current_app.config['ANALYSIS_FOLDER'], analysis_id)
+        dr = DataReader(name=analysis.name, filepath=filepath)
         rounds = list(filter(roundfilter, Rounds.query.all(),))
         analysis._rounds = [i.id for i in rounds]
+        create_folder_if_not_exist(filepath)
         dr.load_from_ngs_server(rounds,sequencefilter)
         analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
         analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
