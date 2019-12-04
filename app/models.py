@@ -1,4 +1,3 @@
-from app.utils.analysis import DataReader, Alignment
 import numpy as np
 from matplotlib.figure import Figure
 from collections import Counter
@@ -246,6 +245,36 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
+    
+    def create_datareader(self,roundfilter,sequencefilter):
+        """
+        generate data reader file by round filter and sequence filter function.
+        round filter: function input is Rounds instance, return True if satisfy condition.
+        sequence filter: funciton input is SeqRound instance
+        """
+        if not self.id:
+            raise ValueError('Need to commit analysis to get id first.')
+        analysis_id = str(self.id)
+        analysis = self
+        dr = DataReader(name=analysis.name, filepath=os.path.join(
+            current_app.config['ANALYSIS_FOLDER'], analysis_id))
+        rounds = list(filter(roundfilter, Rounds.query.all(),))
+        analysis._rounds = [i.id for i in rounds]
+        dr.load_from_ngs_server(rounds,sequencefilter)
+        analysis.analysis_file = os.path.join(analysis_id, dr.save_pickle())
+        analysis.pickle_file = os.path.join(analysis_id, dr.save_pickle('_advanced'))
+        ch=dr.sequence_count_hist(save=True)
+        lh=dr.sequence_length_hist(save=True)
+        analysis.hist = [os.path.join(
+            analysis_id, ch), os.path.join(analysis_id, lh)]
+        analysis.task_id=''
+        analysis.cluster_para=''
+        analysis.heatmap=''
+        analysis.cluster_table=''
+        analysis.save_data()
+        db.session.commit()
+
+
 
     def haschildren(self):
         return (current_user.id!=self.user_id)

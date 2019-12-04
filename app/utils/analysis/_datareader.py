@@ -137,7 +137,7 @@ class DataReader(Reader):
         zero=zero.loc[zero==0].index.tolist()
         self.df.drop(labels=zero,inplace=True,axis=1)
 
-    def load_from_ngs_server(self, rounds, callback=None):
+    def load_from_ngs_server(self, rounds, sequencefilter=lambda x:True, callback=None):
         """
         loads data from ngs server to a dataframe.
         rounds: list of round names to load
@@ -146,7 +146,7 @@ class DataReader(Reader):
         df = self.read_df_from_round(rounds[0])
         if callback: callback(1/(len(rounds)+1)*100)
         for index,r in enumerate(rounds[1:]):
-            _df = self.read_df_from_round(r)
+            _df = self.read_df_from_round(r, sequencefilter)
             df=df.merge(_df,how='outer',on=['id','aptamer_seq']).fillna(0)
             if callback:
                 callback((2+index)/(len(rounds)+1)*100)
@@ -155,11 +155,11 @@ class DataReader(Reader):
         df['sum_per'] = df[[i+'_per' for i in self.list_all_rounds()]].sum(axis=1)
         return self
 
-    def read_df_from_round(self,r):
+    def read_df_from_round(self,r,sequencefilter=lambda x:True):
         """
         helper method for load_from_ngs_server
         """
-        data=[(i.sequence.id,i.sequence.aptamer_seq,i.count,i.count/r.totalread*100) for i in r.sequences]
+        data=[(i.sequence.id,i.sequence.aptamer_seq,i.count,i.count/r.totalread*100) for i in filter(sequencefilter,r.sequences)]
         df=pd.DataFrame(data,columns=['id','aptamer_seq',r.round_name,r.round_name+'_per'])
         return df
 
