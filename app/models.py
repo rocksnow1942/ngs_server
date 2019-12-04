@@ -1267,5 +1267,5 @@ models_table_name_dictionary = {'user':User,'task': Task, 'ngs_sample': NGSSampl
 'ngs_sample_group':NGSSampleGroup, 'primer':Primers, 'selection':Selection, 'round':Rounds, 'sequence':Sequence,
 'known_sequence':KnownSequence, 'sequence_round':SeqRound,'analysis':Analysis,'project':Project,'ppt':PPT,'slide':Slide}
 # from app.tasks.ngs_data_processing import
-from app.utils.ngs_util import reverse_comp,file_blocks
+from app.utils.ngs_util import reverse_comp,file_blocks,create_folder_if_not_exist
 from app.utils.analysis import DataReader,Alignment,datareader_API_dict
