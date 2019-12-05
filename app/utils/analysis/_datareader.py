@@ -317,23 +317,16 @@ class DataReader(Reader):
             plt.clf()
             return name
 
-    # @register_API()
-    # def test_method(self, arg1=0, arg2=2, callback=None) -> 'text,file,img':
-    #     import time
-    #     for i in range(10):
-    #         time.sleep(1)
-    #         callback(i*10,10,90)
-    #     return [f"this is result {arg1},{arg2}"], [self.relative_path('test_advanced.pickle'), self.relative_path('test.txt')], [self.relative_path('newCOUNT_hist.svg'), self.relative_path('newCOUNT_hist.svg'), self.relative_path('newCOUNT_hist.svg')]
-
     @register_API()
-    def filter_df(self,toremove=[],length=None, count=None,per=None,nozero=True,savepickle=True) ->"text":
+    def filter_df(self,toremove=[],length=None, count=None,per=None,nozeroseq=True,nozeroround=True,savepickle=True) ->"text":
         """
         clean up RAW DataFrame by (If DataFrame is already trimmed, will reset dataframe to Raw DF.)
-        1. remove unwanted columns from ngs table.
-        2. remove sequence with length outside of length threshold; not use if None.
-        3. remove sequence with sum count number <= count
-        4. remove sequence with sum percent <= per
-        5. remove sequences that have zero count in all rounds
+        1. remove unwanted rounds in <toremove:list> from ngs table.
+        2. remove sequence with <length:tuple> outside of length threshold; not use if length=None.
+        3. remove sequence with sum count number <= <count:int>
+        4. remove sequence with sum percentage <= <per:float>; this is % number, e.g. 0.2 in 0.2% 
+        5. remove sequences that have zero count in all rounds if nozeroseq=True 
+        5. remove rounds that have zero sequence count if nozeroround=True
         savepickle: whether to save the filtered data.
         """
         if getattr(self, '_df', None) is not None:
@@ -342,6 +335,7 @@ class DataReader(Reader):
             for i in self.df.columns.tolist():
                 if (i in toremove) or (i.rstrip('_per') in toremove):
                     self.df.drop(labels=i,axis=1,inplace=True)
+            
         df = self.df
         if length:
             df=df.loc[df.aptamer_seq.apply(lambda x:length[0]<=len(x)<=length[1]),:]
@@ -352,10 +346,10 @@ class DataReader(Reader):
         df['sum_count']=df[[i for i in self.list_all_rounds()]].sum(axis=1)
         df['sum_per']=df[[i+'_per' for i in self.list_all_rounds()]].sum(axis=1)
         self.df=df
-        if nozero:
+        if nozeroseq:
             self.df=self.df.loc[self.df.sum_count>0,:]
-        # print('Current Dataframe:')
-        # print(self.df.head())
+        if nozeroround:
+            self.remove_zero_round()
         if savepickle: self.save_pickle()
         return ["{self.datestamp} Current DataFrame: \n {self.df.head()}\n"],
 
