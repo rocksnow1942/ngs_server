@@ -313,7 +313,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             try:
                 self.advanced_result[funcname]={'input':para,'output':{'task':None,'file':[],'text':[],'img':[]}}
                 para = eval(f"dict({para})")
-                dr = self.get_adavanced_datareader()
+                dr = self.get_advanced_datareader()
                 func = getattr(dr, funcname)
                 return_annotation = signature(func).return_annotation
                 if return_annotation == _empty:
@@ -347,7 +347,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
         l4 = f"Note : {self.note}"
         return l1, l2, l3, l4
 
-    def get_adavanced_datareader(self):
+    def get_advanced_datareader(self):
         f = os.path.join(
             current_app.config['ANALYSIS_FOLDER'], self.pickle_file)
         return DataReader.load(f)
