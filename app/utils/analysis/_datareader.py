@@ -1076,7 +1076,9 @@ class DataReader(Reader):
         round_list = df.columns.tolist()
         percentile = []
         for i in round_list:
-            percentile.append(np.percentile(df[i][lambda x: x!=0], np.arange(0,120,20)))
+            temp = df[i][lambda x: x != 0]
+            if len(temp)>0:
+                percentile.append(np.percentile(temp, np.arange(0,120,20)))
         percentile=np.array(percentile).T
         percentile = pd.DataFrame(percentile,index=['Min','20%','40%','60%','80%','Max'],columns=df.columns)
         # unique count, analysis read total read calculation.
