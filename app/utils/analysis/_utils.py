@@ -185,14 +185,14 @@ def distance_calculator(x,kwargs):
 def build_distance_matrix(list_of_alignment,callback=None,**kwargs):
     # print('Start building distance matrix...')
     # print('Current time: {}'.format(datetime.datetime.now()))
-    starttime=time.time()
+    # starttime=time.time()
     n = len(list_of_alignment)
     total=n*(n-1)/2
     # print('Matrix Size: {} X {}.'.format(n,n))
     # print('ETA: {:.2f} minutes...'.format(total*6.17172e-06))
     wrapper = partial(distance_calculator,kwargs=kwargs)
     z = poolwrapper(wrapper, combinations(list_of_alignment, 2), chunks=100, total=int(
-        total), callback=callback, progress_gap=(0, 70))
+        total), callback=callback, progress_gap=(5, 70))
     dm = np.zeros((n,n),float)
     for i in range(n-1):
         for j in range(i+1,n):
