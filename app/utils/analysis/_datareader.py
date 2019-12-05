@@ -143,7 +143,7 @@ class DataReader(Reader):
         rounds: list of round names to load
         callback: to set progression for display.
         """
-        df = self.read_df_from_round(rounds[0])
+        df = self.read_df_from_round(rounds[0], sequencefilter)
         if callback: callback(1/(len(rounds)+1)*100)
         for index,r in enumerate(rounds[1:]):
             _df = self.read_df_from_round(r, sequencefilter)
