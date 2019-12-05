@@ -459,6 +459,8 @@ def analysis():
     id = request.args.get('id',0,int)
     analysis = Analysis.query.get(id)
     # datareader=analysis.get_datareader()
+    if not analysis:
+        return abort(404)
     if analysis.clustered:
         active_tab= 'result'
     elif analysis.analysis_file:
