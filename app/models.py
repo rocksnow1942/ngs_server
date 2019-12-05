@@ -452,6 +452,12 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
             return hm
 
 class SeqRound(db.Model):
+    """
+    Middle man class between Sequence and Rounds. 
+    SeqRound.sequence => Sequence class 
+    SeqRound.round => Rounds class  
+    SeqRound.count => read of this sequence in this round.
+    """
     __tablename__ = 'sequence_round'
     # __table_args__ = {'extend_existing': True}
     sequence_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('sequence.id'), primary_key=True)
@@ -617,6 +623,11 @@ class AccessLog(db.Model):
             db.session.add(AccessLog(id=n,count=0))
 
 class Sequence(db.Model,BaseDataModel):
+    """
+    Sequence class:
+    Sequence.aptamer_seq => nucleotide sequence of the sequence. 
+    Sequence.rounds => list of rounds instances this sequence apears in. 
+    """
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
@@ -668,6 +679,17 @@ class Sequence(db.Model,BaseDataModel):
         return fs.quick_plot()
 
 class Rounds(SearchableMixin,db.Model, BaseDataModel):
+    """
+    Rounds class:
+    Rounds.selection_id => id of a selection this round belongs to. 
+    Rounds.selection => selection instance this round belongs to. 
+    Rounds.round_name => name of the round. 
+    Rounds.target => target of the round. 
+    Rounds.totalread => total read of the round. 
+    Rounds.forward_primer / Rounds.reverse_primer => primer ID of the primer for this round. 
+    Rounds.parent_id / Rounds.parent => ID / Instance of the current round's parent. 
+    Rounds.children => list of instance of current round's children.  
+    """
     __tablename__ = 'round'
     __searchable__ = ['round_name', 'target', 'note']
     __searablemethod__= ['display']
