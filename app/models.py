@@ -810,6 +810,12 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         return fig
 
 class Selection(SearchableMixin,db.Model, BaseDataModel):
+    """
+    Selection Class:
+    Selection.selection_name => name of selection. 
+    Selection.target => target of selection. 
+    Selection.rounds => list of Rounds instances that belongs to this selection.
+    """
     __tablename__ = 'selection'
     __searchable__=['selection_name','target','note']
     __searablemethod__ = ['display']
@@ -900,6 +906,12 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
         return l1,l2
 
 class Primers(SearchableMixin,db.Model, BaseDataModel):
+    """
+    Primers Class:
+    Primers.name => name of the primer. 
+    Primers.sequence => nucleotide sequence of this primer. 
+    Primers.role => role of this primer, can be: PD, NGS, SELEX, Other. 
+    """
     __tablename__ = 'primer'
     __searchable__ = ['name', 'role', 'note']
     __searablemethod__ = ['display']
