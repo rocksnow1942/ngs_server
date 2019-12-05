@@ -351,7 +351,7 @@ class DataReader(Reader):
         if nozeroround:
             self.remove_zero_round()
         if savepickle: self.save_pickle()
-        return ["{self.datestamp} Current DataFrame: \n {self.df.head()}\n"]
+        return [f"{self.datestamp} Current DataFrame: \n {self.df.head()}\n"]
 
     @register_API(True)
     def df_cluster(self, distance=5, cutoff=(35, 45), count_thre=1, clusterlimit=5000, findoptimal=False, callback=progress_callback, savepickle=True) -> "text,file":
