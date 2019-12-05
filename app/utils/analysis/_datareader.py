@@ -1077,7 +1077,7 @@ class DataReader(Reader):
         percentile = []
         for i in round_list:
             temp = df[i][lambda x: x != 0]
-            if len(temp)>0:
+            if len(temp)==0:
                 temp = [0]
             percentile.append(np.percentile(temp, np.arange(0,120,20)))
         percentile=np.array(percentile).T
