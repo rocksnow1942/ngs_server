@@ -1099,7 +1099,7 @@ class DataReader(Reader):
         totalread['sum_count']=totalread[[i for i in round_list if not i.endswith(('_per','_count'))]].sum()
         a=pd.concat([uniquecount,anaread,totalread],axis=1).T
         a=pd.concat([percentile,a],axis=0)
-        a[[i for i in round_list if not i.endswith('_per')]]=a[[i for i in round_list if not i.endswith('_per')]].astype(int)
+        a[[i for i in round_list if not i.endswith('_per')]]=a[[i for i in round_list if not i.endswith('_per')]].astype(int,erros='ignore')
         if show:
             pd.set_option('display.max_columns', None)
             pd.set_option('display.expand_frame_repr', False)
