@@ -37,7 +37,7 @@ def create_app_context():
 
 
 
-def create_app(config_class = Config,keeplog=True):   
+def create_app(config_class = Config,keeplog=True):
     app = Flask(__name__)
     app.config.from_object(config_class)
     db.init_app(app)
@@ -77,12 +77,12 @@ def create_app(config_class = Config,keeplog=True):
 
     from app.upload import bp as upload_bp
     app.register_blueprint(upload_bp,url_prefix='/upload')
-   
+
     if (not app.debug) and (not app.testing) and keeplog:
         if not os.path.exists('logs'):
             os.mkdir('logs')
-           
-        file_handler = RotatingFileHandler('logs/ngs_server.log',maxBytes=10240,backupCount=10)
+
+        file_handler = RotatingFileHandler('logs/ngs_server.log',maxBytes=102400,backupCount=10)
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))
