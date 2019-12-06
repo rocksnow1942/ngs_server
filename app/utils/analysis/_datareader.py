@@ -1386,8 +1386,7 @@ class DataReader(Reader):
         result.plot(marker='o', title=title , ax = ax)
         ax.set_xticks(range(len(result)))
         result.index.tolist()
-        ax.set_xticklabels(result.index.tolist(), rotation=45)
-        
+        ax.set_xticklabels(result.index.tolist(), rotation=45, ha="right", rotation_mode="anchor")
         fig.set_tight_layout(True)
         if save:
             fig.savefig(save,format="svg")
