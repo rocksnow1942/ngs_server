@@ -1380,13 +1380,13 @@ class DataReader(Reader):
         return [f"Plot generated on {self.datestamp}"]+[str(df) if show else "Download file to view result."], [self.relative_path('site_correlation.csv')]
 
     # method that can generate plots
-    def _plot_trend(self,result,title,save):
+    def _plot_trend(self,result,title,save,rotation=45):
         fig = Figure()
         ax = fig.subplots()
         result.plot(marker='o', title=title , ax = ax)
         ax.set_xticks(range(len(result)))
         result.index.tolist()
-        ax.set_xticklabels(result.index.tolist(), rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(result.index.tolist(), rotation=rotation, ha="right", rotation_mode="anchor")
         fig.set_tight_layout(True)
         if save:
             fig.savefig(save,format="svg")
@@ -1394,10 +1394,11 @@ class DataReader(Reader):
        
 
     @register_API()
-    def plot_cluster_trend(self, cluster="C1", query='all', plot=True) -> "img,file,text":
+    def plot_cluster_trend(self, cluster="C1", query='all',rotation=90, plot=True) -> "img,file,text":
         """
         give an tree element name, find its round percentage trend.
         if query is all, find all round percentage, otherwise find rounds in query.
+        rotation: x axis label rotation degree.
         """
         if query == 'all':
             query = self.df.columns.tolist()
@@ -1407,17 +1408,18 @@ class DataReader(Reader):
         result.index = [i[:-4] for i in query]
         result.name=self.translate(cluster)
         if plot:
-            self._plot_trend(result,self.translate(cluster) + " % Trend",self.saveas("plot_cluster_trend.svg"))
+            self._plot_trend(result,self.translate(cluster) + " % Trend",self.saveas("plot_cluster_trend.svg"),rotation=rotation)
             result.to_csv(self.saveas('plot_cluster_trend.csv'))
             return [self.relative_path("plot_cluster_trend.svg")], [self.relative_path("plot_cluster_trend.csv")], [f"Plot generated on {self.datestamp}"]
         return result
 
     @register_API()
-    def plot_compare_cluster_trend(self,cluster1="C1",cluster2="C2",query='all',  norm=False,) -> "img,file,text":
+    def plot_compare_cluster_trend(self,cluster1="C1",cluster2="C2",query='all', rotation=90, norm=False,) -> "img,file,text":
         """
         plot the ratio trend of two clusters. cluster1/cluster2
         if query is all, find all round percentage, otherwise find rounds in query.
         if norm = True, normalize to max ratio. 
+        rotation: x-axis label rotation in degree.
         """
         c1=self.plot_cluster_trend(cluster1,query,plot=False)
         c2=self.plot_cluster_trend(cluster2,query,plot=False)
@@ -1425,7 +1427,7 @@ class DataReader(Reader):
         if norm:
             ratio=ratio/ratio.max()
         self._plot_trend(ratio, self.translate(
-            c1.name)+' / '+self.translate(c2.name) + " Trend", self.saveas("plot_compare_cluster_trend.svg"))
+            c1.name)+' / '+self.translate(c2.name) + " Trend", self.saveas("plot_compare_cluster_trend.svg"), rotation=rotation)
         ratio.to_csv(self.saveas("plot_compare_cluster_trend.csv"))
         return [self.relative_path('plot_compare_cluster_trend.svg')], [self.relative_path("plot_compare_cluster_trend.csv")], [f"Plot generated on {self.datestamp}"]
 
