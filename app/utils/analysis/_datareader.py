@@ -103,7 +103,7 @@ class DataReader(Reader):
 
     @property
     def datestamp(self):
-        return datetime.now().strftime('%Y/%m/%d - %H:%M:%S')+'\n'
+        return datetime.now().strftime('%Y/%m/%d - %H:%M:%S')
 
     @property
     def dr_loc(self):
