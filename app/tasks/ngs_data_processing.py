@@ -520,7 +520,7 @@ def advanced_task(id,funcname,para):
     analysis = Analysis.query.get(id)
     try:
         para = eval(f"dict({para})")
-        dr = analysis.get_adavanced_datareader()
+        dr = analysis.get_advanced_datareader()
         progress_callback(5)
         func=getattr(dr, funcname)
         _return = signature(func).return_annotation.split(',')
