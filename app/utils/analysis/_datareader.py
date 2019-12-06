@@ -516,6 +516,30 @@ class DataReader(Reader):
             savename=self.save_pickle()
         return [f"{self.datestamp} - {msg}"],[self.relative_path(savename)]
 
+    @register_API()
+    def normalize_df(self, savepickle=True) -> "text,file":
+        """
+        normalize percentage of DataFrame to make each round always add up to 100%.
+        """
+        per=[i for i in self.df.columns if i.endswith('_per')]
+        self.df[per]=self.df[per].div(0.01*self.df[per].max(axis=0),axis=1)
+        if savepickle:
+            savename = self.save_pickle()
+        return [f"{self.datestamp} - Dataframe normalized."], [self.relative_path(savename)]
+        
+    @register_API()
+    def set_round_order(self, neworder=[], savepickle=True) -> "text":
+        """
+        rearrange round order by providing the new order of rounds.
+        """
+        assert set(neworder) == set(
+            self.list_all_rounds()), ('Must enter all rounds.')
+        new = ['sum_count'] + neworder+[i+'_per' for i in neworder]
+        self.df = self.df.loc[:, new]
+        if savepickle:
+            self.save_pickle()
+        return [f"Generated on {self.datestamp}"]+[f"Round order changed to {neworder}"]
+
     def rename(self, sequence, newname,method='match',**kwargs):
         """
         # change the cluster name in tree and align and cluster
@@ -672,15 +696,30 @@ class DataReader(Reader):
         return self.tree_guide_align(target=target,replace=replace,**kwargs)[target]
 
     @register_API()
-    def normalize_df(self, savepickle=True) -> "text,file":
+    def list_alias(self, show=True) -> "text":
         """
-        normalize percentage of DataFrame to make each round always add up to 100%.
+        list all alias 
         """
-        per=[i for i in self.df.columns if i.endswith('_per')]
-        self.df[per]=self.df[per].div(0.01*self.df[per].max(axis=0),axis=1)
-        if savepickle:
-            savename = self.save_pickle()
-        return [f"{self.datestamp} - Dataframe normalized."], [self.relative_path(savename)]
+        alias = self.alias
+        result = {}
+        for i in set(alias.values()):
+            result.update({i: self.find(i)})
+        # for k in self.align.keys():
+        #     if k[0]!='J' and (k[0] not in 'ACGT') and (k[1] not in 'ACGT'):
+        #         if contain in k:
+        #             result.append(k)
+        m = ["{:>10} : {}".format(k, ', '.join(i)) for k, i in result.items()]
+
+        return [f"Generated on {self.datestamp}"]+['\n'.join(m)]
+
+    @register_API()
+    def reset_alias(self, show=True) -> "text":
+        """
+        clear all alias
+        """
+        self.alias = {}
+        self.save_pickle()
+        return [f"Generated on {self.datestamp}"]+[f"Alias cleared on {self.datestamp}."]
 
     # utility methods
     def __getitem__(self,name):
@@ -1049,23 +1088,6 @@ class DataReader(Reader):
         return new
 
     @register_API()
-    def list_alias(self,show=True) -> "text":
-        """
-        list all alias 
-        """
-        alias = self.alias
-        result={}
-        for i in set(alias.values()):
-            result.update({i:self.find(i)})
-        # for k in self.align.keys():
-        #     if k[0]!='J' and (k[0] not in 'ACGT') and (k[1] not in 'ACGT'):
-        #         if contain in k:
-        #             result.append(k)
-        m = ["{:>10} : {}".format(k, ', '.join(i)) for k, i in result.items()]
-    
-        return [f"Generated on {self.datestamp}"]+['\n'.join(m)]
-
-    @register_API()
     def df_info(self,show=True) -> "text,file":
         """
         print the description of dataframe.
@@ -1222,17 +1244,6 @@ class DataReader(Reader):
     #     _=self.plot_logo_trend(target=target,rounds=round,plot=False,table=table,save=False)
     #     return _
 
-    @register_API()
-    def set_round_order(self,neworder=[],savepickle=True) -> "text":
-        """
-        rearrange round order by providing the new order of rounds.
-        """
-        assert set(neworder)==set(self.list_all_rounds()),('Must enter all rounds.')
-        new = ['sum_count'] +neworder+[i+'_per' for i in neworder]
-        self.df = self.df.loc[:,new]
-        if savepickle:
-            self.save_pickle()
-        return [f"Generated on {self.datestamp}"]+[f"Round order changed to {neworder}"]
 
     @register_API()
     def call_mutation(self,target="C1",sequence="ATCGA",count=True)->"text":
