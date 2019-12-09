@@ -1906,7 +1906,10 @@ class DataReader(Reader):
         
         fileoutput = []
         textoutput = []
-        for r in round_list:
+        totalrounds = len(round_list)
+        for progress, r in enumerate(round_list):
+            if callback:
+                callback(progress/totalrounds*100,start=5,end=95)
             rd = Rounds.query.filter_by(round_name=r).first()
             p = rd.parent
             if p and p.round_name in round_list:
