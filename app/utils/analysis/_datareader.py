@@ -33,6 +33,10 @@ datareader_API_dict = {}
 class CallbackDisplay():
     def __repr__(self):
         return "progress_callback"
+    
+    def __call__(self,*args,**kwargs):
+        from app.tasks.ngs_data_processing import _set_task_progress
+        _set_task_progress(*args,**kwargs)
 
 progress_callback = CallbackDisplay()
 
