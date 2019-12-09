@@ -426,7 +426,9 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def df_table(self):
         dr = self.get_datareader
         result={}
-        result.update(table=dr.df_table(),cluster=dr.cluster_summary())
+        table = dr.df_table() 
+        roundids = {row[0]:Rounds.query.filter_by(round_name=row[0]).first().id for row in table} # get all the ids to display link.
+        result.update(table=table,cluster=dr.cluster_summary(),roundids = roundids)
         return result
 
 

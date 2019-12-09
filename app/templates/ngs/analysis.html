@@ -161,8 +161,9 @@
                             <th width="60px">Max Read</th>
                         </tr>
                         {% for row in df_table['table'] %}
-                        <tr>
-                               {% for td in row %}
+                        <tr>   
+                                <td><a href="{{url_for('ngs.details',table='round',id=df_table['roundids'][row[0]])}}">{{row[0]}}</a></td>
+                               {% for td in row[1:] %}
                                     <td>{{td}}</td>
                                {% endfor %}
                         </tr>
