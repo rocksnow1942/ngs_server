@@ -16,6 +16,11 @@ server {
     access_log /var/log/ngs_server_access.log main if=$log_ip;
     error_log /var/log/ngs_server_error.log;
     location / {
+        # allow ips from 192.168.86.1 - 192.168.86.254  and local host. 
+        allow   127.0.0.1
+        allow   192.168.86.0/24;
+        allow   68.6.106.8;
+        deny    all;
         # forward application requests to the gunicorn server
         proxy_pass http://localhost:8000;
         proxy_read_timeout 1200s;
@@ -30,6 +35,8 @@ server {
     expires 30d;	
     }
 }
+
+
 
 
 server {
