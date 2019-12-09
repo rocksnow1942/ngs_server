@@ -1706,14 +1706,6 @@ class DataReader(Reader):
         if norm = 1, normalize along x axis to make biggest number 1.
         exp: condition='alias,sumcount>0',scope='cluster'
         """
-        # check if save location is legit first
-        # if save:
-        #     _save_= save if isinstance(save,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
-        #     _save_=self.ifexist('HEAT_'+_save_+'.svg')
-        # if savedf:
-        #     _savedf_ = savedf if isinstance(savedf,str) else '{}_{}_top{}{}{}'.format(self.name,condition,top,order,'norm'*norm)
-        #     _savedf_=self.ifexist('TAB_'+_savedf_+'.csv')
-        # preprocess data frame for plotting.
         df = self.plot_pie(top=(0,None),condition=condition,scope=scope,plot=False,translate=False).drop(labels='Others',axis=0)
         if norm:
             df = df.div(df.max(axis=1),axis=0)
@@ -1762,8 +1754,8 @@ class DataReader(Reader):
 
         df = df.loc[new_index]
         
+    
         # start plotting  only top n values
-        
         df_slice = df.loc[new_index[_slice], :]
         correction = 1 if norm else 100
         df_np = np.flip((df_slice.values/correction)**(1/contrast), axis=0)
@@ -1786,7 +1778,7 @@ class DataReader(Reader):
         ax.set_ylim(-0.5,len(cluster)-0.5)
         ax.set_yticks(np.arange(len(cluster)))
         ax.set_xticklabels(rounds,rotation=45, ha="right",
-                 rotation_mode="anchor")
+                rotation_mode="anchor")
         cluster.reverse()
         top=len(cluster)
         if len(cluster)<=70:
@@ -1813,11 +1805,8 @@ class DataReader(Reader):
         cax.spines['left'].set_visible(False)
         cax.tick_params(axis='both', which='both', bottom=False, top=False,
                 labelbottom=True, left=True, right=False, labelleft=True)
-        # cax.set_axis_off()
-
         fig.set_tight_layout(True)
         fig.savefig(self.saveas('plot_heatmap'+self.affix+'.svg'),format='svg')
-
         if returndf:
             return [self.relative_path('plot_heatmap'+self.affix+'.svg')],df_slice
         else:
@@ -1888,7 +1877,58 @@ class DataReader(Reader):
         fig.savefig(self.saveas('plot_logo_trend.svg'),format='svg')
 
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
-           
+
+    @register_API()      
+    def list_enriched_sequence(self,rounds='all',condition="sumcount>1",scope='cluster') ->"file,text":
+        """
+        List all sequence enriched from parent round to children round in current analysis.
+        Condition: refer to "filter" for details.
+        Scope: can be "cluster" (Cx) or "joint" (Jx) or "align" (Cx/Jx).  
+        Text output is top 16 enriched sequence.
+        File output is all sequence satisfy condition.
+        """
+        from app.models import Rounds
+        df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
+                           plot=False, translate=False).drop(labels='Others', axis=0)
+        old_df = df.copy()
+        # set index order according to order option. return a new_index list
+        index = df.index.tolist()
+        order_score = None
+        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
+            df[c] = df[c].replace([0], df[c].replace(
+                to_replace=[0], value=1).min())
+        round_list = self.list_all_rounds()
+        fileoutput = []
+        textoutput = []
+        for r in round_list:
+            rd = Rounds.query.filter_by(round_name=r).first()
+            p = rd.parent
+            if p and p.round_name in round_list:
+                order_score = df[r]/df[p.round_name]
+                order_score = order_score.sort_values(ascending=False)
+                new_index = order_score.index.to_list()
+                tosavedf= old_df.loc[new_index] # 
+                tosavedf[f'Score: {r}/{p.round_name}'] = order_score
+                tosavedf['Sequence'] = df.index.map(
+                    lambda x: self.align[x].rep_seq())
+                new = self.df.loc[tosavedf.index, :]
+                tosavedf=pd.concat([tosavedf,new],axis=1)
+                tosavedf.index = tosavedf.index.map(self.translate)
+                savename = f'list_enriched_sequence {p.round_name}~{r}.csv'
+                tosavedf.to_csv(self.saveas(savename))
+                fileoutput.append(self.relative_path(savename))
+                text = [f"Top 16 {r}/{p.round_name}"]
+                for i in range(4):
+                    _ = [ "{:<6} {:>4.1f}%:{:>7.0f}".format(tosavedf.index[i*4+j],
+                    tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
+                    text.append(" | ".join(_))
+                textoutput.append("\n".join(text))
+        return fileoutput,textoutput
+        # calculate score column
+        
+    
+        
+     
 ##############################################################################
 
 
