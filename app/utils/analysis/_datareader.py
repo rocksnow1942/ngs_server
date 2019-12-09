@@ -1879,7 +1879,7 @@ class DataReader(Reader):
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
     @register_API()      
-    def list_enriched_sequence(self,rounds='all',condition="sumcount>1",scope='cluster') ->"file,text":
+    def list_enriched_sequence(self,condition="sumcount>1",scope='cluster') ->"file,text":
         """
         List all sequence enriched from parent round to children round in current analysis.
         Condition: refer to "filter" for details.
