@@ -25,7 +25,8 @@ def white_ip_list(ip):
         return True  
     elif ip == "68.6.106.82":
         return True
-
+    return False 
+    
 @bp.before_app_request
 def before_request():
     ipaddr = request.remote_addr
