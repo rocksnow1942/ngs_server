@@ -16,22 +16,22 @@ from app.utils.ngs_util import convert_string_to_id
 from dateutil import parser
 from inspect import signature
 
-def white_ip_list(ip):
-    """
-    only allow access from certain ip address. 
-    """
-    first3 = ip.rsplit(".", 1)[0]
-    if  first3 in ("192.168.86","127.0.0"):
-        return True  
-    elif ip == "68.6.106.8":
-        return True
-    return False 
+# def white_ip_list(ip):
+#     """
+#     only allow access from certain ip address. 
+#     """
+#     first3 = ip.rsplit(".", 1)[0]
+#     if  first3 in ("192.168.86","127.0.0"):
+#         return True  
+#     elif ip == "68.6.106.8":
+#         return True
+#     return False 
     
 @bp.before_app_request
 def before_request():
-    ipaddr = request.remote_addr
-    if not white_ip_list(ipaddr):
-        abort(404)
+    # ipaddr = request.remote_addr
+    # if not white_ip_list(ipaddr):
+    #     abort(404)
     # abort(404)
     formdict = {'NGS': SearchNGSForm,
                 'PPT':SearchPPTForm}
