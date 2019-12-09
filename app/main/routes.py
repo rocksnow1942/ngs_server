@@ -23,7 +23,7 @@ def white_ip_list(ip):
     first3 = ip.rsplit(".", 1)[0]
     if  first3 in ("192.168.86","127.0.0"):
         return True  
-    elif ip == "68.6.106.82":
+    elif ip == "68.6.106.8":
         return True
     return False 
     
