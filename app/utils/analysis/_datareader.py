@@ -1878,10 +1878,11 @@ class DataReader(Reader):
 
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
-    @register_API()      
-    def list_enriched_sequence(self,condition="sumcount>1",scope='cluster') ->"file,text":
+    @register_API(True)      
+    def list_enriched_sequence(self,rounds="all",condition="sumcount>1",scope='cluster',callback=progress_callback) ->"file,text":
         """
         List all sequence enriched from parent round to children round in current analysis.
+        rounds: "all" for all rounds, or a list of round names.
         Condition: refer to "filter" for details.
         Scope: can be "cluster" (Cx) or "joint" (Jx) or "align" (Cx/Jx).  
         Text output is top 16 enriched sequence.
@@ -1897,7 +1898,12 @@ class DataReader(Reader):
         for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
             df[c] = df[c].replace([0], df[c].replace(
                 to_replace=[0], value=1).min())
-        round_list = self.list_all_rounds()
+        if isinstance(rounds,list):
+            round_list = rounds
+            assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
+        else:
+            round_list = self.list_all_rounds()
+        
         fileoutput = []
         textoutput = []
         for r in round_list:
@@ -1919,7 +1925,7 @@ class DataReader(Reader):
                 fileoutput.append(self.relative_path(savename))
                 text = [f"Top 16 {r}/{p.round_name}"]
                 for i in range(4):
-                    _ = [ "{:<6} {:>4.1f}%:{:>7.0f}".format(tosavedf.index[i*4+j],
+                    _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j],
                     tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
                     text.append(" | ".join(_))
                 textoutput.append("\n".join(text))
