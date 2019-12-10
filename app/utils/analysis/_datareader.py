@@ -1936,8 +1936,7 @@ class DataReader(Reader):
                 tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
                 allscores[f'Score: {r}/{p.round_name}'] = order_score
-                tosavedf['Sequence'] = tosavedf.index.map(
-                    lambda x: self.align[x].rep_seq())
+                tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq())
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
@@ -1954,6 +1953,9 @@ class DataReader(Reader):
                 savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
                 tosavedf.to_csv(self.saveas(savename))
                 fileoutput.append(self.relative_path(savename))
+        allscores["Dominant Sequence ID"] = allscores.index.map(lambda x: name_id[x])
+        allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq())
+        allscores.index = allscores.index.map(self.translate)
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
                 
         return fileoutput,textoutput
