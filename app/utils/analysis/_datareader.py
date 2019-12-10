@@ -1910,7 +1910,7 @@ class DataReader(Reader):
         else:
             round_list = self.list_all_rounds()
         
-        fileoutput = []
+        fileoutput = [self.relative_path("list_enriched_sequence ALL Scores.csv")]
         textoutput = [f"Generated on {self.datestamp}"]
         totalrounds = len(round_list)
 
@@ -1923,7 +1923,7 @@ class DataReader(Reader):
                 name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
             else:
                 name_id[k] = "N.A."
-
+        allscores = pd.DataFrame()
         for progress, r in enumerate(round_list):
             if callback:
                 callback(progress/totalrounds*100,start=5,end=95)
@@ -1934,23 +1934,28 @@ class DataReader(Reader):
                 order_score = order_score.sort_values(ascending=False)
                 new_index = order_score.index.to_list()
                 tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
-                
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
+                allscores[f'Score: {r}/{p.round_name}'] = order_score
                 tosavedf['Sequence'] = tosavedf.index.map(
                     lambda x: self.align[x].rep_seq())
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
+                
+                text = [f"Top {top} {r}%{p.round_name}"]
+                for i in range(math.ceil(top/4)):
+                    _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "("+name_id[tosavedf.index[i*4+j]]+")",
+                    tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
+                    text.append(" | ".join(_))
+                textoutput.append("\n".join(text))
+
+
                 tosavedf.index = tosavedf.index.map(self.translate)
                 savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
                 tosavedf.to_csv(self.saveas(savename))
                 fileoutput.append(self.relative_path(savename))
-                text = [f"Top {top} {r}%{p.round_name}"]
-                for i in range(math.ceil(top/4)):
-                    _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j],
-                    tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
-                    text.append(" | ".join(_))
-                textoutput.append("\n".join(text))
+        allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
+                
         return fileoutput,textoutput
         # calculate score column
         
