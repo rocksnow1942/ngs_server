@@ -1935,7 +1935,7 @@ class DataReader(Reader):
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
                 tosavedf['Sequence'] = df.index.map(
                     lambda x: self.align[x].rep_seq())
-                tosavedf["Dominant Sequence ID"] = df.index.map(lambda x: name_id[x])
+                tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
                 tosavedf.index = tosavedf.index.map(self.translate)
