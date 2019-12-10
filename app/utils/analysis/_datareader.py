@@ -1986,7 +1986,7 @@ class DataReader(Reader):
         allscores = pd.concat(
             [allscores, self.df.loc[allscores.index, :]], axis=1)
         allscores.index = allscores.index.map(self.translate) 
-        return allscore, textoutput
+        return allscores, textoutput
 
 
 
