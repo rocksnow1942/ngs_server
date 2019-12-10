@@ -1939,10 +1939,10 @@ class DataReader(Reader):
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
                 tosavedf.index = tosavedf.index.map(self.translate)
-                savename = f'list_enriched_sequence {p.round_name}~{r}.csv'
+                savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
                 tosavedf.to_csv(self.saveas(savename))
                 fileoutput.append(self.relative_path(savename))
-                text = [f"Top 16 {r}/{p.round_name}"]
+                text = [f"Top 16 {r}%{p.round_name}"]
                 for i in range(4):
                     _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j],
                     tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
