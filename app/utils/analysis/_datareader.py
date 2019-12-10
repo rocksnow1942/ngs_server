@@ -1912,7 +1912,7 @@ class DataReader(Reader):
             return row[r1+'_per']/(row[r2+'_per'])
         def getOtherRounds(row):
             text = []
-            for index in row.filter(regex=scorenamereg).sort_values(ascending=False).index:
+            for index in row.filter(regex=scorenamereg).sort_values(ascending=False).index[1:11]:
                 rds = index.split(': ')[1]
                 r1, r2 = rds.split('/')
                 r1per = row[r1+'_per']
