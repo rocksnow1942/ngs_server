@@ -293,7 +293,7 @@
                 {% else %}None{% endif %}</li>
             <li><b>RPC:</b> {% if entry.RP %}
                 <a
-                    href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.FP.id)}}">{{entry.RP.name}}</a> - {{entry.RP.sequence_rc}}
+                    href="{{url_for('ngs.details',table=entry.RP.__tablename__,id=entry.RP.id)}}">{{entry.RP.name}}</a> - {{entry.RP.sequence_rc}}
                 {% else %}None{% endif %}</li>
             <li><b>A.K.A.:</b>{% if entry.aka %}
             <a href="{{url_for('ngs.details',table='known_sequence',id=entry.sequence.knownas.id)}}">{{entry.aka}}</a>
