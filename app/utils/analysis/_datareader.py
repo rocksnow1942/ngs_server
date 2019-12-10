@@ -1897,36 +1897,7 @@ class DataReader(Reader):
         else:
             return "N.A."
        
-    def calculate_enrichment(self, rounds="all", condition="sumcount>10", scope="cluster", scoremethod="C/P"):
-        """
-        return df for enrichment of each possible parent/children rounds pair.
-        """
-        from app.models import Rounds
-        df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
-                           plot=False, translate=False).drop(labels='Others', axis=0)
-        
-        # set index order according to order option. return a new_index list
-        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
-            df[c] = df[c].replace([0], df[c].replace(to_replace=[0], value=1).min())
-        if isinstance(rounds,list):
-            round_list = rounds
-            assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
-        else:
-            round_list = self.list_all_rounds()
-            
-        allscores = pd.DataFrame()  # store all scores in one table.
-
-        for r in (round_list):
-            rd = Rounds.query.filter_by(round_name=r).first()
-            p = rd.parent
-            if p and p.round_name in round_list:
-                C = df[r]
-                P = df[p.round_name]
-                allscores[f'{r}/{p.round_name}'] = eval(scoremethod)
-        allscores.set_index(allscores.index.map(lambda x: self.alignment_id(x)))
-        return allscores
-
-    def calculate_best_scores_df(self,df,scorename):
+    def calculate_best_scores_df(self, df, scorename):
         """
         calculate best enrichment given a dataframe with all calculated scores and scorename
         """
@@ -1941,7 +1912,7 @@ class DataReader(Reader):
             return row[r1+'_per']/(row[r2+'_per'])
         def getOtherRounds(row):
             text = []
-            for index in row.filter(regex=scorenamereg)[row.filter(regex=scorenamereg) > 0].index:
+            for index in row.filter(regex=scorenamereg)[row.filter(regex=scorenamereg) > 0].sort_values(ascending=False).index:
                 rds = index.split(': ')[1]
                 r1, r2 = rds.split('/')
                 r1per = row[r1+'_per']
@@ -1966,7 +1937,56 @@ class DataReader(Reader):
             'MaxEnrichFold', 'EnrichInOtherRounds', 'Sequence']]
 
 
+    def calculate_enrich_score_df(self,rounds="all",condition="sumcount>10",scope='cluster',scoremethod="C/P", scorename="Div",top=16, callback=progress_callback):
+        from app.models import Rounds
+        import math
+        df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
+                           plot=False, translate=False).drop(labels='Others', axis=0)
+        old_df = df.copy()
+        # set index order according to order option. return a new_index list
+        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
+            df[c] = df[c].replace([0], df[c].replace(
+                to_replace=[0], value=1).min())
+        if isinstance(rounds, list):
+            round_list = rounds
+            assert set(rounds) <= set(self.list_all_rounds()
+                                      ), ("Some round names not in current analysis")
+        else:
+            round_list = self.list_all_rounds()
 
+        textoutput = [f"Generated on {self.datestamp}"]
+        totalrounds = len(round_list)
+
+        # construct name - Seq ID dict
+        name_id = {i: self.alignment_id(i) for i in df.index}
+
+        allscores = pd.DataFrame()  # store all scores in one table.
+
+        for progress, r in enumerate(round_list):
+            if callback:
+                callback(progress/totalrounds*100, start=5, end=95)
+            rd = Rounds.query.filter_by(round_name=r).first()
+            p = rd.parent
+            if p and p.round_name in round_list:
+                C = df[r]
+                P = df[p.round_name]
+                order_score = eval(scoremethod)
+                order_score = order_score.sort_values(ascending=False)
+                allscores[f'{scorename}: {r}/{p.round_name}'] = order_score
+                text = [f"Top {top} {r}%{p.round_name} Method: {scorename}"]
+                for i in range(math.ceil(top/4)):
+                    _ = ["{:<12}{:>4.1f}%:{:>9.1f}".format(order_score.index[i*4+j] + "-"+name_id[order_score.index[i*4+j]],
+                                                           self.df.loc[order_score.index[i*4+j], r+"_per"], order_score[i*4+j]) for j in range(4)]
+                    text.append(" | ".join(_))
+                textoutput.append("\n".join(text))
+        allscores["Dominant Sequence ID"] = allscores.index.map(
+            lambda x: name_id[x])
+        allscores['Sequence'] = allscores.index.map(
+            lambda x: self.align[x].rep_seq().replace("-", ""))
+        allscores = pd.concat(
+            [allscores, self.df.loc[allscores.index, :]], axis=1)
+        allscores.index = allscores.index.map(self.translate) 
+        return allscore, textoutput
 
 
 
@@ -1983,64 +2003,14 @@ class DataReader(Reader):
         Text output is top <top> enriched sequence.
         File output is all sequence satisfy condition.
         """
-        from app.models import Rounds
-        import math
-        df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
-                           plot=False, translate=False).drop(labels='Others', axis=0)
-        old_df = df.copy()
-        # set index order according to order option. return a new_index list
-        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
-            df[c] = df[c].replace([0], df[c].replace(to_replace=[0], value=1).min())
-        if isinstance(rounds,list):
-            round_list = rounds
-            assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
-        else:
-            round_list = self.list_all_rounds()
-        
-        fileoutput = [self.relative_path("list_enriched_sequence BEST Scores.csv"),self.relative_path("list_enriched_sequence ALL Scores.csv")]
-        textoutput = [f"Generated on {self.datestamp}"]
-        totalrounds = len(round_list)
-
-        # construct name - Seq ID dict 
-        name_id = {i:self.alignment_id(i) for i in df.index}
-        
-        allscores = pd.DataFrame() # store all scores in one table. 
-
-        for progress, r in enumerate(round_list):
-            if callback:
-                callback(progress/totalrounds*100,start=5,end=95)
-            rd = Rounds.query.filter_by(round_name=r).first()
-            p = rd.parent
-            if p and p.round_name in round_list:
-                C = df[r]
-                P = df[p.round_name]
-                order_score = eval(scoremethod)
-                order_score = order_score.sort_values(ascending=False)
-                # new_index = order_score.index.to_list()
-                # tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
-                # tosavedf[f'{scorename}: {r}/{p.round_name}'] = order_score
-                allscores[f'{scorename}: {r}/{p.round_name}'] = order_score
-                # tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
-                # tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
-                text = [f"Top {top} {r}%{p.round_name} Method: {scorename}"]
-                for i in range(math.ceil(top/4)):
-                    _ = ["{:<12}{:>4.1f}%:{:>9.1f}".format(order_score.index[i*4+j] + "-"+name_id[order_score.index[i*4+j]],
-                    self.df.loc[order_score.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
-                    text.append(" | ".join(_))
-                textoutput.append("\n".join(text))
-                # tosavedf.index = tosavedf.index.map(self.translate)
-                # savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
-                
-        allscores["Dominant Sequence ID"] = allscores.index.map(lambda x: name_id[x])
-        allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
-        allscores = pd.concat([allscores, self.df.loc[allscores.index,:]], axis=1)
-        allscores.index = allscores.index.map(self.translate)
-        
+        fileoutput = [self.relative_path("list_enriched_sequence BEST Scores.csv"), self.relative_path(
+            "list_enriched_sequence ALL Scores.csv")]
+        allscores,textoutput = self.calculate_enrich_score_df(rounds,condition,scope,scoremethod, scorename,top, callback)
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
         best_scores = self.calculate_best_scores_df(allscores,scorename)
         best_scores.to_csv(self.saveas('list_enriched_sequence BEST Scores.csv'))
         return fileoutput,textoutput
-        # calculate score column
+        
         
     
         
