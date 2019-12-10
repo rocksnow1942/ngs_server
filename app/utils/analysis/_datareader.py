@@ -1885,6 +1885,18 @@ class DataReader(Reader):
 
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
+    def alignment_id(self,clus):
+        seq = self.align[clus].rep_seq().replace('-',"")
+        if clus.startswith('C'):
+            for i in self.cluster[clus]: 
+                if i[0]==seq:
+                    return convert_id_to_string(i[-1])
+        temp = self.find(seq,returnid=True)
+        if temp:
+            return convert_id_to_string(temp)
+        else:
+            return "N.A."
+       
     def calculate_enrichment(self, rounds="all", condition="sumcount>10", scope="cluster", scoremethod="C/P"):
         """
         return df for enrichment of each possible parent/children rounds pair.
@@ -1901,16 +1913,7 @@ class DataReader(Reader):
             assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
         else:
             round_list = self.list_all_rounds()
-
-        name_id = {}
-        for k, i in self.align.items():
-            seq = i.rep_seq().replace('-', "")
-            temp = self.find(seq,returnid=True)
-            if temp:
-                name_id[k] = convert_id_to_string(temp)
-            else:
-                name_id[k] = "N.A."
-
+            
         allscores = pd.DataFrame()  # store all scores in one table.
 
         for r in (round_list):
@@ -1920,7 +1923,7 @@ class DataReader(Reader):
                 C = df[r]
                 P = df[p.round_name]
                 allscores[f'{r}/{p.round_name}'] = eval(scoremethod)
-        allscores.set_index(allscores.index.map(lambda x: name_id[x]))
+        allscores.set_index(allscores.index.map(lambda x: self.alignment_id(x)))
         return allscores
 
 
@@ -1956,14 +1959,7 @@ class DataReader(Reader):
         totalrounds = len(round_list)
 
         # construct name - Seq ID dict 
-        name_id = {}
-        for k, i in self.align.items():
-            seq = i.rep_seq().replace('-', "")
-            temp = self.find(seq, returnid=True)
-            if temp:
-                name_id[k] = convert_id_to_string(temp)
-            else:
-                name_id[k] = "N.A."
+        name_id = {i:self.alignment_id(i) for i in df.index}
         
         allscores = pd.DataFrame() # store all scores in one table. 
 
