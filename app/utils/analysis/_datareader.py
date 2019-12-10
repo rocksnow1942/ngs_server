@@ -1926,6 +1926,49 @@ class DataReader(Reader):
         allscores.set_index(allscores.index.map(lambda x: self.alignment_id(x)))
         return allscores
 
+    def calculate_best_scores_df(self,df,scorename):
+        """
+        calculate best enrichment given a dataframe with all calculated scores and scorename
+        """
+        scorenamereg = scorename + ": "
+        def npmax(row):
+            return np.max(row.filter(regex=scorenamereg).astype(np.float64))
+        def getFromTo(row):
+            r1, r2 = row['MaxEnrich'].split('/')
+            return "{:.1f}-{:.1f}".format(row[r1+'_per'], row[r2+'_per'])
+        def getFromToFold(row):
+            r1, r2 = row['MaxEnrich'].split('/')
+            return row[r1+'_per']/(row[r2+'_per'])
+        def getOtherRounds(row):
+            text = []
+            for index in row.filter(regex=scorenamereg)[row.filter(regex=scorenamereg) > 0].index:
+                rds = index.split(': ')[1]
+                r1, r2 = rds.split('/')
+                r1per = row[r1+'_per']
+                r2per = row[r2+'_per']
+                text.append("{}:{:.1f}-{:.1f}".format(rds, r1per, r2per))
+            return ', '.join(text)
+
+        df['Max '+scorename] = df.apply(npmax, axis=1)
+
+        df = df.loc[df['Max '+scorename].sort_values(ascending=False).index, :]
+
+        df['MaxEnrich'] = df.filter(regex=scorenamereg).idxmax(
+            axis=1).apply(lambda x: x.split(': ')[1])
+        df['From%To'] = df.apply(getFromTo, axis=1)
+        newdf = df.copy()
+        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
+            newdf[c] = newdf[c].replace(
+                [0], newdf[c].replace(to_replace=[0], value=1).min())
+        df['MaxEnrichFold'] = newdf.apply(getFromToFold, axis=1)
+        df['EnrichInOtherRounds'] = df.apply(getOtherRounds, axis=1)
+        return df[["Dominant Sequence ID", 'Max '+scorename, 'MaxEnrich', 'From%To',
+            'MaxEnrichFold', 'EnrichInOtherRounds', 'Sequence']]
+
+
+
+
+
 
     @register_API(True)      
     def list_enriched_sequence(self,rounds="all",condition="sumcount>10",scope='cluster',scoremethod="C/P", scorename="Div",top=16, callback=progress_callback) ->"file,text":
@@ -1954,7 +1997,7 @@ class DataReader(Reader):
         else:
             round_list = self.list_all_rounds()
         
-        fileoutput = [self.relative_path("list_enriched_sequence ALL Scores.csv")]
+        fileoutput = [self.relative_path("list_enriched_sequence BEST Scores.csv"),self.relative_path("list_enriched_sequence ALL Scores.csv")]
         textoutput = [f"Generated on {self.datestamp}"]
         totalrounds = len(round_list)
 
@@ -1973,28 +2016,29 @@ class DataReader(Reader):
                 P = df[p.round_name]
                 order_score = eval(scoremethod)
                 order_score = order_score.sort_values(ascending=False)
-                new_index = order_score.index.to_list()
-                tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
-                tosavedf[f'{scorename}: {r}/{p.round_name}'] = order_score
+                # new_index = order_score.index.to_list()
+                # tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
+                # tosavedf[f'{scorename}: {r}/{p.round_name}'] = order_score
                 allscores[f'{scorename}: {r}/{p.round_name}'] = order_score
-                tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
-                tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
+                # tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
+                # tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
                 text = [f"Top {top} {r}%{p.round_name} Method: {scorename}"]
                 for i in range(math.ceil(top/4)):
-                    _ = [ "{:<12}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "-"+name_id[tosavedf.index[i*4+j]],
-                    self.df.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
+                    _ = ["{:<12}{:>4.1f}%:{:>9.1f}".format(order_score.index[i*4+j] + "-"+name_id[order_score.index[i*4+j]],
+                    self.df.loc[order_score.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
                     text.append(" | ".join(_))
                 textoutput.append("\n".join(text))
-                tosavedf.index = tosavedf.index.map(self.translate)
-                savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
-                tosavedf.to_csv(self.saveas(savename))
-                fileoutput.append(self.relative_path(savename))
-
+                # tosavedf.index = tosavedf.index.map(self.translate)
+                # savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
+                
         allscores["Dominant Sequence ID"] = allscores.index.map(lambda x: name_id[x])
         allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
         allscores = pd.concat([allscores, self.df.loc[allscores.index,:]], axis=1)
         allscores.index = allscores.index.map(self.translate)
+        
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
+        best_scores = self.calculate_best_scores_df(allscores,scorename)
+        best_scores.to_csv(self.saveas('list_enriched_sequence BEST Scores.csv'))
         return fileoutput,textoutput
         # calculate score column
         
