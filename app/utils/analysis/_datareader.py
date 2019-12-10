@@ -1918,7 +1918,7 @@ class DataReader(Reader):
             seq = i.rep_seq().replace('-', "")
             temp = self.find(seq)
             if temp:
-                name_id[k] = convert_id_to_string(self.cluster[result[0]][0][-1])
+                name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
             else:
                 name_id[k] = "N.A."
         
