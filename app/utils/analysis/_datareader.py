@@ -1942,7 +1942,7 @@ class DataReader(Reader):
                 text = [f"Top {top} {r}%{p.round_name}"]
                 for i in range(math.ceil(top/4)):
                     _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "("+name_id[tosavedf.index[i*4+j]]+")",
-                    tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
+                    self.df.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
                     text.append(" | ".join(_))
                 textoutput.append("\n".join(text))
                 tosavedf.index = tosavedf.index.map(self.translate)
@@ -1951,8 +1951,8 @@ class DataReader(Reader):
                 fileoutput.append(self.relative_path(savename))
 
         allscores["Dominant Sequence ID"] = allscores.index.map(lambda x: name_id[x])
-        allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq())
-        allscores = pd.concat([allscores, self.df], axis=1)
+        allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
+        allscores = pd.concat([self.df,allscores], axis=1)
         allscores.index = allscores.index.map(self.translate)
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
                 
