@@ -1902,8 +1902,7 @@ class DataReader(Reader):
         index = df.index.tolist()
         order_score = None
         for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
-            df[c] = df[c].replace([0], df[c].replace(
-                to_replace=[0], value=1).min())
+            df[c] = df[c].replace([0], df[c].replace(to_replace=[0], value=1).min())
         if isinstance(rounds,list):
             round_list = rounds
             assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
