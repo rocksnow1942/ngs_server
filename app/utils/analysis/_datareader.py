@@ -1882,8 +1882,45 @@ class DataReader(Reader):
 
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
+    def calculate_enrichment(self, rounds="all", condition="sumcount>10", scope="cluster"):
+        """
+        return df for enrichment of each possible parent/children rounds pair.
+        """
+        from app.models import Rounds
+        df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
+                           plot=False, translate=False).drop(labels='Others', axis=0)
+        
+        # set index order according to order option. return a new_index list
+        for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
+            df[c] = df[c].replace([0], df[c].replace(to_replace=[0], value=1).min())
+        if isinstance(rounds,list):
+            round_list = rounds
+            assert set(rounds) <= set(self.list_all_rounds()),("Some round names not in current analysis")
+        else:
+            round_list = self.list_all_rounds()
+
+        name_id = {}
+        for k, i in self.align.items():
+            seq = i.rep_seq().replace('-', "")
+            temp = self.find(seq)
+            if temp:
+                name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
+            else:
+                name_id[k] = "N.A."
+
+        allscores = pd.DataFrame()  # store all scores in one table.
+
+        for r in (round_list):
+            rd = Rounds.query.filter_by(round_name=r).first()
+            p = rd.parent
+            if p and p.round_name in round_list:
+                allscores[f'{r}/{p.round_name}'] = df[r]/df[p.round_name]
+        allscores.set_index(allscores.index.map(lambda x: name_id[x]))
+        return allscores
+
+
     @register_API(True)      
-    def list_enriched_sequence(self,rounds="all",condition="sumcount>1",scope='cluster',top=16, callback=progress_callback) ->"file,text":
+    def list_enriched_sequence(self,rounds="all",condition="sumcount>10",scope='cluster',top=16, callback=progress_callback) ->"file,text":
         """
         List all sequence enriched from parent round to children round in current analysis.
         rounds: "all" for all rounds, or a list of round names.
@@ -1899,8 +1936,6 @@ class DataReader(Reader):
                            plot=False, translate=False).drop(labels='Others', axis=0)
         old_df = df.copy()
         # set index order according to order option. return a new_index list
-        index = df.index.tolist()
-        order_score = None
         for c in df.columns:  # first fill 0 in the dataframe with minimal value in each column.
             df[c] = df[c].replace([0], df[c].replace(to_replace=[0], value=1).min())
         if isinstance(rounds,list):
@@ -1955,7 +1990,6 @@ class DataReader(Reader):
         allscores = pd.concat([allscores, self.df.loc[allscores.index,:]], axis=1)
         allscores.index = allscores.index.map(self.translate)
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
-                
         return fileoutput,textoutput
         # calculate score column
         
