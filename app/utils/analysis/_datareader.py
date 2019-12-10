@@ -1912,13 +1912,17 @@ class DataReader(Reader):
         textoutput = []
         totalrounds = len(round_list)
 
-        def getname(index): # conver index like J1 C1 to Sequence ID.
-            seq = self.align[index].rep_seq().replace('-',"")
-            result = self.find(seq)
-            if result:
-                return convert_id_to_string(self.cluster[result[0]][0][-1])
+        # construct name - Seq ID dict 
+        name_id = {}
+        for k, i in self.align.items():
+            seq = i.rep_seq().replace('-', "")
+            temp = self.find(seq)
+            if temp:
+                name_id[k] = convert_id_to_string(self.cluster[result[0]][0][-1])
             else:
-                return "N.A."
+                name_id[k] = "N.A."
+        
+
         for progress, r in enumerate(round_list):
             if callback:
                 callback(progress/totalrounds*100,start=5,end=95)
@@ -1933,7 +1937,7 @@ class DataReader(Reader):
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
                 tosavedf['Sequence'] = df.index.map(
                     lambda x: self.align[x].rep_seq())
-                tosavedf["Dominant Sequence ID"] = df.index.map(getname)
+                tosavedf["Dominant Sequence ID"] = df.index.map(lambda x: name_id[x])
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
                 tosavedf.index = tosavedf.index.map(self.translate)
