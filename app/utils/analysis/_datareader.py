@@ -1937,7 +1937,7 @@ class DataReader(Reader):
                 tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
                 allscores[f'Score: {r}/{p.round_name}'] = order_score
-                tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq())
+                tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
                 text = [f"Top {top} {r}%{p.round_name}"]
                 for i in range(math.ceil(top/4)):
