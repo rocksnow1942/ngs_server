@@ -1923,6 +1923,7 @@ class DataReader(Reader):
                 name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
             else:
                 name_id[k] = "N.A."
+
         for progress, r in enumerate(round_list):
             if callback:
                 callback(progress/totalrounds*100,start=5,end=95)
@@ -1935,7 +1936,7 @@ class DataReader(Reader):
                 tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
                 
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
-                tosavedf['Sequence'] = df.index.map(
+                tosavedf['Sequence'] = tosavedf.index.map(
                     lambda x: self.align[x].rep_seq())
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])
                 new = self.df.loc[tosavedf.index, :]
