@@ -1883,16 +1883,18 @@ class DataReader(Reader):
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
     @register_API(True)      
-    def list_enriched_sequence(self,rounds="all",condition="sumcount>1",scope='cluster',callback=progress_callback) ->"file,text":
+    def list_enriched_sequence(self,rounds="all",condition="sumcount>1",scope='cluster',top=16, callback=progress_callback) ->"file,text":
         """
         List all sequence enriched from parent round to children round in current analysis.
         rounds: "all" for all rounds, or a list of round names.
         Condition: refer to "filter" for details.
         Scope: can be "cluster" (Cx) or "joint" (Jx) or "align" (Cx/Jx).  
-        Text output is top 16 enriched sequence.
+        top: display top n clusters.
+        Text output is top <top> enriched sequence.
         File output is all sequence satisfy condition.
         """
         from app.models import Rounds
+        import math
         df = self.plot_pie(top=(0, None), condition=condition, scope=scope,
                            plot=False, translate=False).drop(labels='Others', axis=0)
         old_df = df.copy()
@@ -1942,8 +1944,8 @@ class DataReader(Reader):
                 savename = f'list_enriched_sequence {r}%{p.round_name}.csv'
                 tosavedf.to_csv(self.saveas(savename))
                 fileoutput.append(self.relative_path(savename))
-                text = [f"Top 16 {r}%{p.round_name}"]
-                for i in range(4):
+                text = [f"Top {top} {r}%{p.round_name}"]
+                for i in range(math.ceil(top/4)):
                     _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j],
                     tosavedf.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
                     text.append(" | ".join(_))
