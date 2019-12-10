@@ -1882,7 +1882,7 @@ class DataReader(Reader):
 
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
-    def calculate_enrichment(self, rounds="all", condition="sumcount>10", scope="cluster"):
+    def calculate_enrichment(self, rounds="all", condition="sumcount>10", scope="cluster", scoremethod="C/P"):
         """
         return df for enrichment of each possible parent/children rounds pair.
         """
@@ -1914,18 +1914,22 @@ class DataReader(Reader):
             rd = Rounds.query.filter_by(round_name=r).first()
             p = rd.parent
             if p and p.round_name in round_list:
-                allscores[f'{r}/{p.round_name}'] = df[r]/df[p.round_name]
+                C = df[r]
+                P = df[p.round_name]
+                allscores[f'{r}/{p.round_name}'] = eval(scoremethod)
         allscores.set_index(allscores.index.map(lambda x: name_id[x]))
         return allscores
 
 
     @register_API(True)      
-    def list_enriched_sequence(self,rounds="all",condition="sumcount>10",scope='cluster',top=16, callback=progress_callback) ->"file,text":
+    def list_enriched_sequence(self,rounds="all",condition="sumcount>10",scope='cluster',scoremethod="C/P", scorename="Div",top=16, callback=progress_callback) ->"file,text":
         """
         List all sequence enriched from parent round to children round in current analysis.
         rounds: "all" for all rounds, or a list of round names.
         Condition: refer to "filter" for details.
         Scope: can be "cluster" (Cx) or "joint" (Jx) or "align" (Cx/Jx).  
+        Scoremethod: way to calculate score, P is parent, C is children. C/P or z-score: (P/(100-P))**(0.5)*(C/P-1)
+        scorename: name to use in result.
         top: display top n clusters.
         Text output is top <top> enriched sequence.
         File output is all sequence satisfy condition.
@@ -1966,15 +1970,17 @@ class DataReader(Reader):
             rd = Rounds.query.filter_by(round_name=r).first()
             p = rd.parent
             if p and p.round_name in round_list:
-                order_score = df[r]/df[p.round_name]
+                C = df[r]
+                P = df[p.round_name]
+                order_score = eval(scoremethod)
                 order_score = order_score.sort_values(ascending=False)
                 new_index = order_score.index.to_list()
                 tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
-                tosavedf[f'Score: {r}/{p.round_name}'] = order_score
-                allscores[f'Score: {r}/{p.round_name}'] = order_score
+                tosavedf[f'{scorename}: {r}/{p.round_name}'] = order_score
+                allscores[f'{scorename}: {r}/{p.round_name}'] = order_score
                 tosavedf['Sequence'] = tosavedf.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
-                text = [f"Top {top} {r}%{p.round_name}"]
+                text = [f"Top {top} {r}%{p.round_name} Method: {scorename}"]
                 for i in range(math.ceil(top/4)):
                     _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "("+name_id[tosavedf.index[i*4+j]]+")",
                     self.df.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
