@@ -1982,7 +1982,7 @@ class DataReader(Reader):
                 tosavedf["Dominant Sequence ID"] = tosavedf.index.map(lambda x: name_id[x])                
                 text = [f"Top {top} {r}%{p.round_name} Method: {scorename}"]
                 for i in range(math.ceil(top/4)):
-                    _ = [ "{:<10}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "("+name_id[tosavedf.index[i*4+j]]+")",
+                    _ = [ "{:<12}{:>4.1f}%:{:>9.1f}".format(tosavedf.index[i*4+j] + "-"+name_id[tosavedf.index[i*4+j]],
                     self.df.loc[tosavedf.index[i*4+j],r+"_per"], order_score[i*4+j]) for j in range(4)]
                     text.append(" | ".join(_))
                 textoutput.append("\n".join(text))
