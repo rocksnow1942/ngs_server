@@ -1921,8 +1921,6 @@ class DataReader(Reader):
                 name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
             else:
                 name_id[k] = "N.A."
-        
-
         for progress, r in enumerate(round_list):
             if callback:
                 callback(progress/totalrounds*100,start=5,end=95)
