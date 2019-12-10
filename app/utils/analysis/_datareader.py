@@ -15,6 +15,7 @@ import textwrap
 from inspect import signature
 from datetime import datetime
 from matplotlib.figure import Figure
+from app.utils.ngs_util import convert_id_to_string
 
 """
 Note:
@@ -780,7 +781,6 @@ class DataReader(Reader):
                         break
                 if hit:
                     return [hit]
-
         else:
             if seq in self.__dict__.get('alias',{}).values():
                 a = [i for i,j in self.alias.items() if j==seq]
@@ -1911,6 +1911,14 @@ class DataReader(Reader):
         fileoutput = []
         textoutput = []
         totalrounds = len(round_list)
+
+        def getname(index): # conver index like J1 C1 to Sequence ID.
+            seq = self.align[index].rep_seq().replace('-',"")
+            result = self.find(seq)
+            if result:
+                return convert_id_to_string(self.cluster[result[0]][0][-1])
+            else:
+                return "N.A."
         for progress, r in enumerate(round_list):
             if callback:
                 callback(progress/totalrounds*100,start=5,end=95)
@@ -1920,10 +1928,12 @@ class DataReader(Reader):
                 order_score = df[r]/df[p.round_name]
                 order_score = order_score.sort_values(ascending=False)
                 new_index = order_score.index.to_list()
-                tosavedf= old_df.loc[new_index] # 
+                tosavedf= old_df.loc[new_index,[r,p.round_name]] # 
+                
                 tosavedf[f'Score: {r}/{p.round_name}'] = order_score
                 tosavedf['Sequence'] = df.index.map(
                     lambda x: self.align[x].rep_seq())
+                tosavedf["Dominant Sequence ID"] = df.index.map(getname)
                 new = self.df.loc[tosavedf.index, :]
                 tosavedf=pd.concat([tosavedf,new],axis=1)
                 tosavedf.index = tosavedf.index.map(self.translate)
