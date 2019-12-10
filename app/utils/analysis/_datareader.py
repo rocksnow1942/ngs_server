@@ -1035,7 +1035,7 @@ class DataReader(Reader):
         """
         show name of all rounds.
         """
-        return [f"Generated on {self.datestamp}"]+[",".join(f"'{i}'" for i in self.list_all_rounds())]
+        return [f"Generated on {self.datestamp}"]+[", ".join(f"'{i}'" for i in self.list_all_rounds())]
     
     def list_all_rounds(self) :
         a=self.df.columns.tolist()
