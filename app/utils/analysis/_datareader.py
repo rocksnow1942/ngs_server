@@ -1952,7 +1952,7 @@ class DataReader(Reader):
 
         allscores["Dominant Sequence ID"] = allscores.index.map(lambda x: name_id[x])
         allscores['Sequence'] = allscores.index.map(lambda x: self.align[x].rep_seq().replace("-",""))
-        allscores = pd.concat([allscores, self.df], axis=1)
+        allscores = pd.concat([allscores, self.df.loc[allscores.index,:]], axis=1)
         allscores.index = allscores.index.map(self.translate)
         allscores.to_csv(self.saveas('list_enriched_sequence ALL Scores.csv'))
                 
