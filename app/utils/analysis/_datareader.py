@@ -1912,12 +1912,13 @@ class DataReader(Reader):
             return row[r1+'_per']/(row[r2+'_per'])
         def getOtherRounds(row):
             text = []
-            for index in row.filter(regex=scorenamereg)[row.filter(regex=scorenamereg) > 0].sort_values(ascending=False).index:
+            for index in row.filter(regex=scorenamereg).sort_values(ascending=False).index:
                 rds = index.split(': ')[1]
                 r1, r2 = rds.split('/')
                 r1per = row[r1+'_per']
                 r2per = row[r2+'_per']
-                text.append("{}:{:.1f}-{:.1f}".format(rds, r1per, r2per))
+                if r1per > r2per: 
+                    text.append("{}:{:.1f}-{:.1f}".format(rds, r1per, r2per))
             return ', '.join(text)
 
         df['Max '+scorename] = df.apply(npmax, axis=1)
