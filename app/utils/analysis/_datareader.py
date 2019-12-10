@@ -764,7 +764,7 @@ class DataReader(Reader):
         except Exception as e:
             return [f"Generated on {self.datestamp}"]+[f"Error: {e}"]
         
-    def find(self, seq):
+    def find(self, seq,returnid=False):
         """
         find a specific sequence in the alignment and
         return the name of alignment in alignment dict. (like J1 or C1)
@@ -780,7 +780,10 @@ class DataReader(Reader):
                         hit = key
                         break
                 if hit:
-                    return [hit]
+                    if returnid:
+                        return i[-1]
+                    else:
+                        return [hit]
         else:
             if seq in self.__dict__.get('alias',{}).values():
                 a = [i for i,j in self.alias.items() if j==seq]
@@ -1902,9 +1905,9 @@ class DataReader(Reader):
         name_id = {}
         for k, i in self.align.items():
             seq = i.rep_seq().replace('-', "")
-            temp = self.find(seq)
+            temp = self.find(seq,returnid=True)
             if temp:
-                name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
+                name_id[k] = convert_id_to_string(temp)
             else:
                 name_id[k] = "N.A."
 
@@ -1956,9 +1959,9 @@ class DataReader(Reader):
         name_id = {}
         for k, i in self.align.items():
             seq = i.rep_seq().replace('-', "")
-            temp = self.find(seq)
+            temp = self.find(seq, returnid=True)
             if temp:
-                name_id[k] = convert_id_to_string(self.cluster[temp[0]][0][-1])
+                name_id[k] = convert_id_to_string(temp)
             else:
                 name_id[k] = "N.A."
         
