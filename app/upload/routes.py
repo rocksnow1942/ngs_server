@@ -60,9 +60,6 @@ def ngsuploadwidget():
             sg.task_id = None
             db.session.commit()
             return redirect(returnurl)
-        # if file1.filename == '' or file2.filename == '':
-        #     flash('Need both files.', 'warning')
-        #     return redirect(returnurl)
         if allowed_file(file1, fileextension=['fastq','gz']):
             try:
                 f1,f2=process_ngssample_files(file1,file2)
