@@ -350,12 +350,14 @@ def ppt_search_handler(query, field, ppt):
                            page_url=page_url, active=page, id=id)
 
 @bp.route('/get_ppt_slides', methods=['GET'])
+@login_required
 def get_ppt_slides():
     filename = request.args.get('filename')
     return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=False)
 
 
 @bp.route('/edit', methods=['POST'])
+@login_required
 def edit():
     data = request.json
     table,field,id,value = data['table'],data['field'],data['id'],data['data']
@@ -373,6 +375,7 @@ def edit():
 
 
 @bp.route('/get_ppt_by_project', methods=['POST'])
+@login_required
 def get_ppt_by_project():
     project = request.json['project']
    

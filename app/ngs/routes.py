@@ -550,6 +550,7 @@ def edit_analysis():
 
 
 @bp.route('/analysis_data/<path:filename>',methods=['GET'])
+@login_required
 def analysis_data(filename):
     as_attachment=request.args.get('as_attachment',None) 
     if filename.endswith('.pickle'):
@@ -568,6 +569,7 @@ def analysis_data(filename):
 
 
 @bp.route("/sendjson")
+@login_required
 def sendjson():
     dr = Analysis.query.get(6).get_datareader
     # with open("outputs/Adjacency.csv") as fp:

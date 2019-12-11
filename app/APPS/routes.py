@@ -29,6 +29,7 @@ def simuojo():
     return render_template('apps/simuojo.html', script=script, title='Simuojo')
 
 @bp.route('/simuojo/static/<path:filename>', methods=['GET'])
+@login_required
 def simjojo_static_image(filename):
     return redirect(url_for("static",filename="simuojo/"+filename))
     
@@ -42,6 +43,7 @@ def foldojo():
 
 
 @bp.route('/foldojo/static/cache/<path:filename>', methods=['GET'])
+@login_required
 def foldojo_images(filename):
     return send_from_directory(current_app.config['FOLDOJO_FOLDER'], filename=filename)
 
@@ -73,6 +75,7 @@ def plojo_help():
 
 
 @bp.route('/plojo_help/static/<path:filename>', methods=['GET'])
+@login_required
 def plojo_help_static_image(filename):
     return redirect(url_for("static", filename="plojo_help/"+filename), )
 
