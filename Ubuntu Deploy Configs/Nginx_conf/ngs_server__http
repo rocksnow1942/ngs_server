@@ -1,26 +1,26 @@
 map $remote_addr $log_ip {
     # disable logging certain ips.
-    "192.168.86.102" 0;
-    # "192.168.86.*" 0;
+    ~192.168.86.* 0;
+    68.6.106.82 0;
+    127.0.0.1 0;
     default 1;
 }
 
+
 server {
     # listen on port 80 (http)
+    client_max_body_size 0;
     listen 80;
     server_name _;
-    client_max_body_size 0;
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
     access_log /var/log/ngs_server_access.log main if=$log_ip;
     error_log /var/log/ngs_server_error.log;
     location / {
-        # allow ips from 192.168.86.1 - 192.168.86.254  and local host. 
-        allow   127.0.0.1
+        # block other ips
+        allow   127.0.0.1;
         allow   192.168.86.0/24;
-        allow   68.6.106.8;
+        allow   68.6.106.82;
         deny    all;
+
         # forward application requests to the gunicorn server
         proxy_pass http://localhost:8000;
         proxy_read_timeout 1200s;
@@ -29,14 +29,16 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
-    
+
     location /static {
+    allow   127.0.0.1;
+    allow   192.168.86.0/24;
+    allow   68.6.106.82;
+    deny    all;
     alias /home/hui/ngs_server/app/static;
-    expires 30d;	
+    expires 30d;
     }
 }
-
-
 
 
 server {

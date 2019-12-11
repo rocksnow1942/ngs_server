@@ -206,3 +206,34 @@
     $ sudo nano /etc/default/automysqlbackup # to edit settings
     backup folder is in BACKUPDIR
     MDBNAMES is the name to back up. set to "mysql ngs_server" to only backup this table.
+
+21. upgrade nginx server and block ip address. 
+    configure ngs_server in sites-enabled folder, add allow ip address in server block.
+    in nginx.conf set log format main. 
+    To udgrade nginx server to latest version: (https://www.linuxbabe.com/ubuntu/install-nginx-latest-version-ubuntu-18-04#comments)
+    Add repo source of nginx: 
+    $ sudo nano /etc/apt/sources.list.d/nginx.list
+    Add :
+    deb [arch=amd64] http://nginx.org/packages/mainline/ubuntu/ bionic nginx
+    deb-src http://nginx.org/packages/mainline/ubuntu/ bionic nginx
+    Save. 
+    $ wget http://nginx.org/keys/nginx_signing.key
+    $ sudo apt-key add nginx_signing.key
+    $ sudo apt update
+    $ sudo apt remove nginx nginx-common nginx-full nginx-core
+    $ sudo apt install nginx # choose N to keep using old nginx configures.
+    $ sudo nginx -t # test nginx configuration . 
+    $ sudo systemctl start nginx # start nginx 
+    $ sudo systemctl enable nginx # enable boot time start 
+    $ systemctl status nginx  # check status 
+    $ sudo systemctl reload nginx # reload nginx 
+    Remember to remove default.conf inside the conf.d folder to disable default page. 
+    Auto restart Nginx after crash. 
+    $ sudo cp /lib/systemd/system/nginx.service /etc/systemd/system/nginx.service 
+    $ sudo nano /etc/systemd/system/nginx.service
+    Add to following to the [service] section :
+    Restart=always # always restart after crash
+    RestartSec=2 # restart every 2 seconds after a crash 
+    $ sudo systemctl restart nginx. 
+
+    
