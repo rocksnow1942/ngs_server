@@ -1,1 +1,1 @@
-web server for NGS data.
+## HOW TO SET UP Development environment
