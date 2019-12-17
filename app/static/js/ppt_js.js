@@ -32,15 +32,22 @@ $(document).ready(function () {
         let gap = { small: 6, medium: 4, large: 2,list:1 }[_thumbnail_size];
         let current_modal_id, current_div_index;
         if ($(`img.active[data-toggle='modal']`).length) {
-            current_modal_id = $(`img.active[data-toggle='modal']`).attr('name');
-            current_div_index = $(`img.active[data-toggle='modal']`).closest('.slide_container').index();
+            $activeSelector = $(`img.active[data-toggle='modal']`)
+            current_modal_id = $activeSelector.attr('name');
+            current_div_index = $activeSelector.closest('.slide_container').index();
         }
         else {
             current_modal_id = 1;
             current_div_index = 0;
         }
         if (e.which == 32 && e.target.tagName == 'BODY') {  //space = 32
-            $(`.modal[name="${current_modal_id}"]`).modal('show');
+            if ($(`img.active[data-toggle='modal']`).attr('data-target')) {
+                $(`.modal[name="${current_modal_id}"]`).modal('show');
+            } else {
+                $(`img.active[data-toggle='modal']`).click();
+            }
+            
+            
             e.preventDefault();
             e.stopPropagation();
             return

@@ -7,7 +7,7 @@
             
             <div class='slide'>
                 <a href="{{url_for('ppt.index',table=nextcontent,id=entry.id,thumbnail=thumbnail) }}">
-                    <img src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
+                    <img data-toggle='modal' name = "{{loop.index}}" src="{{url_for('ppt.get_ppt_slides',filename=entry.uri,)}}" class="img-responsive image-link"
                         alt="{{entry.name}} - {{entry.note}}"></a>
                 <div class='zoom-hidden-text project_edit_trigger input_container' id="{{entry.id}}">
                     <p>Note: <span class="project_note">{{entry.note}}</span></p>
