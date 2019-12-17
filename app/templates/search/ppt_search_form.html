@@ -1,4 +1,8 @@
 {% import "bootstrap/wtf.html" as wtf %}
+
+<!-- link stylesheet for formating date field -->
+<link href="{{url_for('static',filename='css/bootstrap-datepicker3.min.css')}}" rel="stylesheet" type="text/css">
+
 <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
             aria-hidden="true">&times;</span></button>
@@ -15,15 +19,19 @@
         </div>
         <div class="row" style="padding: 2px;">
             <div class="col-md-6">
-                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data,rows=5)}}
+                {{wtf.form_field(g.search_form.search_project,value=g.search_form.search_project.data,size=5)}}
             </div>
             <div class="col-md-6">
-                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data,rows=5)}}
+                {{wtf.form_field(g.search_form.search_field,value=g.search_form.search_field.data,size=5)}}
             </div>
         </div>
         <div class="row" style="padding: 2px;">
-            <div class="col-md-12">
-                {{wtf.form_field(g.search_form.search_ppt,value=g.search_form.search_ppt.data,rows=8)}}
+            <div class="col-md-8">
+                {{wtf.form_field(g.search_form.search_ppt,value=g.search_form.search_ppt.data,size=8)}}
+            </div>
+            <div class="col-md-4">
+                {{wtf.form_field(g.search_form.date_from,value=g.search_form.date_from.data,class="form-control datetext")}}
+                {{wtf.form_field(g.search_form.date_to,value=g.search_form.date_to.data,class="form-control datetext")}}
             </div>
             
         </div>
@@ -35,6 +43,8 @@
     </div>
 </form>
 
+
+<script type="text/javascript" src="{{url_for('static',filename='js/bootstrap-datepicker.min.js')}}"></script>
 
 <script type="text/javascript">
  
@@ -72,4 +82,25 @@ $(document).ready(function () {
             }
         })
     });
+
+//if browser doesn't correctly render date field, add jquery date picker.
+$(document).ready(function(){
+   /* if ($('[type="date"]').prop('type') != 'date') {
+        $('[type="date"]').datepicker();
+    }*/
+    $('.datetext').datepicker({
+        format: "yyyy-mm-dd",
+        maxViewMode: 2,
+        todayBtn: "linked",
+        autoclose: true,
+        todayHighlight: true,
+        beforeShowYear: function (date) {
+            if (date.getFullYear() == 2007) {
+                return false;
+            }
+        },
+        
+    });
+
+})
 </script>

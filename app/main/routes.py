@@ -141,14 +141,17 @@ def triggererror():
 def search():
     form=g.search_form
     formtype = form.__class__.__name__#request.args.get('submit', None).split()[-1]
-  
+    
     if formtype == 'SearchNGSForm':
         return ngs_serach_handler(form)
     elif formtype == 'SearchPPTForm':
+        date_from =  form.date_from.data
+        date_to = form.date_to.data
+        
         query,project,field,ppt = form.q.data,form.search_project.data,form.search_field.data,form.search_ppt.data
         if 'all' in ppt:      
             ppt = [i[0] for i in form.search_ppt.choices if i[0]!='all']
-        return ppt_search_handler(query, field, ppt)
+        return ppt_search_handler(query, field, ppt,date_from,date_to)
     return render_template('search/search_result.html', title='Search Result', content='def', )
 
         

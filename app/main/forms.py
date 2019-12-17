@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField,IntegerField
+from wtforms import StringField, SubmitField, TextAreaField, SelectField, SelectMultipleField,IntegerField,DateField
 from wtforms.validators import DataRequired,ValidationError, Length,NumberRange
 from app.models import User
 from flask import request
+from datetime import datetime,timedelta
 
 
 class SearchNGSForm(FlaskForm):
@@ -33,6 +34,8 @@ class SearchPPTForm(FlaskForm):
         'Search Field', choices=field, validators=[DataRequired()])
     search_ppt = SelectMultipleField(
         'Search In PPT', validators=[DataRequired()])
+    date_from = DateField("From Date", default=(datetime(2011,1,1)).strftime('%Y-%m-%d'),format='%Y-%m-%d')
+    date_to = DateField("To Date", default=datetime.now().strftime('%Y-%m-%d'), format='%Y-%m-%d')
 
     def __init__(self, *args, **kwargs):
         if 'formdata' not in kwargs:

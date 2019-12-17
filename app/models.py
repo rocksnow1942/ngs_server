@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from collections import Counter
 from app import db,login
-from datetime import datetime
+from datetime import datetime,timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, current_user
 from hashlib import md5
@@ -1218,17 +1218,17 @@ class Slide(SearchableMixin,db.Model):
             return [i[0] for i in c]
 
     @classmethod
-    def search_in_id(cls,query,fields, ids , page, per_page):
+    def search_in_id(cls, query, fields, ids, date_from, date_to, page, per_page):
         """
         string, ['all', 'title', 'body'], ['15', '16']
         """
         if not query.strip():
             if 'all' in ids:
-                entries = cls.query.order_by(
+                entries = cls.query.filter(cls.date.between(date_from,date_to)).order_by(
                     cls.date.desc()).paginate(page, per_page, False)
             else:
                 ids = [int(i) for i in ids]
-                entries = cls.query.filter(cls.ppt_id.in_(ids)).order_by(
+                entries = cls.query.filter(cls.ppt_id.in_(ids), cls.date.between(date_from, date_to)).order_by(
                     cls.date.desc()).paginate(page, per_page, False)
             return entries.items, entries.total  # just return matching id slides
 
@@ -1251,7 +1251,7 @@ class Slide(SearchableMixin,db.Model):
         if total==0:
             return cls.query.filter_by(id=0),0
         when = [ (k,i) for i,k in enumerate(ids) ]
-        return cls.query.filter(cls.id.in_(ids)).order_by(db.case(when,value=cls.id)),total
+        return cls.query.filter(cls.id.in_(ids), cls.date.between(date_from, date_to)).order_by(db.case(when, value=cls.id)), total
 
 class PPT(db.Model):
     __tablename__ = 'powerpoint'

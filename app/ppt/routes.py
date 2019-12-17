@@ -320,8 +320,10 @@ def add_ppt_to_follow():
     return jsonify(status=current_user.is_following_ppt(id), html=render_template('flash_messages.html', messages=messages))
 
 
-def ppt_search_handler(query, field, ppt):
+def ppt_search_handler(query, field, ppt,date_from=None, date_to=None):
     """
+    in the order of:
+    query string, search field, ppt list
     test, ['all'], ['all','tag'], ['all']
     string, ['9'], ['all', 'title', 'body'], ['15', '16']
     """
@@ -332,9 +334,10 @@ def ppt_search_handler(query, field, ppt):
     for k in request.args:
         kwargs[k] = (request.args.getlist(k))
     
-    
+    date_from = date_from or datetime(2010,1,1)
+    date_to = date_to or datetime.now()
     kwargs.pop('page', None)
-    entries,total = Slide.search_in_id(query,field,ppt,page,pagelimit)
+    entries, total = Slide.search_in_id(query, field, ppt,date_from, date_to, page, pagelimit)
     start, end = pagination_gaps(page, total, pagelimit)
     next_url = url_for('main.search', page=page+1, **
                        kwargs) if total > page*pagelimit else None
