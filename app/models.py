@@ -20,7 +20,25 @@ from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
 import os,gzip
 from inspect import signature,_empty
+from contextlib import contextmanager 
 
+@contextmanager
+def dbAutoSession(autocommit=True):
+    """
+    an context manager, can be used in with statement or used as a decorator. 
+    must work in an app context
+    """
+    try:
+        yield db.session
+        if autocommit:
+            db.session.commit()
+    except Exception:
+        print('***rollback by manager')
+        db.session.rollback()
+        raise 
+    finally:
+        print('***remove by manager')
+        db.session.remove()
 
 
 def data_string_descriptor(name,mode=[]):
