@@ -1,0 +1,44 @@
+to enable open ssh
+    $ sudo apt update
+    $ sudo apt install openssh-server
+    then connect by
+    ssh username@ip address of server
+    sudo systemctl status ssh
+    sudo systemctl restart ssh
+
+connect:
+ssh hui@24.252.230.152 -p 37925
+or
+ssh 24.252.230.152 -l hui -p 37925
+
+edit ssh settings in 
+sudo nano /etc/ssh/sshd_config
+Security options to add in sshd_config
+	1. Add new line to use protocol 2:
+		Protocol 2 
+	2. PermitRootLogin no
+	3. StrictModes yes
+	4. Banner /tec/issue, then edit a bannder in issue file.
+	5. limit user by: AllowUsers hui admin
+
+
+TO use key based authentification
+
+ssh-keygen -t rsa -b 4096
+Can use a password to protect the private key.
+
+Pub key and private key is genetrated at :
+Your identification has been saved in /home/username/.ssh/id_rsa.
+Your public key has been saved in /home/username/.ssh/id_rsa.pub.
+
+
+Then copy pub key to server using ssh-copy-id (included in most distributions):
+ssh-copy-id username@remote_host -p 37925
+
+To use the utility, you simply need to specify the remote host that you would like to connect to 
+and the user account that you have password SSH access to. 
+This is the account where your public SSH key will be copied, under ~/.ssh/.
+To disable password authotification
+sudo nano /etc/ssh/sshd_config 
+PasswordAuthentication no
+UsePam no 
