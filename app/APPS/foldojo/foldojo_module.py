@@ -172,7 +172,7 @@ class structure_prediction():
         <p>Enter sequence and concentration in uM. Enter max allowed complex strands.</p>
         <h3> Only support <b>NUPACK</b> algorithm. </h3>
         """
-        self.cofold_nexplain=Div(text=cofold_nexplaintext,width=700,height=100)
+        self.cofold_nexplain=Div(text=cofold_nexplaintext,width=700,height=150)
         self.maxcofoldstrand = TextInput(title='Max Complex Strands:',value='2',width=180)
 
 
