@@ -137,6 +137,8 @@
     $ sudo systemctl enable elaticsearch.service
     (https://www.elastic.co/guide/en/elasticsearch/reference/2.1/setup-service.html)
 
+    // on mac os use brew services stop elasticsearch 
+
 13. to automatically update from git:
     put script in usr/local/bin
     run (ngs_shell_script)

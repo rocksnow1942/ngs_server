@@ -12,54 +12,9 @@ select
     overflow-y: auto;
 }
 
-/* html {
-    width: 100%;
-}
-body {
-    min-width: 600px;
-    max-width: 1200px;
-    width: 95%;
-    margin: auto;
-
-}
-.content {
-    margin: 2em;
-}
-
-a:link {
-    font-weight: bold;
-    text-decoration: none;
-    color: #0d8ba1;
-}
-a:visited {
-    font-weight: bold;
-    text-decoration: none;
-    color: #1a5952;
-}
-a:hover, a:focus, a:active {
-    text-decoration: underline;
-    color: #9685BA;
-}
-p {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    text-align: justify;
-    text-justify: inter-word;
-}
-
-
-
-textarea
-{   
-    font-size:14px;
-    font-family: monospace;
-    height: 100%;
-    width: 100%;
-}
-
 
 pre {
-    font-size:10px;
+    font-size:14px;
     margin: 5px 5px 5px 5px;
     text-align: left;
     height: 100%;
@@ -72,33 +27,6 @@ pre {
     font-family: monospace;
     height: 100%;
     width: 100%;
-}
-
-
-
-.widgetbox
-{
-    margin: 0px 0px 0px 0px;
-}
-
-
-.plotarea
-{
-    margin: 0px 0px 0px -80px;
-}
-
-.button
-{
-    padding: 0px 0px 0px 0px;
-    margin: 0px 0px 0px 0px;
-}
-
-
-.divider
-{
-    width:5px;
-    height:auto;
-    display:inline-block;
 }
 
 .table
@@ -127,4 +55,4 @@ td
      font-family: monospace;
      padding: 0px 0px 0px 0px;
      text-align: center;
-} */
+}
