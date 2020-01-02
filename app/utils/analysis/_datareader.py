@@ -1822,6 +1822,8 @@ class DataReader(Reader):
             df['Sequence']=df.index.map(lambda x: self.align[x].rep_seq())
             new= self.df.loc[df.index,:]
             df=pd.concat([df,new],axis=1)
+            
+            df['Dominant Sequence ID'] = df..index.map(self.alignment_id)
             df.index=df.index.map(self.translate)
             df.to_csv(self.saveas('plot_heatmap'+self.affix+'.csv'))
             return [self.relative_path('plot_heatmap'+self.affix+'.svg')], [self.relative_path('plot_heatmap'+self.affix+'.csv')]
@@ -1886,6 +1888,9 @@ class DataReader(Reader):
         return [self.relative_path('plot_logo_trend.svg')], [self.relative_path('plot_logo_trend.txt')], [f"Generated on {self.datestamp}"]
 
     def alignment_id(self,clus):
+        """
+        return Sequence ID of the repe_seq of a alignment. 
+        """
         seq = self.align[clus].rep_seq().replace('-',"")
         if clus.startswith('C'):
             for i in self.cluster[clus]: 
