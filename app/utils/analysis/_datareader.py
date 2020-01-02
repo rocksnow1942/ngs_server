@@ -1823,7 +1823,7 @@ class DataReader(Reader):
             new= self.df.loc[df.index,:]
             df=pd.concat([df,new],axis=1)
             
-            df['Dominant Sequence ID'] = df..index.map(self.alignment_id)
+            df['Dominant Sequence ID'] = df.index.map(self.alignment_id)
             df.index=df.index.map(self.translate)
             df.to_csv(self.saveas('plot_heatmap'+self.affix+'.csv'))
             return [self.relative_path('plot_heatmap'+self.affix+'.svg')], [self.relative_path('plot_heatmap'+self.affix+'.csv')]
