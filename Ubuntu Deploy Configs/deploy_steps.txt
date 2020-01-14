@@ -171,6 +171,13 @@
         add hosts file to a separate file, at the path in addn-hosts field from dnsmasq.conf file.
         (custom_hosts)
 
+        to log dns ; add following to /etc/dnsmasq.conf
+        log-queries
+        log-facility=/var/log/dnsmasq.log
+        then run 
+        $ sudo systemctl restart dnsmasq.service
+        $ sudo tail -f /var/log/dnsmasq.log
+
 
 15. setup PLOJO app .env files
     in ngs_server/app/APPS/.env
