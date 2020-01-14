@@ -1130,7 +1130,6 @@ class DotGraphConstructor:
                         break
         # print(self.edges)
 
-
     def sort_defines(self):
         """
         Sort the defines of interior loops and stems so that the 5' region
@@ -1735,6 +1734,9 @@ class DotGraph(DotGraphConstructor):
             coords[k,:]=np.array(rotate_coord((0,0),i,bestangle))
 
 
+        # find all breaks:
+        breaks = [0]+[i for i,j in enumerate(self.seq) if j == "+"]+[self.seq_length]
+
         # start plotting
         if not ax:
             fig,ax =plt.subplots(1,figsize=(8,6),)
@@ -1742,7 +1744,10 @@ class DotGraph(DotGraphConstructor):
         # draw backbone
         bkwargs={"color":"black", "zorder":0}
         bkwargs.update(backbone_kwargs)
-        ax.plot(coords[:,0], coords[:,1], **bkwargs)
+        for start,end in zip(breaks[:-1],breaks[1:]):
+            if start != 0:
+                start +=1
+            ax.plot(coords[start:end,0], coords[start:end,1], **bkwargs)
 
         # draw stem base pair and probability of pairing.
         basepairs = []
@@ -1770,6 +1775,9 @@ class DotGraph(DotGraphConstructor):
         ntcolor.update(dict(zip('ATGCU',['red','green','sienna','blue','green'])))
         for i, coord in enumerate(coords):
             nucleotide=self.seq[i]
+            # skip drawing breaks
+            if nucleotide == '+':
+                continue
             circle = plt.Circle((coord[0], coord[1]),
                                 edgecolor='black', radius=2.85,facecolor=ntcolor[nucleotide])#"white"
             ax.add_artist(circle)
@@ -1794,7 +1802,13 @@ class DotGraph(DotGraphConstructor):
             # We try different angles
             annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
             if annot_pos is not None:
-                ax.annotate(str(nt), xy=coords[nt-1], xytext=annot_pos,
+                label = nt
+                # decide if shift by an index for nt position.
+                near_break  = self.seq[0:nt].rfind('+')
+                if near_break>=0:
+                    label -= near_break
+
+                ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
                             arrowprops={"width":0.5, "headwidth":0.5, "color":"gray"},
                             ha="center", va="center", zorder=0, **nt_kwargs)
                 all_coords.append(annot_pos)
