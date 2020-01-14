@@ -1798,22 +1798,38 @@ class DotGraph(DotGraphConstructor):
         nt_kwargs = {"color":"black","fontsize":10}
         nt_kwargs.update(ntnum_kwargs)
         # ntnum_kwargs.update(text_kwargs)
-        for nt in range(5, self.seq_length, 5):
-            # We try different angles
-            annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
-            if annot_pos is not None:
-                label = nt
-                # decide if shift by an index for nt position.
-                near_break  = self.seq[0:nt].rfind('+')
-                if near_break>=0:
-                    label -= near_break
+        for start,end in zip(breaks[:-1],breaks[1:]):
+            for label in range(5, end-start+1, 5):
+                # We try different angles
+                nt = start + label
+                annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
+                if annot_pos is not None:
+                    
+                    # decide if shift by an index for nt position.
+                    # near_break  = self.seq[0:nt].rfind('+')
+                    # if near_break>=0:
+                    #     label -= near_break
 
-                ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
-                            arrowprops={"width":0.5, "headwidth":0.5, "color":"gray"},
-                            ha="center", va="center", zorder=0, **nt_kwargs)
-                all_coords.append(annot_pos)
+                    ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
+                                arrowprops={"width":0.5, "headwidth":0.5, "color":"gray"},
+                                ha="center", va="center", zorder=0, **nt_kwargs)
+                    all_coords.append(annot_pos)
 
 
+        # for nt in range(5, self.seq_length, 5):
+        #     # We try different angles
+        #     annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
+        #     if annot_pos is not None:
+        #         label = nt
+        #         # decide if shift by an index for nt position.
+        #         near_break  = self.seq[0:nt].rfind('+')
+        #         if near_break>=0:
+        #             label -= near_break
+
+        #         ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
+        #                     arrowprops={"width":0.5, "headwidth":0.5, "color":"gray"},
+        #                     ha="center", va="center", zorder=0, **nt_kwargs)
+        #         all_coords.append(annot_pos)
 
         # annotate stemloop elements.
         elekwargs = {"color":"black","fontsize":10}
