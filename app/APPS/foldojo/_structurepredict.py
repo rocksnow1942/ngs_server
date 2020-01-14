@@ -1746,7 +1746,7 @@ class DotGraph(DotGraphConstructor):
         bkwargs.update(backbone_kwargs)
         for index, (start, end) in enumerate(zip(breaks[:-1], breaks[1:])):
             # each time skip a "+" need to increase start by 1.
-            start += index
+            start += 1
             ax.plot(coords[start:end,0], coords[start:end,1], **bkwargs)
 
         # draw stem base pair and probability of pairing.
