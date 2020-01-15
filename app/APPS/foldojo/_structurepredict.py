@@ -1801,7 +1801,8 @@ class DotGraph(DotGraphConstructor):
         for  start, end in zip(breaks[:-1], breaks[1:]):
             for label in range(5, end-start+1, 5):
                 # We try different angles
-                if start!=0: nt = start + label + 1
+                nt = start + label
+                if start!=0:  nt+= 1
                 annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
                 if annot_pos is not None:
                     ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
