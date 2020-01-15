@@ -84,21 +84,21 @@
 
         <li class="thumbnail_small previous {% if thumbnail=='small' %} active{% endif %}">
           <!-- <a  href="{{ url_for('ppt.index',page=active,thumbnail='small',table=table,id=id) }}" > -->
-            <a onclick="javascript:_set_thumbnail(event,'small','{{table}}')")" >
+            <a onclick="javascript:_set_thumbnail(event,'small','{{table}}')" >
             <span class="glyphicon glyphicon-th" aria-hidden="true"></span>
           </a>
         </li>
 
         <li class="thumbnail_medium previous {% if thumbnail=='medium' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='medium',table=table,id=id) }}"> -->
-            <a onclick="javascript:_set_thumbnail(event,'medium','{{table}}')")">
+            <a onclick="javascript:_set_thumbnail(event,'medium','{{table}}')">
             <span class="glyphicon glyphicon-th-large" aria-hidden="true"></span>
           </a>
         </li>
         
         <li class="thumbnail_large previous {% if thumbnail=='large' %} active{% endif %}">
           <!-- <a href="{{ url_for('ppt.index',page=active,thumbnail='large',table=table,id=id) }}" > -->
-            <a onclick="javascript:_set_thumbnail(event,'large','{{table}}')")">
+            <a onclick="javascript:_set_thumbnail(event,'large','{{table}}')">
             <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
           </a>
         </li>
@@ -138,7 +138,12 @@
 
 <script>  
 // set page layout based on thumbain parameter
-$(document).ready(set_thumbnail("{{thumbnail}}"));
+$(document).ready(()=>{
+  let localthumbnail = localStorage.getItem('ppt_thumbnail');
+  let usersettings = "{{thumbnail}}";
+  //set_thumbnail();
+  _set_thumbnail(null, localthumbnail || usersettings, '{{table}}')"
+});
 
 // function add_ppt_to_follow is defined on base page.
 

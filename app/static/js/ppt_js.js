@@ -233,7 +233,8 @@ function set_thumbnail(size) {
             break;
         
     };
-    set_box_height(_thumbnail_size)
+    set_box_height(_thumbnail_size);
+    localStorage.setItem('ppt_thumbnail',size);
     
 };
 
