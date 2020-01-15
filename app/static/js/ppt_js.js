@@ -169,9 +169,10 @@ var _thumbnail_size
 
 function _set_thumbnail(event, size,table) {
     if (size=='list' && ['project','ppt',].includes(table)) {
-        $(event.target).blur();
     } else {
         set_thumbnail(size);
+    };
+    if (event) {
         $(event.target).blur();
     }
 };
