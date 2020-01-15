@@ -170,6 +170,7 @@ var _thumbnail_size
 function _set_thumbnail(event, size,table) {
     if (size=='list' && ['project','ppt',].includes(table)) {
     } else {
+        localStorage.setItem(`${table}_thumbnail`, size);
         set_thumbnail(size);
     };
     if (event) {
@@ -235,8 +236,6 @@ function set_thumbnail(size) {
         
     };
     set_box_height(_thumbnail_size);
-    localStorage.setItem('ppt_thumbnail',size);
-    
 };
 
 // add sortable to slides. 

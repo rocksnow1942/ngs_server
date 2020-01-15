@@ -139,7 +139,7 @@
 <script>  
 // set page layout based on thumbain parameter
 $(document).ready(()=>{
-  let localthumbnail = localStorage.getItem('ppt_thumbnail');
+  let localthumbnail = localStorage.getItem('{{table}}_thumbnail');
   let usersettings = "{{thumbnail}}";
   //set_thumbnail();
   _set_thumbnail(null, localthumbnail || usersettings, '{{table}}')
