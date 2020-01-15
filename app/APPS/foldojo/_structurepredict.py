@@ -1744,7 +1744,7 @@ class DotGraph(DotGraphConstructor):
         # draw backbone
         bkwargs={"color":"black", "zorder":0}
         bkwargs.update(backbone_kwargs)
-        for index, (start, end) in enumerate(zip(breaks[:-1], breaks[1:])):
+        for start, end in zip(breaks[:-1], breaks[1:]):
             # each time skip a "+" need to increase start by 1.
             if start!=0: start += 1
             ax.plot(coords[start:end,0], coords[start:end,1], **bkwargs)
@@ -1798,10 +1798,10 @@ class DotGraph(DotGraphConstructor):
         nt_kwargs = {"color":"black","fontsize":10}
         nt_kwargs.update(ntnum_kwargs)
         # ntnum_kwargs.update(text_kwargs)
-        for index, (start, end)in enumerate(zip(breaks[:-1], breaks[1:])):
+        for  start, end in zip(breaks[:-1], breaks[1:]):
             for label in range(5, end-start+1, 5):
                 # We try different angles
-                nt = start + label + index
+                if start!=0: nt = start + label + 1
                 annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
                 if annot_pos is not None:
                     ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
