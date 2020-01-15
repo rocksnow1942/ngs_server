@@ -1802,7 +1802,7 @@ class DotGraph(DotGraphConstructor):
             for label in range(5, end-start+1, 5):
                 # We try different angles
                 nt = start + label
-                if start!=0:  nt+= 1
+                if start!=0:  nt += 1
                 annot_pos = _find_annot_pos_on_circle(nt, all_coords, self)
                 if annot_pos is not None:
                     ax.annotate(str(label), xy=coords[nt-1], xytext=annot_pos,
