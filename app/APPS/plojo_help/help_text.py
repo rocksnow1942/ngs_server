@@ -315,7 +315,7 @@ text_dict['howfit']="""<h2>How Does Fitting Work?</h2>
 <p>where Y^ is the value predicted for a specific Xi using the parameters B1,B2... estimated by least squares. If the errors are normally distributed, the least squares estimates are also the maximum likelihood estimates.</p>
 <p>The values of the parameters that minimize Q may be found either of two ways. First, if f() is a simple function, such as a linear function, you may find an analytic solution by differentiating Q with respect to B1, B2, ..., Bp, setting the resulting partial derivatives equal to zero, and solving the resulting p normal equations. Unfortunately, very few nonlinear models may be estimated this way.</p>
 <p>The second method is to try different values for the parameters, calculating Q each time, and work towards the smallest Q possible. Three general procedures work toward a solution in this manner.</p>
-<p>Plojo use a specific algorithm implementation of the second method called <a href='https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares'>Trust Region Reflective (trf)<a> method.</p>
+<p>Plojo use a specific algorithm implementation of the second method called <a href='https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares'>Trust Region Reflective (trf)</a> method.</p>
 <h3>Fitting of a noisy curve</h3>
 <img src="plojo_help/static/fitting_.gif" alt="resid" hspace='20' align='center' height='300' width="400">
 <p>Fitting of a noisy curve by an asymmetrical peak model, with an iterative process (Gauss–Newton algorithm with variable damping factor α). Top: raw data and model. Bottom: evolution of the normalised sum of the squares of the errors.</p>
