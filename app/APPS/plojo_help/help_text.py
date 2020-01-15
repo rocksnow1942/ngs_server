@@ -78,7 +78,7 @@ text_dict['plotbutton'] ="""<h2>Plot Button</h2>
 <p>4.Click <b>Fit and Plot</b> button in the <b>Fitting layout</b>. New fitting will be performed excluding selected outliers.</p>
 <p><b>Caution:</b> If you don't click Fit and Plot button, simply marking outlier won't have effect and won't be saved even if you click the Save button!</p>
 <h3>Show / Hide 95% CI</h3>
-<p>Toggle between show/hide the band overlay of <a href="https://en.wikipedia.org/wiki/Confidence_interval"><b>95% confidence intervals</b><a>. Default: show </p>
+<p>Toggle between show/hide the band overlay of <a href="https://en.wikipedia.org/wiki/Confidence_interval"><b>95% confidence intervals</b></a>. Default: show </p>
 <p>The confidence interval overlay can be annoying if you are plotting multiple curves.</p>
 <h3>X-axis Linear / Log Scale</h3>
 <p>Toggle between linear and log X-axis scale.</p>
@@ -292,8 +292,8 @@ text_dict['howtosimuojo'] ="""<h2>How to Use Simuojo</h2>
 
 # '>>> Fitting Methods <<<'
 text_dict['fitmethod'] ="""<h2>Fitting methods</h2>
-<p>Plojo performs both <a href='https://en.wikipedia.org/wiki/Nonlinear_regression'><b>Nonlinear regression</b><a>
-and <a href=https://en.wikipedia.org/wiki/Linear_regression><b>linear regression</b><a>.</p>
+<p>Plojo performs both <a href='https://en.wikipedia.org/wiki/Nonlinear_regression'><b>Nonlinear regression</b></a>
+and <a href=https://en.wikipedia.org/wiki/Linear_regression><b>linear regression</b></a>.</p>
 <h3>Currently Supported Fitting Models</h3>
 <img src="plojo_help/static/fitmethod.png" alt="browse" hspace='20' align='center' height='186' width="300">
 <h3>Which Model to Use?</h3>
