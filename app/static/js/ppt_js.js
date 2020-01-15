@@ -173,7 +173,7 @@ function _set_thumbnail(event, size,table) {
         localStorage.setItem(`${table}_thumbnail`, size);
         set_thumbnail(size);
     };
-    if (event) {
+    if (event != null) {
         $(event.target).blur();
     }
 };
