@@ -2016,13 +2016,14 @@ class DataReader(Reader):
         return fileoutput,textoutput
         
     @register_API()
-    def plot_venn_between_rounds(self,rounds=[],) ->"img,text":
+    def plot_venn_between_rounds(self,rounds=[],figsize=(5,5)) ->"img,text":
         """
         Plot Venn Diagram between two or three rounds. Rounds entered must be a list of 2 or 3 rounds. 
+        figsize is (width,height) in inches.
         """
         assert (len(rounds) in [2, 3]) , (f"You entered {len(rounds)} rounds. Only 2 or 3 rounds are allowed.")
         df = self.df.loc[[i for i in self.df.index if i.startswith('C')], :]
-        fig = Figure(figsize=(8, 6))
+        fig = Figure(figsize=(5, 5))
         ax = fig.subplots()
        
         if len(rounds) == 2:
