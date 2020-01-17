@@ -2016,7 +2016,7 @@ class DataReader(Reader):
         return fileoutput,textoutput
         
     @register_API()
-    def plot_venn_between_rounds(self,rounds=[],figsize=(5,5)) ->"img,text":
+    def plot_venn_between_rounds(self,rounds=[],figsize=(4,4)) ->"img,text":
         """
         Plot Venn Diagram between two or three rounds. Rounds entered must be a list of 2 or 3 rounds. 
         figsize is (width,height) in inches.
