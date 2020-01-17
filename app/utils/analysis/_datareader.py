@@ -16,6 +16,7 @@ from inspect import signature
 from datetime import datetime
 from matplotlib.figure import Figure
 from app.utils.ngs_util import convert_id_to_string
+from matplotlib_venn import venn3, venn2
 
 """
 Note:
@@ -1942,7 +1943,6 @@ class DataReader(Reader):
         return df[["Dominant Sequence ID", 'Max '+scorename, 'MaxEnrich', 'From%To',
             'MaxEnrichFold', 'EnrichInOtherRounds', 'Sequence']]
 
-
     def calculate_enrich_score_df(self,rounds="all",condition="sumcount>10",scope='cluster',scoremethod="C/P", scorename="Div",top=16, callback=progress_callback):
         from app.models import Rounds
         import math
@@ -1994,8 +1994,6 @@ class DataReader(Reader):
         allscores.index = allscores.index.map(self.translate) 
         return allscores, textoutput
 
-
-
     @register_API(True)      
     def list_enriched_sequence(self,rounds="all",condition="sumcount>10",scope='cluster',scoremethod="C/P", scorename="Div",top=16, callback=progress_callback) ->"file,text":
         """
@@ -2017,7 +2015,39 @@ class DataReader(Reader):
         best_scores.to_csv(self.saveas('list_enriched_sequence BEST Scores.csv'))
         return fileoutput,textoutput
         
-        
+    @register_API()
+    def plot_venn_between_rounds(self,rounds=[],) ->"img,text":
+        """
+        Plot Venn Diagram between two or three rounds. Rounds entered must be a list of 2 or 3 rounds. 
+        """
+        assert (len(rounds) in [2, 3]) , (f"You entered {len(rounds)} rounds. Only 2 or 3 rounds are allowed.")
+        df = self.df.loc[[i for i in self.df.index if i.startswith('C')], :]
+        fig = Figure(figsize=(8, 6))
+        ax = fig.subplots()
+       
+        if len(rounds) == 2:
+            p1 , p2 = rounds 
+            count1 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]==0)].loc[:,p1].count()
+            count2 = df[(df.loc[:,p1]==0) & (df.loc[:,p2]>0)].loc[:,p1].count()
+            count3 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]>0)].loc[:,p1].count()
+            v = venn2(subsets = (count1, count2, count3),set_labels= (p1,p2),ax=ax)
+        else:
+            # get over lap region sequence count in the venn diagram between 3 pools.
+            p1,p2,p3 = rounds 
+            count1 = df[(df.loc[:,p1]==0) & (df.loc[:,p2]==0) & (df.loc[:,p3]>0)].loc[:,p1].count()
+            count2 = df[(df.loc[:,p1]==0) & (df.loc[:,p2]>0) & (df.loc[:,p3]==0)].loc[:,p1].count()
+            count3 = df[(df.loc[:,p1]==0) & (df.loc[:,p2]>0) & (df.loc[:,p3]>0)].loc[:,p1].count()
+            count4 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]==0) & (df.loc[:,p3]==0)].loc[:,p1].count()
+            count5 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]==0) & (df.loc[:,p3]>0)].loc[:,p1].count()
+            count6 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]>0) & (df.loc[:,p3]==0)].loc[:,p1].count()
+            count7 = df[(df.loc[:,p1]>0) & (df.loc[:,p2]>0) & (df.loc[:,p3]>0)].loc[:,p1].count()
+            # Custom text labels: change the label of group A
+            v=venn3(subsets = (count1,count2,count3,count4,count5,count6,count7), set_labels = (p3, p2, p1),ax = ax)
+        fig.set_tight_layout(True)
+        fig.savefig(self.saveas('plot_venn_between_rounds.svg'),format='svg')
+        # plt.savefig('V1 venn.png',dpi=200)
+
+        return [self.relative_path('plot_venn_between_rounds.svg')], [f"Generated on {self.datestamp}"]
     
         
      
