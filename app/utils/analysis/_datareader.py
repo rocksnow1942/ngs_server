@@ -2023,7 +2023,7 @@ class DataReader(Reader):
         """
         assert (len(rounds) in [2, 3]) , (f"You entered {len(rounds)} rounds. Only 2 or 3 rounds are allowed.")
         df = self.df.loc[[i for i in self.df.index if i.startswith('C')], :]
-        fig = Figure(figsize=(5, 5))
+        fig = Figure(figsize=figsize)
         ax = fig.subplots()
        
         if len(rounds) == 2:
