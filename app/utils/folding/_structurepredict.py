@@ -1,4 +1,4 @@
-from app.utils.folding import ViennaRNA
+# from app.utils.folding import ViennaRNA
 from collections import defaultdict
 from itertools import combinations,product,chain
 from functools import partial
