@@ -24,7 +24,7 @@ You should be able to see this:
     app			requirements.txt
 
 ### Step 2. Install virtual environment for running the applicaiton and install application dependencies. 
-Create a folder venv and put python files in there and activate the virtual environment. 
+The following command create a subfolder '`venv`' and put python files in there. Then activate the virtual environment. 
 
     $ python -m venv venv 
     $ source venv/bin/activate 
@@ -33,25 +33,25 @@ Create a folder venv and put python files in there and activate the virtual envi
 After this you should see `(venv)` in front of your terminal prompt. 
 
 Also, if you enter `which python` in terminal, you should see 
-`/path/to/your/folder/ngs_server/venv/bin/python`. This means venv is activated. 
+`/path/to/your/folder/ngs_server/venv/bin/python`. This means virtual environment is activated. 
 
-Then install all dependencies. All dependencies are installed to the venv 
+Then install all dependencies. All dependencies are installed to the `venv` folder. 
 
     $ pip install -r requirements.txt
 
-No errors should occur. If error "xcrun: error: invalid active developer path", run 
+No errors should occur. If you see error "`xcrun: error: invalid active developer path`", run 
     
     $ xcode-select --install 
 
 to install the xcode tools. Then run the above command again. 
 
 ### Step 3. Install mysql server and create Database for application use. 
-The mysql server tested with is `5.7.27`. Any `5.7` mysql server version should work fine. 
+The mysql server I tested with is `5.7.27`. Any `5.7` mysql server version should work fine. 
 
 Download and install from [MySQL Community Downloads](https://dev.mysql.com/downloads/mysql/).
 
 After install, log in mysql with root and create user name and password. 
-By default, after install root password is set to empty. 
+By default, root password is set to empty after install . 
 
 Then create a database called 'ngs' and new user 'ngs_server_user' to use this database.
 
@@ -64,7 +64,8 @@ Then create a database called 'ngs' and new user 'ngs_server_user' to use this d
 
 ### Step 4. Create environment variables files. 
 
-Create `.env` file under `ngs_server` folder. Put in the following content with proper changes. 
+Create `.env` file under `ngs_server` folder. Put in the following content with proper changes inside "`< >`". 
+It will be fine if some are not changed. Website should still be able to run.
 
     SECRET_KEY=a_secret_key
     DATABASE_URL=mysql+pymysql://ngs_server_user:ngs_server_password@localhost:3306/ngs?charset=utf8mb4
@@ -73,26 +74,25 @@ Create `.env` file under `ngs_server` folder. Put in the following content with 
     MAIL_USE_TLS=1
     MAIL_USERNAME=<your gmail address if you want to use email function>
     MAIL_PASSWORD=<your gmail password>
-    UPLOAD_FOLDER=/path/to/your/folder/ngs_server/app/cache/file_upload
-    ANALYSIS_FOLDER=/path/to/your/folder/ngs_server/app/cache/analysis_data
+    UPLOAD_FOLDER=</path/to/your/folder>/ngs_server/app/cache/file_upload
+    ANALYSIS_FOLDER=</path/to/your/folder>/ngs_server/app/cache/analysis_data
     ALLOWED_EXTENSIONS={'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','csv','sql'}
     PAGE_LIMIT=10
     ELASTICSEARCH_URL=""
-    FOLDOJO_FOLDER=/path/to/your/folder/ngs_server/app/APPS/foldojo/static/cache
-    BOKEH_SECRET_KEY=<you need to generate bokeh key>
+    FOLDOJO_FOLDER=</path/to/your/folder>/ngs_server/app/APPS/foldojo/static/cache
+    BOKEH_SECRET_KEY=<generated bokeh key, not necessary>
     BOKEH_SIGN_SESSIONS=1
     PPT_SOURCE_FOLDER=<PPT slides folder, this is for server indexing>
     PPT_TARGET_FOLDER=<PPT slides snapshot folder, this is for server reading snapshots>
-    PPT_LOG_FILE=/path/to/your/folder/ngs_server/app/tasks/ppt_log.txt 
-    APP_ERROR_LOG=/path/to/your/folder/ngs_server/logs/APP_ERROR_LOG.txt
-    DATABASE_FOLDER=<path to mysql storage>
-    ANIMAL_DATA_PATH=<path to animal data> 
+    PPT_LOG_FILE=</path/to/your/folder>/ngs_server/app/tasks/ppt_log.txt 
+    APP_ERROR_LOG=</path/to/your/folder>/ngs_server/logs/APP_ERROR_LOG.txt
+    DATABASE_FOLDER=<path to mysql storage, for calculate database disk usage>
+    ANIMAL_DATA_PATH=<path to animal data, for display animal data> 
 
 Create `.flaskenv` file under `ngs_server` folder. Put in the following cotent.
 
     FLASK_APP=Aptitude_NGS.py
 
-    
 ### Step 5. Initiate databse. 
 Initiate the database in mysql server by run:
     
