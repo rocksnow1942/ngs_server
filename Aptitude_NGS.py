@@ -11,7 +11,6 @@ def make_shell_context():
     
     return models_table_name_dictionary
 
-
 # to add foldojo and simuojo, bokeh serve bokeh server on localhost then allow websocket access. 
 
 #TODO
