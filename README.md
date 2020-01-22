@@ -1,4 +1,4 @@
-# Steps TO SET UP Development Environment
+# Steps To Set Up Development Environment
 
 ### Before started
 This for starting the development environment. No deployment tools such as nginx or gunicorn are installed.
