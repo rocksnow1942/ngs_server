@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 from datetime import datetime
 import os
+from inspect import signature
 
 def parse_url_path(urlpath):
     """
@@ -22,6 +23,7 @@ def get_part_of_day(hour):
 
 def log_error(location):
     def decorator(func):
+        sig = signature(func)
         def wrapped(*args,**kwargs):
             try:
                 return func(*args,**kwargs)
@@ -32,15 +34,20 @@ def log_error(location):
                     f.write(f'Error executing {func.__name__}:\nargs:{args}, kwargs:{kwargs}\n')
                     f.write(f'Reason: {e}\n')
                 raise Exception  
+        wrapped.__signature__ = sig
+        wrapped.__name__ = func.__name__
         return wrapped 
     return decorator
 
 
 def app_context_wrapper(app):
     def decorator(func):
+        sig = signature(func)
         def wrapped(*args,**kwargs):
             with app.app_context():
                 return func(*args,**kwargs)
+        wrapped.__signature__ = sig 
+        wrapped.__name__ = func.__name__
         return wrapped       
     return decorator
 

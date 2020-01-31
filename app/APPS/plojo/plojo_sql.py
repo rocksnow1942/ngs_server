@@ -84,7 +84,8 @@ class Data():
         new_load = list(set(new)-self.experiment.keys())
         if new_load:
             for i in new_load:
-                self.experiment[i]=Plojo_Data.query.get(i).data
+                p = Plojo_Data.query.get(i)
+                self.experiment[i]=p.data if p else {}
                 self.experiment_load_hist.append(i)
 
     @log_error(Config.APP_ERROR_LOG)
