@@ -51,7 +51,8 @@
 
 $(document).ready(function () {
         $("#search_project").change(function (event) {
-            let projectid = event.target.value;
+            let projectid = $(event.target).val();
+            
             change_search_ppt(projectid);
         })
     });
@@ -63,6 +64,7 @@ $(document).ready(function () {
         data : JSON.stringify({ project: projectid }), 
         contentType:"application/json", 
         success: function (result) {
+           
             let options = '<option selected value="all">All</option>';
             for (let opt of result.options) {
                 options += `<option value="${opt[0]}">${opt[1]}</option>`
