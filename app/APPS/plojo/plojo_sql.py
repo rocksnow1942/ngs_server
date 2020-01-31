@@ -85,7 +85,7 @@ class Data():
         if new_load:
             for i in new_load:
                 p = Plojo_Data.query.get(i)
-                self.experiment[i]=p.data if p else {'date':'Please Align Index.'}
+                self.experiment[i]=p.data if p else {'date':'    Please Align Index.', 'name':"Please Align Index."}
                 self.experiment_load_hist.append(i)
 
     @log_error(Config.APP_ERROR_LOG)
