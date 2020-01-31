@@ -5,7 +5,6 @@ from datetime import datetime
 from app.ppt import bp
 from app.models import Selection, Rounds, models_table_name_dictionary , SeqRound,PPT,Slide,Project
 from flask import g
-from app.ppt.forms import SearchNGSForm, SearchInventoryForm, TestForm
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps
 from sqlalchemy import or_

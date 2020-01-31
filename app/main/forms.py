@@ -24,7 +24,7 @@ class SearchNGSForm(FlaskForm):
 
 
 class SearchPPTForm(FlaskForm):
-    q = StringField('Search Keywords', validators=[DataRequired()])
+    q = StringField('Search Keywords',)
     
     search_project = SelectMultipleField(
         'Search In Project', choices=[('all', 'All')], validators=[DataRequired()])  # choices=project
