@@ -56,3 +56,10 @@ td
      padding: 0px 0px 0px 0px;
      text-align: center;
 }
+
+.info-box {
+    font-size:6px;
+    margin: 0px 0px 0px 0px;
+    font-family: Arial, Helvetica, sans-serif;
+    
+}
