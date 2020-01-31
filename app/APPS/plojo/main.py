@@ -634,7 +634,7 @@ def active_selected_item():
 button_mode = RadioButtonGroup(labels=[
                                'Upload', 'Browse', 'Fitting'], active=0, button_type='warning',width=230)
 # button_mode = Dropdown(label='Plojo', value='none', menu=[('View Data','view'),('Curve Fitting','fit'),('Upload Data','upload')],button_type='success', width=120)
-info_box = PreText(text='Welcome!',width=300)
+info_box = PreText(text='Welcome!', width=300, css_classes=['info-box'])
 edit_dropdown_menu = [('Copy Fit Para','copy_para'),('Paste Fit Para','paste_para'),None,('Alias/Merge Data','alias'),None,('Cut Data','cut'),('Copy Data','copy'),('Paste Data','paste'),None,('Check Consistency','check'),('Align Index','align')]
 edit_dropdown = Dropdown(label='Edit', button_type='success',value='none',menu = edit_dropdown_menu,width=130)
 button_load = Button(label='Load', button_type='success',width =130)
