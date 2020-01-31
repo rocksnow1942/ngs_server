@@ -84,7 +84,7 @@ class structure_prediction():
         # define gadgets
         #inputs
         self.sequence =TextAreaInput(title="Enter Sequence:",value='ACCCTTGCTTGCGTAGCATTTTACCAGTGAGTCGGATCTCCGCATATCTGCG',
-                            rows=7,cols=150,max_length=5000,width=1055)
+                                     rows=7, cols=150, max_length=5000, width=1055, css_classes=['custom1'])
         self.name=TextInput(title='Sequence Name',value='NewSequence',width=width)
         self.inputa_backbone =Select(title='Backbone type:',value='rna',options=[('rna','RNA'),('dna','DNA')],width=width)
         self.inputb_SetTemperature = TextInput(title='Set Temperature (C):',value='37',width=width)
