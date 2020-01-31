@@ -8,4 +8,5 @@ pre.bk {
     font-size:8px;
     margin: 0px 0px 0px 0px;
     font-family: Arial, Helvetica, sans-serif;
+    white-space: pre;
 }
