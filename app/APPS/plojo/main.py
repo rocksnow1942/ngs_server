@@ -87,7 +87,7 @@ def info_deque(text):
     global info_deque_holder
     j = len(info_deque_holder)
     info_deque_holder.append(str(j)+'>>'+text)
-    result = '\n'.join(info_deque_holder[-3:])
+    result = '<br>'.join(info_deque_holder[-3:])
     return result
 
 def plot_generator(source=[],**kwargs):
