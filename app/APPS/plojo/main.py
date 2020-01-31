@@ -1022,7 +1022,9 @@ def make_alias_callback():
         if raw_data.index.get(i,'None') != 'None':
             if selected_data[0] in raw_data.index[i]:
                 raw_data.index[i].add(alias)
+                raw_data.index_to_save.update({i:'sync'})
     raw_data.experiment_to_save.update({alias:'sync'})
+    
     cf_select_data.options.append(*menu_generator([alias]))
     cf_select_data.value.append(alias)
     cf_focused_select_data.value = [alias]
@@ -1075,13 +1077,13 @@ def sd_save_data_cb():
         for i, j in raw_data.experiment.items():
             if item['signal'] == j['signal']:
                 info_box.text = info_deque(
-                    'Library record(s) collision found in input data.')
+                    f'Record(s) collision with {i}.')
                 raise KeyError('same data as in raw data')
     for idx, conc in enumerate(result_conc_list[:-1]):
         for con_2 in result_conc_list[(idx+1):]:
             if conc == con_2:
                 info_box.text = info_deque(
-                    'Duplicate data was found in input.')
+                    'Duplicate dataset was found in input.')
                 raise ValueError('duplicate found')
     raw_data.experiment.update(result)
     raw_data.experiment_to_save.update(dict.fromkeys(result,'sync'))

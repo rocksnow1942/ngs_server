@@ -109,7 +109,6 @@ class Plojo_Project(db.Model):
     def sync_obj(key,newkey=None, data=None):
         u = Plojo_Project.query.get(key)
         # try:
-       
         if not u:
             u = Plojo_Project(index=key)
             db.session.add(u)
