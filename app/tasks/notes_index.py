@@ -14,11 +14,13 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from app.models import Slide, PPT, Project
 from flask import current_app
+
 #TODO
 #when trashing project, only save those slides with notes and tags.
 #after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name.
 #clean up slides in that powerpoint that doesn't have tag or notes.
 # the left over slides will be displayed in "deleted tab"
+
 
 def glob_pptx(path):
     result = []
@@ -94,7 +96,9 @@ class PPT_Indexer():
             ppt.project = project
             ppt.md5=self.get_md5(file)
             ppt.revision = self.get_revision(file)
+
             ppt=self.sync_slides(ppt,file)
+
             ppt.date = datetime.now()
             db.session.commit()
             return True
@@ -161,7 +165,7 @@ class PPT_Indexer():
         for i in range(len(date),3,-1):
             totry = date[:i]
             try:
-                _date = parser.parse(totry)
+                _date = parser.parse(totry,ignoretz=True) # to avoid timezone error
                 return _date
             except:
                 continue
@@ -233,7 +237,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
             t2=time.time()
             print("Create {} Done in {:.1f}".format(event.src_path,t2-t1))
         except Exception as e:
-            
+
             print(f" Create Error {event.src_path}:{e}")
 
 
