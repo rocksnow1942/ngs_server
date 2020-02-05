@@ -112,12 +112,9 @@ def clear_ppt_trash():
         slides = Slide.query.filter_by(ppt_id=None).all()
         count=0
         for s in slides:
-            if s.note or s.tag:
-                pass
-            else:
-                db.session.delete(s)
-                count+=1
-                db.session.commit()
+            db.session.delete(s)
+            count+=1
+            db.session.commit()
         if count:
             ss = 'Deleted {} slide pages... success.'.format(count)
             flash(ss, 'success')
