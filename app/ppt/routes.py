@@ -8,11 +8,13 @@ from flask import g
 from urllib.parse import urlparse
 from app.utils.ngs_util import pagination_gaps
 from sqlalchemy import or_
+from os import path
+import re
 
 #TODO
 #1. search
-#2. display trashed slides with notes. 
-#3. 
+#2. display trashed slides with notes.
+#3.
 def remove_thurmbnail_from_url(url):
     return '&'.join(i for i in url.split('&') if 'thumbnail' not in i)
 
@@ -33,18 +35,18 @@ def index():
     table = request.args.get('table',None)
     if not table:
         return redirect(url_for('ppt.index',table='project'))
-    
+
     id = request.args.get('id', 0, type=int)
     page = request.args.get('page', 1, type=int)
     target = models_table_name_dictionary.get(table, None)
-   
+
     tag = request.args.get('tag' , None)
     if table == 'tags' and tag==None:
-        return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',  
+        return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',
                                table=table,  entries=Slide.tags_list(500,True),)
     if table == 'trash' or table == 'tags':
         target = Slide
-        
+
     tags_list = Slide.tags_list()
     if target:
         if id:
@@ -88,7 +90,7 @@ def index():
         return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View', entries=entries.items,
                                next_url=next_url, prev_url=prev_url, table=table, nextcontent=nextcontent, tags_list=tags_list,
                                page_url=page_url, active=page,id=id,thumbnail=thumbnail)
-        
+
     return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',
                            table=table,  tags_list=tags_list, thumbnail=thumbnail)
 
@@ -119,7 +121,7 @@ def user_follow_slides():
     return render_template('ppt/slide_comparison.html', title='PPT Updates', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
                            page_url=page_url, active=page, backurl=request.referrer, mode="follow_ppt", ppt_id=ppt_id, thumbnail=thumbnail)
-   
+
 
 
 @bp.route('/slide_cart', methods=['GET', 'POST'])
@@ -131,17 +133,17 @@ def slide_cart():
     when = [(j,i) for i,j in enumerate(current_user.slide_cart)]
     entries = Slide.query.filter(Slide.id.in_(current_user.slide_cart)).order_by(db.case(when,value=Slide.id).desc()).paginate(page,pagelimit,False)
     totalpages = entries.total
-    
+
     start, end = pagination_gaps(page, totalpages, pagelimit, gap=15)
 
-    next_url = url_for('ppt.slide_cart', 
+    next_url = url_for('ppt.slide_cart',
                        page=entries.next_num,) if entries.has_next else None
-    prev_url = url_for('ppt.index', 
+    prev_url = url_for('ppt.index',
                        page=entries.prev_num, ) if entries.has_prev else None
     page_url = [(i, url_for('ppt.slide_cart',  page=i, ))
                 for i in range(start, end+1)]
-    
-    return render_template('ppt/slide_comparison.html', title='PPT-Comparison', entries=entries.items, 
+
+    return render_template('ppt/slide_comparison.html', title='PPT-Comparison', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
                            page_url=page_url, active=page, backurl=request.referrer, mode="slide_cart", thumbnail=thumbnail)
 
@@ -238,7 +240,7 @@ def read_allslides():
             slides = [i.id for i in ppt.slides]
             current_user.follow_ppt.update({ppt_id: slides})
         else:
-            for k in list(current_user.follow_ppt.keys()):               
+            for k in list(current_user.follow_ppt.keys()):
                 ppt = PPT.query.get(k)
                 if ppt:
                     slides = [i.id for i in ppt.slides]
@@ -252,9 +254,6 @@ def read_allslides():
         flash('Error during updating {}: {}'.format(ppt_id,e),'warning')
     return redirect(url_for('main.index'))
 
-
-
-
 @bp.route('/add_to_slide_cart', methods=['POST'])
 @login_required
 def add_to_slide_cart():
@@ -263,8 +262,8 @@ def add_to_slide_cart():
         id = int(request.json.get('slide_id'))
         action = request.json.get('action')
         mode = request.json.get('mode', 'slide_cart')
-        slide = Slide.query.get(id) 
-       
+        slide = Slide.query.get(id)
+
         if action=='delete':
             if mode == 'slide_cart' or mode == 'bookmarked_ppt':
                 toedit = getattr(current_user, mode)
@@ -294,7 +293,7 @@ def add_to_slide_cart():
     elif mode == 'follow_ppt':
         count = current_user.follow_ppt_update_count
     return jsonify(count= count,notice=bool(messages),html=render_template('flash_messages.html', messages=messages))
-    
+
 @bp.route('/add_ppt_to_follow', methods=['POST'])
 @login_required
 def add_ppt_to_follow():
@@ -332,7 +331,7 @@ def ppt_search_handler(query, field, ppt,date_from=None, date_to=None):
     kwargs={}
     for k in request.args:
         kwargs[k] = (request.args.getlist(k))
-    
+
     date_from = date_from or datetime(2010,1,1)
     date_to = date_to or datetime.now()
     kwargs.pop('page', None)
@@ -357,7 +356,7 @@ def get_ppt_slides():
     filename = request.args.get('filename')
     return send_from_directory(current_app.config['PPT_TARGET_FOLDER'], filename, as_attachment=False)
 
-
+from pptx import Presentation
 @bp.route('/edit', methods=['POST'])
 @login_required
 def edit():
@@ -365,22 +364,38 @@ def edit():
     table,field,id,value = data['table'],data['field'],data['id'],data['data']
     target = models_table_name_dictionary.get(table, None)
     try:
-       
         item = target.query.get(id)
         setattr(item,field,value)
         db.session.commit()
         messages=[('success','Edit to {}\'s {} was saved.'.format(item,field))]
+        if table == 'slide':
+            file = path.join(current_app.config['PPT_SOURCE_FOLDER'],item.ppt.path+'.pptx')
+            set_slide_notes(file,item.page,field,value)
     except Exception as e:
         messages = [
             ('danger', 'Edit to {}\'s {} failed. Error: {}'.format(item, field ,e))]
     return jsonify(html=render_template('flash_messages.html',messages=messages),tag=getattr(item,'tag',None),note=item.note)
+
+def set_slide_notes(file,page,tag,content):
+    ppt = Presentation(file)
+    slide = ppt.slides[page-1]
+    text = slide.notes_slide.notes_text_frame.text
+    regx = re.compile(f'(?P<pt><{tag}>)(?P<content>.*)(?P<ft></{tag}>)')
+    match = regx.search(text)
+    if match:
+        if match.group('content') == content: return None
+        slide.notes_slide.notes_text_frame.text=re.sub(regx,'\g<pt>'+content+'\g<ft>',text)
+    else:
+        if not content: return None
+        slide.notes_slide.notes_text_frame.text= f"<{tag}>{content}</{tag}>" +text
+    ppt.save(file)
 
 
 @bp.route('/get_ppt_by_project', methods=['POST'])
 @login_required
 def get_ppt_by_project():
     project = request.json['project']
-   
+
     if 'all' in project:
         result = db.session.query(PPT.id, PPT.name).order_by(
             PPT.date.desc()).all()

@@ -20,12 +20,12 @@ from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index
 import os,gzip
 from inspect import signature,_empty
-from contextlib import contextmanager 
+from contextlib import contextmanager
 
 @contextmanager
 def dbAutoSession(autocommit=True):
     """
-    an context manager, can be used in with statement or used as a decorator. 
+    an context manager, can be used in with statement or used as a decorator.
     must work in an app context
     """
     try:
@@ -35,7 +35,7 @@ def dbAutoSession(autocommit=True):
     except Exception:
         print('***rollback by manager')
         db.session.rollback()
-        raise 
+        raise
     finally:
         print('***remove by manager')
         db.session.remove()
@@ -263,7 +263,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
 
     def __repr__(self):
         return f"{self.name}, ID {self.id}"
-    
+
     def create_datareader(self,roundfilter,sequencefilter):
         """
         generate data reader file by round filter and sequence filter function.
@@ -444,7 +444,7 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
     def df_table(self):
         dr = self.get_datareader
         result={}
-        table = dr.df_table() 
+        table = dr.df_table()
         roundids = {row[0]:Rounds.query.filter_by(round_name=row[0]).first().id for row in table} # get all the ids to display link.
         result.update(table=table,cluster=dr.cluster_summary(),roundids = roundids)
         return result
@@ -473,9 +473,9 @@ class Analysis(SearchableMixin,db.Model, DataStringMixin, BaseDataModel):
 
 class SeqRound(db.Model):
     """
-    Middle man class between Sequence and Rounds. 
-    SeqRound.sequence => Sequence class 
-    SeqRound.round => Rounds class  
+    Middle man class between Sequence and Rounds.
+    SeqRound.sequence => Sequence class
+    SeqRound.round => Rounds class
     SeqRound.count => read of this sequence in this round.
     """
     __tablename__ = 'sequence_round'
@@ -645,8 +645,8 @@ class AccessLog(db.Model):
 class Sequence(db.Model,BaseDataModel):
     """
     Sequence class:
-    Sequence.aptamer_seq => nucleotide sequence of the sequence. 
-    Sequence.rounds => list of rounds instances this sequence apears in. 
+    Sequence.aptamer_seq => nucleotide sequence of the sequence.
+    Sequence.rounds => list of rounds instances this sequence apears in.
     """
     __tablename__ = 'sequence'
     # __table_args__ = {'extend_existing': True}
@@ -701,14 +701,14 @@ class Sequence(db.Model,BaseDataModel):
 class Rounds(SearchableMixin,db.Model, BaseDataModel):
     """
     Rounds class:
-    Rounds.selection_id => id of a selection this round belongs to. 
-    Rounds.selection => selection instance this round belongs to. 
-    Rounds.round_name => name of the round. 
-    Rounds.target => target of the round. 
-    Rounds.totalread => total read of the round. 
-    Rounds.forward_primer / Rounds.reverse_primer => primer ID of the primer for this round. 
-    Rounds.parent_id / Rounds.parent => ID / Instance of the current round's parent. 
-    Rounds.children => list of instance of current round's children.  
+    Rounds.selection_id => id of a selection this round belongs to.
+    Rounds.selection => selection instance this round belongs to.
+    Rounds.round_name => name of the round.
+    Rounds.target => target of the round.
+    Rounds.totalread => total read of the round.
+    Rounds.forward_primer / Rounds.reverse_primer => primer ID of the primer for this round.
+    Rounds.parent_id / Rounds.parent => ID / Instance of the current round's parent.
+    Rounds.children => list of instance of current round's children.
     """
     __tablename__ = 'round'
     __searchable__ = ['round_name', 'target', 'note']
@@ -832,8 +832,8 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
 class Selection(SearchableMixin,db.Model, BaseDataModel):
     """
     Selection Class:
-    Selection.selection_name => name of selection. 
-    Selection.target => target of selection. 
+    Selection.selection_name => name of selection.
+    Selection.target => target of selection.
     Selection.rounds => list of Rounds instances that belongs to this selection.
     """
     __tablename__ = 'selection'
@@ -928,9 +928,9 @@ class Selection(SearchableMixin,db.Model, BaseDataModel):
 class Primers(SearchableMixin,db.Model, BaseDataModel):
     """
     Primers Class:
-    Primers.name => name of the primer. 
-    Primers.sequence => nucleotide sequence of this primer. 
-    Primers.role => role of this primer, can be: PD, NGS, SELEX, Other. 
+    Primers.name => name of the primer.
+    Primers.sequence => nucleotide sequence of this primer.
+    Primers.role => role of this primer, can be: PD, NGS, SELEX, Other.
     """
     __tablename__ = 'primer'
     __searchable__ = ['name', 'role', 'note']
@@ -1210,6 +1210,7 @@ class Slide(SearchableMixin,db.Model):
     ppt_id = Column(mysql.INTEGER(unsigned=True), ForeignKey('powerpoint.id'))
     note = Column(String(5000))
     tag = Column(String(900))
+    author = Column(String(100))
     page = Column(mysql.INTEGER(unsigned=True))
     date = Column(DateTime(), default=datetime.now)
     _flag = Column(String(10))

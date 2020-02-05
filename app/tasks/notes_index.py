@@ -14,13 +14,14 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from app.models import Slide, PPT, Project
 from flask import current_app
-
+import re
 #TODO
 #when trashing project, only save those slides with notes and tags.
 #after a create is done, cleanup projects with no slides, cleanup powerpoints that doesn't have project name.
 #clean up slides in that powerpoint that doesn't have tag or notes.
 # the left over slides will be displayed in "deleted tab"
 
+POSSIBLE_TAGS = 'tag|note'
 
 def glob_pptx(path):
     result = []
@@ -138,6 +139,8 @@ class PPT_Indexer():
     def parse_ppt(self,file):
         ppt=Presentation(file)
         slides = []
+        uniTags = re.compile(f'<(?P<pt>{POSSIBLE_TAGS})>(?P<content>.*)</(?P=pt)>')
+        dateAuthor = re.compile("(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
         for page, slide in enumerate(ppt.slides):
             temp = []
             for shape in slide.shapes:
@@ -147,11 +150,24 @@ class PPT_Indexer():
                 temp.append(("No Title", 0))
             temp.sort(key=lambda x: x[1])
             title = temp[0][0]
-            date = self.parse_date(title)
-            if date==None:
+
+            textNote = slide.notes_slide.notes_text_frame.text
+            tagsFound = dict(uniTags.findall(textNote))
+            matchDate = dateAuthor.search(title)
+            if matchDate:
+                y,m,d,author = matchDate.groups()
+                y = '20'+y if len(y)==2 else y
+                date = datetime(int(y),int(m),int(d))
+            else:
+                author = slides[-1]['author'] if slides else None
                 date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
-            slides.append(dict(page=page+1,
-                               title=title, date=date, body="\n".join(i[0] for i in temp[1:]) ))
+            # date = self.parse_date(title)
+            # if date == None:
+            #     date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
+            tagsFound.update(page=page+1,
+                               title=title, date=date,author=author,
+                               body="\n".join(i[0] for i in temp[1:]))
+            slides.append(tagsFound)
         return slides
 
     def parse_date(self,title):
@@ -190,7 +206,6 @@ class PPT_Indexer():
                 slide = Slide(ppt_id=ppt.id, **s)
                 db.session.add(slide)
             cur_slides.append(slide)
-
         for slide in (set(oldslides)-set(cur_slides)):
             if slide.note or slide.tag:
                 slide.ppt_id=None
