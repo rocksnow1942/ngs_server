@@ -1202,7 +1202,7 @@ class Task(db.Model,BaseDataModel):
 
 class Slide(SearchableMixin,db.Model):
     __tablename__='slide'
-    __searchable__=['title','body','tag','note','ppt_id','flag']
+    __searchable__=['title','body','tag','note','ppt_id','flag','author']
     __searablemethod__ = []
     id = Column(mysql.INTEGER(unsigned=True), primary_key=True)
     title = Column(mysql.TEXT)

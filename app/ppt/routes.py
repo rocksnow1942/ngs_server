@@ -384,7 +384,7 @@ def set_slide_notes(file,page,tag,content):
     match = regx.search(text)
     if match:
         if match.group('content') == content: return None
-        slide.notes_slide.notes_text_frame.text=re.sub(regx,'\g<pt>'+content+'\g<ft>',text)
+        slide.notes_slide.notes_text_frame.text=re.sub(regx,r'\g<pt>'+content+r'\g<ft>',text)
     else:
         if not content: return None
         slide.notes_slide.notes_text_frame.text= f"<{tag}>{content}</{tag}>" +text

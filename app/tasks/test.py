@@ -3,7 +3,7 @@ from dateutil import parser
 from datetime import datetime
 import re
 flag = "note"
-regx = re.compile(f'(?P<pt><{flag}>)(.+)(?P<ft></{flag}>)')
+regx = re.compile(f'<(?P<pt>{flag})>(.+)</(?P=pt)>')
 
 date = re.compile("(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
 
@@ -55,7 +55,10 @@ tag = re.compile('<tag>(.*)</tag>')
 note = re.compile('<note>(.*)</note>')
 flag = re.compile('(?P<pt><flag>)(?P<content>.*)(?P<ft></flag>)')
 notes = '<tag>this is a tag,</tag>\n<note>this is a note,</note><a>aga</a>'
-re.sub(regx,'\g<pt>'+'new'+'\g<ft>',notes)
+re.sub(regx,r'<\g<pt>>'+'new'+r'</\g<pt>>',notes)
+regx.search(notes).groups()
+
+
 regx.search(notes)
 flag.search("<flag> </flag>").group('content')
 
