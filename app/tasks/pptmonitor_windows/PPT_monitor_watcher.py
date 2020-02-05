@@ -7,15 +7,25 @@ import gc
 import requests
 import logging 
 from logging.handlers import RotatingFileHandler
-#
+
+"""
+ ██╗  ██╗ ██████╗ ██╗    ██╗    ████████╗ ██████╗     ██╗   ██╗███████╗███████╗
+ ██║  ██║██╔═══██╗██║    ██║    ╚══██╔══╝██╔═══██╗    ██║   ██║██╔════╝██╔════╝
+ ███████║██║   ██║██║ █╗ ██║       ██║   ██║   ██║    ██║   ██║███████╗█████╗  
+ ██╔══██║██║   ██║██║███╗██║       ██║   ██║   ██║    ██║   ██║╚════██║██╔══╝  
+ ██║  ██║╚██████╔╝╚███╔███╔╝       ██║   ╚██████╔╝    ╚██████╔╝███████║███████╗
+ ╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝        ╚═╝    ╚═════╝      ╚═════╝ ╚══════╝╚══════╝                                                                      
+"""
 # start by batch file
 # @echo off
 # set root=C:\Users\aptitude\Anaconda3
 # call %root%\Scripts\activate.bat %root%
 # C:\Users\aptitude\Anaconda3\pythonw.exe "C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\PPT_monitor_watcher.py"
-#
+
 # To auto start on log on:
-# use task schedular
+# use task schedular to schedule the startpptmonitor.bat on windows PC
+
+ 
 
 running_log = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\monitor_service_log.txt"
 monitor_script = r"C:\Users\aptitude\Aptitude-Cloud\R&D\Users\Hui Kang\Scripts\ppt_monitor\ppt_monitor_windows.py"
