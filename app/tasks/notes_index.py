@@ -157,6 +157,7 @@ class PPT_Indexer():
             if matchDate:
                 y,m,d,author = matchDate.groups()
                 y = '20'+y if len(y)==2 else y
+                author = author.strip().upper()
                 date = datetime(int(y),int(m),int(d))
             else:
                 author = slides[-1]['author'] if slides else None
