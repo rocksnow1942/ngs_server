@@ -21,17 +21,14 @@ import re
 #clean up slides in that powerpoint that doesn't have tag or notes.
 # the left over slides will be displayed in "deleted tab"
 
+
+# this POSSIBLE_TAGS defined the possible tag fields writting to notes slide in pptx. 
 POSSIBLE_TAGS = 'tag|note'
 
-def glob_pptx(path):
-    result = []
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if file.endswith(".pptx") and ('conflict' not in file.lower()) and (not file.startswith('~$')):
-                  result.append(os.path.join(root, file))
-    return result
-
 class PPT_Indexer():
+    """
+    module to sync pptx with database index. 
+    """
     def __init__(self, log_file=""):
         app = create_app(keeplog=False)
         app.app_context().push()
@@ -86,9 +83,6 @@ class PPT_Indexer():
             except Exception as e:
                 self.write_log(f" Create error:{file} - {e}")
 
-
-            # self.clean_up
-
     def create_by_path(self,file):
         path = self.mirror_path(file)
         ppt = PPT.query.filter_by(path=path).first()
@@ -140,7 +134,7 @@ class PPT_Indexer():
         ppt=Presentation(file)
         slides = []
         uniTags = re.compile(f'<(?P<pt>{POSSIBLE_TAGS})>(?P<content>.*)</(?P=pt)>')
-        dateAuthor = re.compile("(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
+        dateAuthor = re.compile(r"\A\s*(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
         for page, slide in enumerate(ppt.slides):
             temp = []
             for shape in slide.shapes:
@@ -158,7 +152,11 @@ class PPT_Indexer():
                 y,m,d,author = matchDate.groups()
                 y = '20'+y if len(y)==2 else y
                 author = author.strip().upper() if author else author
-                date = datetime(int(y),int(m),int(d))
+                try:
+                    date = datetime(int(y),int(m),int(d))
+                except:
+                    date = slides[-1]['date'] if slides else datetime(
+                        2011, 1, 1, 1, 1)
             else:
                 author = slides[-1]['author'] if slides else None
                 date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
@@ -241,22 +239,26 @@ class PPT_Indexer():
 
 
 class PPTX_Handler(PatternMatchingEventHandler):
+    """
+    watchdog event listner. 
+    """
     def __init__(self, logger):
         super().__init__(patterns=["*.pptx", ], ignore_patterns=["*~$*", "*Conflict*"],
                          ignore_directories=False, case_sensitive=True)
         self.logger = logger
 
     def on_created(self, event):
+        """
+        on create event, start indexing the pptx. first remove trailing blank. 
+        """
         t1=time.time()
         try:
-            self.logger.create(event.src_path)
+            removedblank = remove_pptx_blank(event.src_path)
+            self.logger.create(removedblank)
             t2=time.time()
-            print("Create {} Done in {:.1f}".format(event.src_path,t2-t1))
+            print("Create {} Done in {:.1f}".format(removedblank, t2-t1))
         except Exception as e:
-
-            print(f" Create Error {event.src_path}:{e}")
-
-
+            print(f" Create Error {removedblank}:{e}")
 
     def on_deleted(self, event):
         t1 = time.time()
@@ -269,15 +271,30 @@ class PPTX_Handler(PatternMatchingEventHandler):
             self.logger.write_log(f"Deletion error:{e}")
             print(f"Delete Error {event.src_path}:{e}")
 
-
     def on_modified(self, event):
         print(f"Modify {event.src_path}")
 
     def on_moved(self, event):
         print(f"Rename {event.src_path} to {event.dest_path}")
 
+def remove_pptx_blank(path):
+    """
+    remove trailing blank in pptx file path.
+    """
+    newpath = re.sub(r'(\S*)(\s*)\.pptx', r'\g<1>.pptx', path)
+    if path != newpath and os.path.exists(path):
+        repl = r'\g<1>'
+        while os.path.exists(newpath):
+            repl += '_'
+            newpath = re.sub(r'(\S*)(\s*)\.pptx', repl+'.pptx', path)
+        os.rename(path, newpath)
+    return newpath
+    
 
 def StartWatch(source_folder, log_file):
+    """
+    start the observer. index every 10 seconds.
+    """
     my_observer = Observer()
     logger = PPT_Indexer(log_file=log_file)
 
@@ -292,7 +309,21 @@ def StartWatch(source_folder, log_file):
         my_observer.join()
 
 
+def glob_pptx(path):
+    """
+    grab all the pptx files inside a folder path, ignoring all conflicts. 
+    """
+    result = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(".pptx") and ('conflict' not in file.lower()) and (not file.startswith('~$')):
+                  result.append(os.path.join(root, file))
+    return result
+
 def index_path(path,log_file):
+    """
+    rebuild index of each pptx file inside a path. 
+    """
     logger = PPT_Indexer(log_file=log_file)
     pptxs=glob_pptx(path)
     for i in pptxs:
@@ -300,6 +331,9 @@ def index_path(path,log_file):
         logger.create(i)
 
 def index_file(path):
+    """
+    index a specific file
+    """
     app = create_app(keeplog=False)
     app.app_context().push()
     log_file = app.config['PPT_LOG_FILE']
@@ -308,8 +342,9 @@ def index_file(path):
     logger.create(path)
 
 def reindex():
-
-
+    """
+    rebuild index for the current files. 
+    """
     log_file = current_app.config['PPT_LOG_FILE']
     logger = PPT_Indexer(log_file=log_file)
     source_folder = PurePath(current_app.config['PPT_SOURCE_FOLDER'])

@@ -11,6 +11,38 @@ date.search('20120103  ( ) ').groups()
 
 parser.parse('11/01/2010')
 
+pptx = re.compile(r'(\S*)(\s*)\.pptx')
+pptx.search('aba.1. pptx').groups()
+
+path = '/Users/hui/Desktop/2020-02-03. .pptx'
+re.sub(pptx,'\g<1>.pptx',name,)
+import os
+os.rename('/Users/hui/Desktop/2020-02-03. .pptx',re.sub(pptx,'\g<1>.pptx',name,))
+newpath = re.sub(r'(\S*)(\s*)\.pptx','\g<1>.pptx',path)
+newpath
+
+
+dateAuthor = re.compile(
+    r"\A\s*(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
+
+title = "2011-17 GC24-Dolphin1 Dolphin2 Binding Test 0 3 10 30 100"
+
+dateAuthor.search(title) and dateAuthor.search(title).groups()
+
+
+
+def remove_pptx_blank(path):
+    newpath = re.sub(r'(\S*)(\s*)\.pptx', r'\g<1>.pptx', path)
+    if path != newpath and os.path.exists(path):
+        repl = r'\g<1>'
+        while os.path.exists(newpath):
+            repl += '_'
+            newpath = re.sub(r'(\S*)(\s*)\.pptx', repl+'.pptx', path)
+        os.rename(path, newpath)
+    return newpath
+
+remove_pptx_blank('/Users/hui/Desktop/2020-02-03')
+
 int(2011)
 
 ppt = Presentation('/Users/hui/Desktop/VEGF/RIC50 SELEX QC.pptx')
@@ -32,7 +64,11 @@ for slide in ppt.slides:
     time = datetime(int(y),int(m),int(d))
     print(time,author)
 
-
+def printreplace(paths):
+    for path in paths:
+         newpath = re.sub(r'(\S*)(\s*)\.pptx', r'\g<1>.pptx', path)
+         if path!=newpath:
+             print(newpath)
 
 
 datetime(20,1,1,)
