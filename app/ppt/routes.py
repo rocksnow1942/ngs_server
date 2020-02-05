@@ -44,7 +44,13 @@ def index():
     if table == 'tags' and tag==None:
         return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',
                                table=table,  entries=Slide.tags_list(500,True),)
-    if table == 'trash' or table == 'tags':
+    
+    author = request.args.get('author' , None)
+    if table == 'authors' and author == None:
+        return render_template('ppt/index.html', title=(table.upper() or ' ')+'-View',
+                               table=table,  entries=Slide.authors_list(),)
+
+    if table in ['trash','tags','authors']:
         target = Slide
 
     tags_list = Slide.tags_list()
@@ -66,6 +72,11 @@ def index():
             elif table =='tags':
                 table = 'slide'
                 entries = target.query.filter(target.tag.contains(tag)).order_by(
+                    target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
+            elif table == 'authors':
+                table = 'slide'
+                author = None if author=='Anonymous' else author
+                entries = target.query.filter(target.author==author).order_by(
                     target.date.desc(), target.page.desc()).paginate(page, pagelimit, False)
             elif table == 'slide':
                 entries = target.query.filter(target.ppt_id!=None).order_by(

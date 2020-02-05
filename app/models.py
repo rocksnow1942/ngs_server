@@ -1235,6 +1235,24 @@ class Slide(SearchableMixin,db.Model):
             return c
         else:
             return [i[0] for i in c]
+    
+    @staticmethod
+    def authors_list():
+        slides = Slide.query.all()
+        counter = {}
+        for slide in slides:
+            if slide.author in counter:
+                counter[slide.author][0] += 1
+                counter[slide.author][1] += (slide.date.date() >= datetime.now().date())
+            else:
+                counter[slide.author] = [
+                    1, int(slide.date.date() >= datetime.now().date())]
+        anonymous = counter.pop(None,None)
+        if anonymous:
+            counter['Anonymous']=anonymous
+        return sorted([(k,i[0],i[1]) for k,i in counter.items()],key = lambda x:x[:-3:-1],reverse=True)
+
+
 
     @classmethod
     def search_in_id(cls, query, fields, ids, date_from, date_to, page, per_page):

@@ -34,6 +34,13 @@
     </li>
 
     <li class="breadcrumb-item">
+      {% if table!='authors' %}
+      <a href="{{url_for('ppt.index',table='authors')}}">Authors</a>
+      {% else %}<b>Authors</b>
+      {% endif %}
+    </li>
+
+    <li class="breadcrumb-item">
       {% if table!='trash' %}
       <a href="{{url_for('ppt.index',table='trash')}}">
        Trash
