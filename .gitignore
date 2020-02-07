@@ -47,5 +47,6 @@ migrations
 cache
 RNAstructure/
 ViennaRNA/
+NUPACK/
 nupack3.0.6
 general_equilibrium_formula.json
