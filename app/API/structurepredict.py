@@ -1,5 +1,5 @@
-from RNAstructure import RNA
-import ViennaRNA
+from app.APPS.foldojo.RNAstructure import RNA
+import app.APPS.foldojo.ViennaRNA as ViennaRNA
 from collections import defaultdict
 from itertools import combinations,product,chain
 from functools import partial
@@ -13,11 +13,11 @@ import matplotlib as mpl
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
-from MSA import Alignment,IUPAC_decode,poolwrapper
+from app.APPS.foldojo.MSA import Alignment,IUPAC_decode,poolwrapper
 import random
 import heapq
 import pandas as pd
-import NUPACK as NPK
+import app.APPS.foldojo.NUPACK as NPK
 
 
 
