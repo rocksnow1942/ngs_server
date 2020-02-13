@@ -78,6 +78,9 @@ def create_app(config_class = Config,keeplog=True):
     from app.upload import bp as upload_bp
     app.register_blueprint(upload_bp,url_prefix='/upload')
 
+    from app.API import bp as api_bp
+    app.register_blueprint(api_bp, url_prefix='/api')
+
     if (not app.debug) and (not app.testing) and keeplog:
         if not os.path.exists('logs'):
             os.mkdir('logs')

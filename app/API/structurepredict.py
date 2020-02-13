@@ -48,7 +48,6 @@ class lazyproperty():
             setattr(instance,self.func.__name__,value)
             return value
 
-
 class Structure:
     """
     main class for structure prediction.
@@ -605,7 +604,6 @@ class Structure:
             plt.show()
         return figheight,figwidth
 
-
 class Multistrand(Structure):
     """
     sub-class to handle co-fold:
@@ -706,7 +704,6 @@ class MutableSequence():
         c['T']+='G'
         c['G']+='T'
         return c[i]
-
 
 class SingleStructureDesign(MutableSequence):
     """
@@ -845,7 +842,6 @@ class SingleStructureDesign(MutableSequence):
             return (seq, sum(r_)*100 ,mfe,min(ene_),np.mean(ed_))
         else:
             return None
-
 
 class MultiStructureDesign(SingleStructureDesign):
     def generate(self,method='Nupack',top=10,**kwargs):
@@ -1561,6 +1557,38 @@ class DotGraph(DotGraphConstructor):
         self.name=name
         self.ratio=ratio
         self.from_tuples(pairtuple)
+        self.coords = self.generate_coords()
+
+    def generate_coords(self):
+        """
+        generate coordinates for plotting.
+        """
+        # get coordinates
+        ViennaRNA.cvar.rna_plot_type=1
+        coords = []
+        vrna_coords = ViennaRNA.get_xy_coordinates(self.dot)
+        for i in range(self.seq_length):
+            coord = ( vrna_coords.get(i).X,
+                     vrna_coords.get(i).Y)
+            coords.append(coord)
+        coords = np.array(coords)
+
+        #rotate coordinates for best angle.
+        rotate=[]
+        for angle in range(-180,180,15):
+            tempcoords=np.zeros_like(coords)
+            for k,i in enumerate(coords):
+                tempcoords[k,:]=np.array(rotate_coord((0,0),i,angle))
+            tempwidth=np.max(tempcoords[:, 0])-np.min(tempcoords[:, 0])
+            tempheight=np.max(tempcoords[:, 1])-np.min(tempcoords[:, 1])
+            _=abs(tempheight-tempwidth)/max(tempheight,tempwidth)
+            rotate.append((angle,_))
+            if _<0.07:
+                break
+        bestangle=min(rotate,key=lambda x:x[1])[0]
+        for k,i in enumerate(coords):
+            coords[k,:]=np.array(rotate_coord((0,0),i,bestangle))
+        return coords
 
     @property
     def seq_length(self):
@@ -1712,33 +1740,7 @@ class DotGraph(DotGraphConstructor):
         ele_kwargs : pass to element name
         ntnum_kwargs:pass to nt number.
         """
-        # get coordinates
-        ViennaRNA.cvar.rna_plot_type=1
-        coords = []
-        vrna_coords = ViennaRNA.get_xy_coordinates(self.dot)
-        for i in range(self.seq_length):
-            coord = ( vrna_coords.get(i).X,
-                     vrna_coords.get(i).Y)
-            coords.append(coord)
-        coords = np.array(coords)
-
-        #rotate coordinates for best angle.
-        rotate=[]
-        for angle in range(-180,180,15):
-            tempcoords=np.zeros_like(coords)
-            for k,i in enumerate(coords):
-                tempcoords[k,:]=np.array(rotate_coord((0,0),i,angle))
-            tempwidth=np.max(tempcoords[:, 0])-np.min(tempcoords[:, 0])
-            tempheight=np.max(tempcoords[:, 1])-np.min(tempcoords[:, 1])
-            _=abs(tempheight-tempwidth)/max(tempheight,tempwidth)
-            rotate.append((angle,_))
-            if _<0.07:
-                break
-        bestangle=min(rotate,key=lambda x:x[1])[0]
-        for k,i in enumerate(coords):
-            coords[k,:]=np.array(rotate_coord((0,0),i,bestangle))
-
-
+        coords = self.coords
         # find all breaks:
         breaks = [0]+[i for i,j in enumerate(self.seq) if j == "+"]+[self.seq_length]
 
@@ -1963,7 +1965,6 @@ class Design_collector():
         a=[heapq.heappop(self.data) for i in range(len(self.data))]
         a.reverse()
         return [i[1] for i in a]
-
 
 def any_difference_of_one(stem, bulge):
     """

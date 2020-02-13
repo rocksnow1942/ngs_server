@@ -132,7 +132,10 @@ def edit_link():
 
 @bp.route('/triggererror', methods=['GET', 'POST'])
 def triggererror():
+    a = 12 
+    user = current_user.username
     assert False, ('new error')
+
     return None
 
 
