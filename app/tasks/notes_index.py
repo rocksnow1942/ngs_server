@@ -32,31 +32,43 @@ class PPT_Indexer():
     def __init__(self, log_file=""):
         app = create_app(keeplog=False)
         app.app_context().push()
-        source_folder = app.config['PPT_SOURCE_FOLDER']
-        target_folder = app.config['PPT_TARGET_FOLDER']
+        source_folder = app.config['PPT_SOURCE_FOLDER'] # this is the cloud station folder on the server. 
+        target_folder = app.config['PPT_TARGET_FOLDER'] # this is the storage folder for ppt snap shots. 
         self.app=app
         self.source_folder = source_folder
         self.target_folder = target_folder
         self.log_file = log_file
 
     def write_log(self,content):
+        """
+        write a log
+        """
         with open(self.log_file,'a') as f:
             f.write(f"{self.time} - " +content+'\n')
 
     def mirror_path(self, path):
+        """
+        create the mirror path for ppt inside source folder by remove folder structure between project folder and ppt file itself.
+        assume pptx file path =  VEGF/FirstSELEX/First Try/SELEXppt.pptx; 
+        mirror path would be: VEGF/SELEXppt 
+        the mirror path will be the folder inside ppt snapshot folder. 
+        """
         sf = PurePath(self.source_folder)
         # tf = PurePath(self.target_folder)
         rf = PurePath(path).relative_to(sf)
         return str(rf.parent/rf.stem).strip()
 
     def get_project_name(self,filepath):
+        """get the first layer of path, that is the project folder name."""
         return PurePath(filepath).relative_to(self.source_folder).parts[0]
 
     def get_PPT_name(self,filepath):
+        """get the ppt file name. remove space; because ppt snapshot folder will not have space. (this is caused by windows pptx making snapshot removing space.)"""
         return PurePath(filepath).stem.strip()
 
     @staticmethod
     def get_md5(file):
+        "get the md5 of a pptx file."
         with open(file, 'rb') as afile:
             hasher = hashlib.md5()
             buf = afile.read()
@@ -65,13 +77,22 @@ class PPT_Indexer():
 
     @staticmethod
     def get_revision(file):
+        "get revision number of a pptx file"
         ppt = Presentation(file)
         return ppt.core_properties.revision
     @property
     def time(self):
+        "format time"
         return datetime.now().strftime('%y/%m/%d %H:%M:%S')
 
     def create(self, file):
+        """
+        entry point for creating pptx log. 
+        try to create the file by its path; this happens when regular editing of file.
+        then by its md5; this happens when moving the same file to a different folder.
+        then by create new file; this is when a brand new file is created. 
+        write a log.
+        """
         with self.app.app_context():
             try:
                 if self.create_by_path(file):
@@ -84,6 +105,11 @@ class PPT_Indexer():
                 self.write_log(f" Create error:{file} - {e}")
 
     def create_by_path(self,file):
+        """
+        update the ppt log by file path. 
+        first find ppt inside database using its path; then update its associated project and md5 and revision number; 
+        then sync the slides.  
+        """
         path = self.mirror_path(file)
         ppt = PPT.query.filter_by(path=path).first()
         if ppt: #and (ppt.project_id == None)
@@ -100,6 +126,7 @@ class PPT_Indexer():
         return False
 
     def create_by_md5(self, file):
+        "update by mod5, by only chaning to current path and project and ppt name."
         md5 = self.get_md5(file)
         ppt = PPT.query.filter_by(md5=md5).first()
         if ppt and (ppt.project_id == None):
@@ -113,6 +140,9 @@ class PPT_Indexer():
         return False
 
     def create_new(self, file):
+        """
+        create a new PPT record. 
+        """
         name = self.get_PPT_name(file)
         path = self.mirror_path(file)
         md5 = self.get_md5(file)
@@ -131,9 +161,15 @@ class PPT_Indexer():
             raise e
 
     def parse_ppt(self,file):
+        """
+        use the presentation module to parse ppt slides into a list of dict. 
+        [{page: , title: , date: , author: , body: , tag: , note: , (if tag and note exist) }]
+        """
         ppt=Presentation(file)
         slides = []
-        uniTags = re.compile(f'<(?P<pt>{POSSIBLE_TAGS})>(?P<content>.*)</(?P=pt)>')
+        uniTags = re.compile(f'<(?P<pt>{POSSIBLE_TAGS})>(?P<content>.*)</(?P=pt)>') # parse tags in slide notes. like <tag></tag>
+
+        # regx capture for date authoer: match start, match n space, match year/month/day group with non-word inbetween, match optional author with preceding blank. 
         dateAuthor = re.compile(r"\A\s*(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
         for page, slide in enumerate(ppt.slides):
             temp = []
@@ -151,7 +187,8 @@ class PPT_Indexer():
             if matchDate:
                 y,m,d,author = matchDate.groups()
                 y = '20'+y if len(y)==2 else y
-                author = author.strip().upper() if author else author
+                author = author.strip().upper() if author else author 
+               
                 try:
                     date = datetime(int(y),int(m),int(d))
                 except:
@@ -160,9 +197,7 @@ class PPT_Indexer():
             else:
                 author = slides[-1]['author'] if slides else None
                 date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
-            # date = self.parse_date(title)
-            # if date == None:
-            #     date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
+         
             tagsFound.update(page=page+1,
                                title=title, date=date,author=author,
                                body="\n".join(i[0] for i in temp[1:]))
@@ -170,6 +205,10 @@ class PPT_Indexer():
         return slides
 
     def parse_date(self,title):
+        """
+        parse the date by trial and error.
+        not in use anymore.
+        """
         date = ''
         for l in title:
             if l.isalpha():
@@ -187,25 +226,45 @@ class PPT_Indexer():
         return None
 
     def sync_slides(self,ppt,file):
+        """
+        make slide indexes to database logs. 
+        if an slide with the same title and body already exist
+        """
         slides = self.parse_ppt(file)
-        oldslides=ppt.slides
+        oldslides=ppt.slides # get all the slides in the current ppt. 
         cur_slides = []
+
+        # looping over the slides list from parsed list. 
         for s in slides:
+            # find collection of slides that have the same title and body, and order them by page. 
             slide_collection = Slide.query.filter_by(ppt_id=ppt.id,title=s['title'],body=s['body']).order_by(Slide.page).all()
             found = False
+            
             if slide_collection:
+                # using collection to deal with the rare case where user create multiple new replicate slides at a random page. 
+                # if that happens, will update the pages and note/tag in the order of their page. 
+                # for the last page of the replicates, because it is not in the cur_slides collection, will be created as new slide. 
                 for slide in slide_collection:
+                    # if a slide in the collection is not been seen yet, update it accordingly. 
+                    # the net effect is basically reindexing all slides with same title and body. 
                     if slide not in cur_slides:
                         slide.ppt=ppt
                         slide.page = s['page']
                         slide.date=s['date']
+                        # update the tag and notes:
+                        for t in POSSIBLE_TAGS.split('|'):
+                            setattr(slide, t, s.get(t, None))
                         found = True
                         break
-            if not found:
+            if not found: 
+                 # create new if not found. 
                 slide = Slide(ppt_id=ppt.id, **s)
                 db.session.add(slide)
+            # maintain a log of slides that are already been indexed. 
             cur_slides.append(slide)
-        for slide in (set(oldslides)-set(cur_slides)):
+
+        # remove deleted slides; if the slide have note or tag, trash it by remove its ppt_id. 
+        for slide in (set(oldslides)-set(cur_slides)): 
             if slide.note or slide.tag:
                 slide.ppt_id=None
             else:
@@ -214,6 +273,10 @@ class PPT_Indexer():
         return ppt
 
     def create_project(self,file):
+        """
+        return corresponding project database entry given the file. 
+        create a new project record if the project doesn't exist.
+        """
         projectname = self.get_project_name(file)
         project = Project.query.filter_by(name=projectname).first()
         if not project:
@@ -224,6 +287,11 @@ class PPT_Indexer():
         return project
 
     def delete(self, file):
+        """
+        entry point for deleting ppt. 
+        this is always done by its file path. 
+        when deleting, only remove the associated project_id, not actually deleting all the records. 
+        """
         with self.app.app_context():
             filepath = self.mirror_path(file)
             ppt = PPT.query.filter_by(path=filepath).first()
@@ -234,6 +302,9 @@ class PPT_Indexer():
                     f" Delete PPT {file}")
 
     def move(self, src, dst):
+        """
+        this event rarely happens on Ubuntu and is not dealt with. 
+        """
         self.write_log(f" Move {src} => {dst}")
 
 
@@ -253,6 +324,7 @@ class PPTX_Handler(PatternMatchingEventHandler):
         """
         t1=time.time()
         try:
+            # first remove the bland before start indexing. 
             removedblank = remove_pptx_blank(event.src_path)
             self.logger.create(removedblank)
             t2=time.time()
