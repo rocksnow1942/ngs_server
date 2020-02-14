@@ -22,23 +22,24 @@ function set_bar_color(barid, progress) {
 
 // replicate datafiles to a ngs_sample group. 
 function replicateNGSSampleGroupDatafile(url,uploadto) {
-    console.log(url,uploadto)
+   
     let target = prompt('Enter NGS Sample Group ID you want to copy data file from:');
-    console.log(target);
-    fetch(url,{
-        method: "POST",
-        headers: { "content-type": "application/json"},
-        body:JSON.stringify({uploadto,target}),
-    })
-    .then(res=>res.json())
-    .then(result => { 
-        if (result.refresh) {
-            setTimeout(() => {
-                location.reload()
-            }, 1500);
-        }
-        display_flash_message(result.html, 1000)
-        ;})
-    .catch(err=>{console.log(err)})
-
+    if (target) {
+       fetch(url, {
+           method: "POST",
+           headers: { "content-type": "application/json" },
+           body: JSON.stringify({ uploadto, target }),
+       })
+           .then(res => res.json())
+           .then(result => {
+               if (result.refresh) {
+                   setTimeout(() => {
+                       location.reload()
+                   }, 1500);
+               }
+               display_flash_message(result.html, 1000)
+                   ;
+           })
+           .catch(err => { console.log(err) })
+   }
 }
