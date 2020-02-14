@@ -3,6 +3,10 @@
   <div class="input-group input-group-sm">
     <span class="input-group-addon"><span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span></span>
     <input type="file" name='file1' class="form-control" placeholder="File1" aria-describedby="sizing-addon3">
+    <span class="input-group-btn">
+      <a class="btn btn-default" onclick="javascript:replicateNGSSampleGroupDatafile('{{url_for('upload.ngscopydatafile')}}','{{uploadto}}')"><span class="glyphicon glyphicon-copy"
+          aria-hidden="true"></span></a>
+    </span>
   </div>
 
 <div class="input-group input-group-sm">

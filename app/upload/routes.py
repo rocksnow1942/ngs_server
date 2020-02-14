@@ -1,5 +1,5 @@
 from app import db
-from flask import render_template, flash, redirect,url_for,request,current_app,abort
+from flask import render_template, flash, redirect,url_for,request,current_app,abort,jsonify
 from flask_login import current_user,login_required
 from datetime import datetime
 from app.upload import bp
@@ -51,14 +51,20 @@ def ngsuploadwidget():
             return redirect(returnurl)
         file1,file2 = request.files['file1'],request.files.get('file2',None)
         if file1.filename == '' and file2.filename=='':
-            flash('No files uploaded. Filenames auto generated, place Fastq files in upload folder before proceed.','warning')
-            f1 = sg.name + '_R1.fastq'
-            f2 = sg.name + '_R2.fastq'
-            tosavename = json.dumps({'file1': f1, 'file2': f2})
-            sg.datafile = tosavename
-            sg.processingresult = ''
-            sg.task_id = None
-            db.session.commit()
+            # if file already exist, don't overwrite. 
+            sgfiles = sg.files
+            if sgfiles and (os.path.exists(sgfiles[0]) or os.path.exists(sgfiles[1])):
+                flash('Data files already uploaded. Cannot overwrite it with empty files.')
+
+            else:
+                flash('No files uploaded. Filenames auto generated, place Fastq files in upload folder before proceed.','warning')
+                f1 = sg.name + '_R1.fastq'
+                f2 = sg.name + '_R2.fastq'
+                tosavename = json.dumps({'file1': f1, 'file2': f2})
+                sg.datafile = tosavename
+                sg.processingresult = ''
+                sg.task_id = None
+                db.session.commit()
             return redirect(returnurl)
         if allowed_file(file1, fileextension=['fastq','gz']):
             try:
@@ -77,3 +83,29 @@ def ngsuploadwidget():
         return redirect(request.referrer)
     return render_template('upload/uploadwidget.html',title='Upload')
 
+
+@bp.route('/ngscopydatafile', methods=['POST'])
+@login_required
+def ngscopydatafile():
+    uploadto = request.json.get('uploadto',None)
+    target = request.json.get('target',None)
+    SG = NGSSampleGroup.query.get(uploadto)
+    targetSG = NGSSampleGroup.query.get(target)
+    refresh = False
+    if not SG:
+        msg = [('warning',f"NGS sample group ID <{uploadto}> doesn't exist")]
+        return jsonify(html=render_template('flash_messages.html', messages=msg))
+    if not targetSG:
+        msg = [('warning', f"NGS sample group ID <{target}> doesn't exist!")]
+        return jsonify(html=render_template('flash_messages.html', messages=msg))
+
+    sgfiles = targetSG.files
+    if sgfiles and (os.path.exists(sgfiles[0]) or os.path.exists(sgfiles[1])):
+        SG.datafile = targetSG.datafile
+        db.session.commit()
+        msg = [('success',f"Copied datafile from ID<{target}> to ID<{uploadto}>")]
+        refresh = True
+    else:
+        msg = [('warning',f"Data files of <{target}> are not valid.")]
+   
+    return jsonify(html=render_template('flash_messages.html', messages=msg),refresh=refresh)
