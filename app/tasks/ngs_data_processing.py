@@ -66,6 +66,7 @@ class NGS_Sample_Process:
         self.unique_commit = Counter() # log unique sequence commited count in round
         self.total_commit = Counter() # log total commit in rounds
         self.failure_collection = Counter()
+        self.partial_failure_collection = Counter()
         self.failure = 0 # log other un explained.
         self.score_filter = 0
         self.length_filter = 0
@@ -226,7 +227,6 @@ class NGS_Sample_Process:
         log sequence that is not matched.
         """
         ab = True
-        
         toadd = []
         for n,p in self.selectionprimer:
             if p in seq:
@@ -249,13 +249,12 @@ class NGS_Sample_Process:
                     
                 else:
                     toadd.append((n,None))
-                    
-        
         if ab:
             self.failure+=1
             self.failure_collection[seq] += 1
         else:
             self.primer_collection[tuple(toadd)] += 1
+            self.partial_failure_collection[seq] += 1
             self.aberrant_primers +=1
 
     def totalread(self):
@@ -345,9 +344,13 @@ class NGS_Sample_Process:
         with open(tosave,'a') as f:
             f.write("="*100+'\n'+"="*100+'\n')
             f.write(f'Processing files: \nFile1:{self.f1}\nFile2:{self.f2}\nDate:{datetime.now().strftime("%Y/%m/%d %H:%M")}\n')
-            f.write('Top 100 failure sequences:\n')
-            for i,j in self.failure_collection.most_common(100):
+            f.write("="*40+'Top 50 failure sequences'+"="*40+"\n")
+            for i,j in self.failure_collection.most_common(50):
                 f.write("{:<9}{}\n".format(j,i))
+            f.write("="*40+'Top 50 Partial failure sequences'+"="*40+"\n")
+            for i, j in self.partial_failure_collection.most_common(50):
+                f.write("{:<9}{}\n".format(j, i))
+               
             f.write('Top 50 abberant Primer - NGS primer combinations\n')
             f.write("\n".join(["<{}> - {}".format(" ".join(f"{k[0]}:{k[1]}" for k in i), j)
                                for i, j in self.primer_collection.most_common(50)]))
