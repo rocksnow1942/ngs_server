@@ -7,6 +7,12 @@ regx = re.compile(f'<(?P<pt>{flag})>(.+)</(?P=pt)>')
 
 date = re.compile("(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9])\W*(?P<d>[0-2]\d|3[01]|\d)(?:\s*\((?P<author>[a-zA-Z\s]+)\))?")
 
+date = re.compile("(?P<y>20\d{2}|\d{2})\W*(?P<m>[0]\d|1[0-2]|[1-9]|\d)\W*(?P<d>[0-2]\d|3[01]|\d)")
+
+s = "2020121"
+date.findall(s)
+
+
 date.search('20120103  ( ) ').groups()
 
 parser.parse('11/01/2010')

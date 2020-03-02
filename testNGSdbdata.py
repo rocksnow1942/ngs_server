@@ -70,3 +70,7 @@ a.save_data()
 a.data_string
 
 a.rounds
+
+import numpy as np
+a = [list(range(1,10)) for i in range(1,10)]
+a

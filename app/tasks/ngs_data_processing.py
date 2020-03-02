@@ -222,8 +222,12 @@ class NGS_Sample_Process:
 
 
     def log_unmatch(self,seq):
+        """
+        log sequence that is not matched.
+        """
         ab = True
-        # primers = []
+        
+        toadd = []
         for n,p in self.selectionprimer:
             if p in seq:
                 ab = False
@@ -241,13 +245,17 @@ class NGS_Sample_Process:
                         break
                         # self.index_collection[n2]+=1
                 if temp:
-                    self.primer_collection[temp]+=1
+                    toadd.append(temp)
+                    
                 else:
-                    self.primer_collection[(n,None)]+=1
+                    toadd.append((n,None))
+                    
+        
         if ab:
             self.failure+=1
             self.failure_collection[seq] += 1
         else:
+            self.primer_collection[tuple(toadd)] += 1
             self.aberrant_primers +=1
 
     def totalread(self):
@@ -333,13 +341,17 @@ class NGS_Sample_Process:
 
     def write_failures(self):
         tosave = current_app.config['UPLOAD_FOLDER'] + '/processing_failuresequences.txt'
-        fail = list(self.failure_collection.items())
+        # fail = list(self.failure_collection.items())
         with open(tosave,'a') as f:
             f.write("="*100+'\n'+"="*100+'\n')
             f.write(f'Processing files: \nFile1:{self.f1}\nFile2:{self.f2}\nDate:{datetime.now().strftime("%Y/%m/%d %H:%M")}\n')
             f.write('Top 100 failure sequences:\n')
             for i,j in self.failure_collection.most_common(100):
                 f.write("{:<9}{}\n".format(j,i))
+            f.write('Top 50 abberant Primer - NGS primer combinations\n')
+            f.write("\n".join(["<{}> - {}".format(" ".join(f"{k[0]}:{k[1]}" for k in i), j)
+                               for i, j in self.primer_collection.most_common(50)]))
+            f.write('\n')
 
 
 
@@ -372,7 +384,8 @@ class NGS_Sample_Process:
         smry = smry + "Aberrant selection primers found in {} / {:.2%} reads\n".format(self.aberrant_primers, self.aberrant_primers/ttl)
         smry += "Most common selection - NGS combinations are:\n"
         # primers[0:5]:
-        smry += "\n".join(["<{}:{}> - {}".format(i[0], i[1], j) for i, j in self.primer_collection.most_common(8)])
+        smry += "\n".join(["<{}> - {}".format(" ".join(f"{k[0]}:{k[1]}" for k in i), j)
+                           for i, j in self.primer_collection.most_common(8)])
         # smry +="\nAbberant NGS sequencing primers found in {} / {:.2%} reads\n".format(sumindex,sumindex/ttl)
         # smry +="Most common ones are: "
         # for i, j in index[0:5]:
