@@ -23,7 +23,7 @@ import NUPACK as NPK
 
 
 """
-This module is for bokeh server usage. 
+This module is for bokeh server usage.
 
 Note:
 the algorithms used are from NUPACK, ViennaRNA and RNAstructure.
@@ -1745,7 +1745,6 @@ class DotGraph(DotGraphConstructor):
         # start plotting
         if not ax:
             fig,ax =plt.subplots(1,figsize=(8,6),)
-
         # draw backbone
         bkwargs={"color":"black", "zorder":0}
         bkwargs.update(backbone_kwargs)
@@ -1768,7 +1767,6 @@ class DotGraph(DotGraphConstructor):
             colormapper=scalar_to_rgb(basepairprob+[kwargs.pop('maxprob',0)],bpkwargs.pop('color','cool'))
             for i,j,p in zip(basepairs[:,:,0],basepairs[:,:,1],basepairprob):
                 ax.plot(i,j,color=colormapper(p),**bpkwargs)
-
         # draw circle and letters
         fp = FontProperties(family="monospace", weight='bold')
 
@@ -1797,14 +1795,13 @@ class DotGraph(DotGraphConstructor):
                     text, lw=0,fc='white',transform=t)#fc=ntcolor[letter]
                 ax.add_artist(p)
 
-
         # draw nt index from 5 to 10.
         all_coords=list(coords)
         nt_kwargs = {"color":"black","fontsize":10}
         nt_kwargs.update(ntnum_kwargs)
         # ntnum_kwargs.update(text_kwargs)
         for  start, end in zip(breaks[:-1], breaks[1:]):
-            for label in range(5, end-start+1, 5):
+            for label in range(5, end-start, 5):
                 # We try different angles
                 nt = start + label
                 if start!=0:  nt += 1
