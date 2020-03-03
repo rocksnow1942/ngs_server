@@ -776,7 +776,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         l3="Parent: {}".format(parent)
         children = [i.round_name for i in self.children]
         l4="Children: {}".format("None" if not children else '; '.join(children))
-        return l1,l2,l3,l4
+        return l1,l3,l4
 
 
     @property
