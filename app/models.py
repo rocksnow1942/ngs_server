@@ -771,7 +771,7 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
     def info(self):
         # l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
         l1="Total read: {}".format(self.totalread)
-        l2="Top Seq: {}".format(self.top_seq(5))
+        # l2="Top Seq: {}".format(self.top_seq(5))
         parent = "None" if not self.parent_id else Rounds.query.get(self.parent_id).round_name
         l3="Parent: {}".format(parent)
         children = [i.round_name for i in self.children]
