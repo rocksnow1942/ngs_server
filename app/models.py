@@ -756,12 +756,13 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         return l1,l2,l3,l4
 
     def _top_seq(self,n):
-        seq = sorted(self.sequences, key=lambda x: x.count, reverse=True)
-        oldread = self.totalread
-        self.totalread = sum(i.count for i in self.sequences)
-        if oldread != self.totalread:
-            db.session.commit()
-        return seq[0:n]
+        return SeqRound.query.filter_by(rounds_id=self.id).order_by(SeqRound.count.desc()).limit(n).all()
+        # seq = sorted(self.sequences, key=lambda x: x.count, reverse=True)
+        # oldread = self.totalread
+        # self.totalread = sum(i.count for i in self.sequences)
+        # if oldread != self.totalread:
+        #     db.session.commit()
+        # return seq[0:n]
 
     def top_seq(self,n):
         seq = ["{}: {:.2%}".format(
@@ -769,14 +770,14 @@ class Rounds(SearchableMixin,db.Model, BaseDataModel):
         return "; ".join(seq)
 
     def info(self):
-        # l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
-        l1="Total read: {}".format(self.totalread)
-        # l2="Top Seq: {}".format(self.top_seq(5))
+        l1="Total read: {}  Unique read: {}".format(self.totalread,len(self.sequences))
+        # l1="Total read: {}".format(self.totalread)
+        l2="Top Seq: {}".format(self.top_seq(5))
         parent = "None" if not self.parent_id else Rounds.query.get(self.parent_id).round_name
         l3="Parent: {}".format(parent)
         children = [i.round_name for i in self.children]
         l4="Children: {}".format("None" if not children else '; '.join(children))
-        return l1,l3,l4
+        return l1,l2,l3,l4
 
 
     @property
