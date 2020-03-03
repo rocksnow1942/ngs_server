@@ -172,22 +172,6 @@ class NGS_Sample_Process:
         if nomatch:
             self.log_unmatch(fw or rev)
 
-    # def process_seq(self, fw_fs_rev_rs):
-    #     nomatch = True
-    #     fw, fs,rev,rs = fw_fs_rev_rs
-    #     for (rdid,*(primers)),patterns in zip(self.sampleinfo,self.pattern):
-    #         fmatch = fw and self.match_pattern(fw,primers,patterns,fs)
-    #         rmatch = rev and self.match_pattern(reverse_comp(rev),primers,patterns,rs[::-1])
-    #         if fmatch or rmatch:
-    #             nomatch = False
-    #             self.success+=1
-    #             matchresult = self.result_filter(fmatch,rmatch)
-    #             if matchresult:
-    #                 self.collection[(rdid,matchresult)]+=1
-    #             break
-    #     if nomatch:
-    #         self.log_unmatch(fw or rev)
-
     def match_pattern_slow(self,seq,primers,patterns,score):
         """
         using re match to search.
@@ -220,7 +204,6 @@ class NGS_Sample_Process:
             return match , [illumina_nt_score(i) for i in score[findex+ len(fpi+fp):rindex]]
         else:
             return None
-
 
     def log_unmatch(self,seq):
         """
@@ -355,8 +338,6 @@ class NGS_Sample_Process:
             f.write("\n".join(["<{}> - {}".format(" ".join(f"{k[0]}:{k[1]}" for k in i), j)
                                for i, j in self.primer_collection.most_common(50)]))
             f.write('\n')
-
-
 
     def results(self,commit):
         ttl = self.total
