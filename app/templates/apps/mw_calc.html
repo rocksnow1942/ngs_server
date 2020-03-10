@@ -72,14 +72,15 @@ $(document).on("change paste input","#sequence",function(event) {
     let seq = $(event.target).val().split(' ').join('').split('\n').join('');
     let mw;
     if ((/\d/.test(seq))) {
-    // seq contains numbers:
-        [mw, seq] = formula_mw(seq);
+    // seq contains numbers, it must be a chemical formula:
+        [mw,chemicalFormula, seq] = formula_mw(seq);
         $('#sequence').val(seq);
         $('#result').text(`M.W.: ${mw? mw.toFixed(3):"Not a valid chemical formula."}`);
-        $('#sequence_info').text("");
+        $('#sequence_info').text(`Chemical Formula ${chemicalFormula}`);
          $('#extra_result').html("");
 
     } else if (seq) {
+        // if sequence doesn't contain number it is a base pair sequence. 
         $('#sequence_info').text(` Length: ${seq.length} n.t.`);
         $('#sequence').val(seq);
         mw = mw_calculator(seq);
@@ -132,6 +133,7 @@ C: 111.101 - 18.015 = 93.086
 
 
 function mw_calculator(seq) {
+    // function to calculate oligo molecular weight. currently only support 2'F ATGC, 2'Omethyl agtc, Z: amino, B: biotin
     let nt_weight = {
         'A': 331.19748, 'T': 308.15758, 'C': 307.17278, 'G': 347.19628, 'Z': 179.151422, 'B': 405.444582,
         'a': 343.232297, 't': 320.192397, 'c': 319.207597, 'g': 359.231097,
@@ -147,10 +149,12 @@ function mw_calculator(seq) {
 
 
     function formula_mw(formula) {
+        // function to calculate chemical formula molecular weight. 
         let r = /[A-Z][a-z]*\d*/g;
         let numbers = [];
         let m;
         while ((m = r.exec(formula)) != null) {
+            // each element + number is pushed into the array
             numbers.push(m[0]);
         };
         let mw = 0;
@@ -167,12 +171,28 @@ function mw_calculator(seq) {
             Th: 232.038, Pa: 231.036, U: 238.029, Np: 237, Pu: 244, Am: 243, Cm: 247, Bk: 247, Cf: 251, Es: 252, Fm: 257, Md: 258,
             No: 259, Lr: 262, Rf: 261, Db: 262, Sg: 266, Bh: 264, Hs: 277, Mt: 268
         };
+        let counter = {}
         numbers.forEach(function addup(k) {
-            let num = k.match(/\d+/);
+            let nummatch = k.match(/\d+/); 
+            let num = parseInt(nummatch ? nummatch[0] : 1); // element count 
+            let ele = k.match(/[A-Z][a-z]*/)[0]; // matched element
+            mw += atom_w[ele] * num// add up the molecular weight
 
-            mw += atom_w[k.match(/[A-Z][a-z]*/)[0]] * parseInt(num ? num[0] : 1)
+            // update counter 
+            if (counter.hasOwnProperty(ele)) {
+                counter[ele] += num
+            } else {
+                counter[ele] = num
+            }
         });
-        return [mw, numbers.join("")]
+
+        // for mat counter 
+        let chemicalFormula = "";
+        Object.keys(counter).sort().forEach((k)=>{
+            chemicalFormula += `${k}${counter[k]}`
+        })
+
+        return [mw,chemicalFormula, numbers.join("")]
     }
 
 
