@@ -2,7 +2,7 @@ import hashlib
 import sys
 from pathlib import PurePath
 import os,time
-from datetime import datetime
+from datetime import datetime,timedelta
 # filepath = os.path.dirname(__file__)
 filepath = PurePath(__file__).parent.parent.parent
 sys.path.append(str(filepath))
@@ -190,7 +190,10 @@ class PPT_Indexer():
                 author = author.strip().upper() if author else author 
                
                 try:
-                    date = datetime(int(y),int(m),int(d))
+                    date = datetime(int(y),int(m),int(d)) 
+                    now = datetime.now()
+                    if (date> (now + timedelta(365 * 3)) ) or (date < datetime(2000,1,1)):
+                        date = datetime.now()
                 except:
                     date = slides[-1]['date'] if slides else datetime(
                         2011, 1, 1, 1, 1)
