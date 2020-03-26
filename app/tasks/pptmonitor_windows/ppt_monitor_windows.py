@@ -236,6 +236,7 @@ class FileLogger():
                 self.info('Delete Folder: {}'.format(file))
                 self.revisions.pop(file, None)
             except FileNotFoundError as e:
+                self.revisions.pop(file, None)
                 self.error(
                     f"Delete Folder <{file}> Reason: {e}")
         self.data = {}
