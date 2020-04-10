@@ -416,7 +416,7 @@ class DataReader(Reader):
         k: for use in kmmer distance to determine offset value
         count:  consider sequence count weight during alignment
         gap, gapext: penalty score for gap and gap extension.
-        distance: method for distance calculation, can be: nw_distance or hybrid_distance.
+        distance: method for distance calculation, can be: nw_distance/hybrid_distance/sw_distance/lev_distance.
         callback: set to progress_callback to display progress.
         """
         cluster = self.align

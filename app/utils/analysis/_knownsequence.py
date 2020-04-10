@@ -1,7 +1,9 @@
 import pandas as pd
-from ._alignment import Alignment
-from ._utils import lev_distance
+from ._alignment import Alignment,lev_distance
+# from ._utils import lev_distance
 import copy
+# from Levenshtein import distance as lev_distance
+
 
 
 defaultloc='/Users/hui/Documents/ngs_data/known_seq.csv'

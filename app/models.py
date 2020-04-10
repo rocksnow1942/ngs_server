@@ -14,7 +14,8 @@ import json
 from sqlalchemy import Column, String,ForeignKey,DateTime,func
 from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import relationship
-from app.utils.ngs_util import convert_id_to_string,lev_distance,reverse_comp
+from app.utils.ngs_util import convert_id_to_string,reverse_comp
+from app.utils.analysis._alignment import lev_distance
 from app.utils.folding._structurepredict import Structure
 from app.utils.ngs_util import lazyproperty
 from app.utils.search import add_to_index, remove_from_index, query_index

@@ -5,11 +5,12 @@ from app import create_app
 import os,gzip
 from flask import current_app
 from itertools import islice, zip_longest
-from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist,lev_distance
+from app.utils.ngs_util import reverse_comp, file_blocks, create_folder_if_not_exist
 from collections import Counter
 import re
 from app.utils.analysis import DataReader
 from app.utils.analysis._alignment import lev_distance
+# from Levenshtein import distance as lev_distance
 from functools import partial
 from app.utils.analysis._utils import poolwrapper
 from datetime import datetime
@@ -459,7 +460,7 @@ def build_cluster(id):
         maxround=maxrounddict[i]
 
         ksdistance = [lev_distance(
-            repseq, i.rep_seq, similaritythreshold+abs(i.length-len(repseq))) for i in ks]
+            repseq, i.rep_seq, ) for i in ks]  # similaritythreshold+abs(i.length-len(repseq))
         similarity = sorted([(i, j) for i, j in zip(
             ks, ksdistance)], key=lambda x: x[1])
         similarity = [(ks, i) for ks, i in similarity if i <= (
@@ -477,7 +478,7 @@ def build_cluster(id):
 def dynamic_lev_distance(seq,fix_seq="",diff_ratio=0.4):
     query_length = len(fix_seq)
     cutoff = abs(len(seq)-query_length)+query_length*diff_ratio
-    dis = lev_distance(seq, fix_seq, cutoff)
+    dis = lev_distance(seq, fix_seq)  # cutoff
     if dis<cutoff:
         return dis
     return None

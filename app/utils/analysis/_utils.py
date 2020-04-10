@@ -7,9 +7,10 @@ import numpy as np
 from itertools import combinations
 from functools import partial
 import multiprocessing
-import datetime
+# import datetime
 from ._twig import Tree,Clade
 from ._alignment import Alignment,lev_distance
+# from Levenshtein import distance as lev_distance
 import time
 import psutil
 import platform
@@ -57,7 +58,7 @@ def lev_cluster_from_seed(seed, list_of_seq, distance, connect):
         #     print("Process {}: {:.2f}% done...".format(id,percentcounter*100))
         #     percentcounter+=0.05
         for j in seed:
-            dis = lev_distance(i, j,threshold=distance)
+            dis = lev_distance(i, j,)  # threshold=distance
             if dis <= distance:
                 seedresult[j].append(i)
                 # break to avoid search all entrys
@@ -70,7 +71,7 @@ def mapdistance(seq,seqlist,threshold,multithre=10000,showprogress=False):
     """
     return a list of distance of seq to each seq in seqlist.
     """
-    discalc=partial(lev_distance,s2=seq,threshold=threshold)
+    discalc=partial(lev_distance,s2=seq,)#threshold=threshold
     if len(seqlist)>multithre:
         distances=poolwrapper(discalc,seqlist,chunks=100,desc='MapDistance:',showprogress=showprogress)
         return distances
@@ -111,7 +112,7 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
                 temp = result_key[distlist.index(min(distlist))]
         else:
             for j in result_key:
-                dis = lev_distance(i, j,threshold=distance)
+                dis = lev_distance(i, j,)  # threshold=distance
                 if dis <= distance:
                     temp = j
                     break
@@ -176,10 +177,11 @@ def lev_cluster(list_of_seq,apt_count, distance,cutoff=(35,45),clusterlimit=5000
 # build tree and aligning
 # @registor_function
 def distance_calculator(x,kwargs):
-    if kwargs.get('distance','hybrid_distance')=='hybrid_distance':
-        return x[1].hybrid_distance(x[0],**kwargs)
-    elif kwargs.get('distance')=='nw_distance':
-        return x[0].nw_distance(x[1],**kwargs)
+    # if kwargs.get('distance','hybrid_distance')=='hybrid_distance':
+    #     return x[1].hybrid_distance(x[0],**kwargs)
+    # elif kwargs.get('distance')=='nw_distance':
+    #     return x[0].nw_distance(x[1],**kwargs)
+    return x[0].distances(kwargs.pop('distance','hybrid_distance'))(x[1],**kwargs)
 
 # @registor_function
 def build_distance_matrix(list_of_alignment,callback=None,**kwargs):
