@@ -233,7 +233,7 @@ class PPT_Indexer():
                     r"(?:^\((?P<author>[a-zA-Z\s]+)\))")
                 match = authorpattern.match(authorstring) 
                 if match: 
-                    return _date, match.groups()[0].strip()
+                    return _date, match.groups()[0].strip().upper()
                 else:
                     return _date, None
             except:
