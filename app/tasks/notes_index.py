@@ -198,8 +198,13 @@ class PPT_Indexer():
                     date = slides[-1]['date'] if slides else datetime(
                         2011, 1, 1, 1, 1)
             else:
-                author = slides[-1]['author'] if slides else None
-                date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
+                parseresult = self.parse_date(title)
+                if parseresult:
+                    date = parseresult[0]
+                    author = parseresult[1] or None
+                else:
+                    author = slides[-1]['author'] if slides else None
+                    date = slides[-1]['date'] if slides else datetime(2011,1,1,1,1)
          
             tagsFound.update(page=page+1,
                                title=title, date=date,author=author,
@@ -223,7 +228,14 @@ class PPT_Indexer():
             totry = date[:i]
             try:
                 _date = parser.parse(totry,ignoretz=True) # to avoid timezone error
-                return _date
+                authorstring = title.replace(totry,"").strip()
+                authorpattern = re.compile(
+                    r"(?:^\((?P<author>[a-zA-Z\s]+)\))")
+                match = authorpattern.match(authorstring) 
+                if match: 
+                    return _date, match.groups()[0].strip()
+                else:
+                    return _date, None
             except:
                 continue
         return None
