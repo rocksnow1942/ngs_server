@@ -53,7 +53,7 @@ plot_ = figure(plot_width=600, plot_height=400)
 plot_.annulus(x=[1, 2, 3], y=[1, 2, 3], alpha=0.5,color="hotpink",
               inner_radius=0.2, outer_radius=0.5)
 #update note
-updatenote = ColumnDataSource(dict(x=[1],y=[2],text=['Update:\n1. Check out plojo help document for more information.']))
+updatenote = ColumnDataSource(dict(x=[1],y=[2],text=['Update:\n1. Added support for echem data upload and align.']))
 update_ = Text(x='x', y='y', text='text',text_font_size='12pt',text_font='helvetica')
 plot_.add_glyph(updatenote,update_)
 norm_plot = figure(plot_width=600, plot_height=400)
