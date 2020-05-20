@@ -3,7 +3,7 @@ import numpy as np
 from bokeh.plotting import ColumnDataSource
 from scipy.stats import t
 
-supported_fit_method = ['kd','ic_50','ric_50','kd_with_depletion','kd_ns','kd_ns_w_depletion','DR_4PL','DR_5PL','linear','various']
+supported_fit_method = ['kd','ic_50','ric_50','kd_with_depletion','kd_ns','kd_ns_w_depletion','DR_4PL','DR_5PL','linear','none','various']
 
 def kd(x,kd,Fmax,Fmin,**kwargs):
     return ((Fmax-Fmin)*x/(x+10**kd))+Fmin
@@ -230,10 +230,40 @@ def r_squared_calc(x_o_tofit,y_o_tofit,fit_para,fit_method):
     return r_squared
 
 def generate_cds(data,**kwargs):
+    """
+    data format:
+    {"tag": "D20F+D20R, 1nMA121, ELISA-eylea, V1+BSA+hsDNA",
+     "note": "2019 09 18 elisa ahu-r2 ric50 a121/165 1/0.1nM 1hr", 
+     "name": "Lucentis 1nMA121", 
+     "author": "JIM", 
+     "date": "20190919", 
+     "assay_type": "beads-ic_50", 
+     "fit_method": "DR_4PL", 
+     "concentration": [16, 0.1, 0.0], 
+     "signal": [11313.0, 95420, 153102.0, 195982.0], 
+     "fit_para": {
+        "ec_50": 0.3443225792934813, 
+        "Fmax": 194408.5101691507, 
+        "Fmin": 6877.471459973062, 
+        "Hill": 1.1171495830161238}, 
+        "fit_para_CI": {
+            "lower_CI": 
+            {"ec_50": 0.1, "Fmax": 17, "Fmin": -3, "Hill": 0.}, 
+            "upper_CI": 
+            {"ec_50": 0., "Fmax": 2, "Fmin": 1, "Hill": 1.}}, 
+        "r_squared": 0., 
+        "bounds": {"ec_50": "default", "Fmax": "default", "Fmin": "default", "Hill": "default"}
+        }
+    kwargs have new_fit == True or False
+    """
+
+
     x_o = np.array(data['concentration'])
     min_x=min(x_o[x_o!=0])/10.0
     x_o_no_zero = np.array([i if i>0 else min_x for i in x_o])
     y_o = np.array(data['signal'])
+
+    # remove outliner from input data. 
     outlier=data.get('outlier',{'concentration':[],'signal':[]})
     if outlier['concentration']:
         x_outlier = data['outlier']['concentration']
@@ -246,11 +276,33 @@ def generate_cds(data,**kwargs):
     else:
         x_o_tofit=x_o
         y_o_tofit=y_o
+    
+
     fit_method = data.get('fit_method','kd')
+
+    # if the data type is not fitable return immediately.
+    if fit_method == 'none': 
+        x_offset = data.get('bounds',{}).get('x_offset',0)
+        y_offset = data.get('bounds', {}).get('y_offset', 0)
+        print("*****",x_o_tofit,x_offset)
+        x_o_tofit += x_offset
+        y_o_tofit += y_offset
+        norm_factor = 100/max(y_o_tofit)
+        norm_y = norm_factor * y_o_tofit
+        outlier = ColumnDataSource(outlier)
+        raw_data = ColumnDataSource(dict(x=x_o_tofit, y=y_o_tofit, yn=norm_y))
+        fit_data = ColumnDataSource(dict(x=[], y=[], yn=[], lower=[],
+                                         upper=[], upper_n=[], lower_n=[]))
+        export_result = dict(fit_para_CI={}, raw_data=raw_data, fit_data=fit_data, tooltip=[],
+                             fit_para={}, outlier=outlier, fit_method=fit_method, r_squared=0)
+        return export_result
+
+    # start fitting
     fit_para=data.get('fit_para',{})
     fit_para_CI = data.get('fit_para_CI',{})
     func,_b,_a = fit_method_fetcher(fit_method)
     if kwargs.get('new_fit',False) or (not (fit_para and fit_para_CI)):
+        # this is performing the fit
         bounds = data.get('bounds',{})
         fit_para,lower_CI,upper_CI = [log_para_coverter(i,to_log=False) for i in fitting_data(x_o_tofit,y_o_tofit,fit_method,**bounds)]
         fit_para_CI = {'lower_CI':lower_CI,'upper_CI':upper_CI}
@@ -279,8 +331,9 @@ def generate_cds(data,**kwargs):
     lower_n = (y_fit_lower_CI-min_yfit)/norm_factor * 100.0
     raw_data = ColumnDataSource(dict(x=x_o_no_zero,y=y_o,yn=norm_y))
     fit_data = ColumnDataSource(dict(x=x_fit,y=y_fit,yn=norm_y_fit,lower=y_fit_lower_CI,upper=y_fit_upper_CI,upper_n=upper_n,lower_n=lower_n))
-    outlier=ColumnDataSource(outlier)
+    outlier = ColumnDataSource(outlier_no_zero)
     fit_para_ = [(i,"{:.3g}".format(j)) for i,j in fit_para.items() if isinstance(j,float)]
     tooltip = fit_para_+[('R_squared','{:.5f}'.format(r_squared)),('Tag',data.get('tag','No_Tag'))]
-    export_result = dict(fit_para_CI=fit_para_CI,raw_data=raw_data,fit_data=fit_data,tooltip=tooltip,fit_para=fit_para,outlier=outlier_no_zero,fit_method=fit_method,r_squared=r_squared)
+    export_result = dict(fit_para_CI=fit_para_CI, raw_data=raw_data, fit_data=fit_data, tooltip=tooltip,
+                         fit_para=fit_para, outlier=outlier, fit_method=fit_method, r_squared=r_squared)
     return export_result

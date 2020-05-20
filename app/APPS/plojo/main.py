@@ -1,10 +1,11 @@
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.io import curdoc
-from bokeh.models import HoverTool, Plot,CustomJS,Band
+from bokeh.models import HoverTool, Plot,CustomJS,Band,BoxSelectTool,Rect
 from bokeh.models.glyphs import Text
 from bokeh.models.widgets import Div,Panel, Tabs, Button, TextInput, Select, MultiSelect, RadioButtonGroup, PreText, DataTable, TableColumn, TextAreaInput,Dropdown
 from bokeh.layouts import widgetbox, row, column, layout
 from bokeh.palettes import Category10
+from bokeh.events import Tap
 import numpy as np
 import fit_binding as fb
 import datetime
@@ -26,6 +27,8 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 # common variables:
 global bounds_temp_saver,copyed_items,info_change_keep, raw_data, current_time, info_deque_holder,plot_scale,plot_format,temp_data_to_save
+box_select_source = ColumnDataSource(
+    data=dict(x=[], y=[], width=[], height=[]))
 plot_scale = 'log'
 plot_CI = 'hide'
 copyed_items = {}
@@ -41,7 +44,7 @@ temp_data_to_save = None
 raw_data=Data()
 
 
-assay_type_options = ['beads-kd', 'beads-ic_50', 'beads-ric_50','assay-linear','N/A']
+assay_type_options = ['beads-kd', 'beads-ic_50', 'beads-ric_50','assay-linear','echem','N/A']
 search_field_options = [('name','Experiment Name'),('date', 'Experiment Date'), ('tag', 'Experiment Tag'),('flag','Flag'), ('note', 'Note'), ('author', 'Author'),
                         ('fit_method', 'Fit Method')]
 dropdown_opt_menu = [('Mark Outlier','outlier'),None,('Show 95% CI','show'),('Hide 95% CI','hide'),None,('X-axis Linear scale','linear'),('X-axis Log scale','log'),None,('Plot in SVG format','svg'),('Plot in PNG format','canvas')]
@@ -93,6 +96,15 @@ def info_deque(text):
 def plot_generator(source=[],**kwargs):
     global raw_data,plot_scale,plot_format,plot_CI
     color_ = Category10[10]
+
+    # first determine if echem data or other type of linear axis data is contained. 
+    Echem_contained = False
+    if any( raw_data.experiment[i].get('assay_type',None) in ('echem') for i in source):
+        Echem_contained = True 
+        if not kwargs.get('from_plot_dropdown',None):
+            plot_scale = 'linear'
+
+
     tools_list = "pan,ywheel_zoom,xwheel_zoom,box_zoom,save,reset"
     p = figure(x_axis_type=plot_scale, tools=tools_list)
     p.xaxis.axis_label = 'Concentration /nM'
@@ -114,9 +126,14 @@ def plot_generator(source=[],**kwargs):
         alpha = 1
     else:
         alpha = 0.5
+
+    # a checker for if echem data is in selection:
+    
     for i, j in zip(source, color_):
         data = raw_data.experiment[i]
         name=raw_data.experiment[i].get('name','No_Name')
+
+
         fit_result = fb.generate_cds(data, **kwargs)
         signal_min = data['signal'][data['concentration'].index(min(data['concentration']))]
         signal_max = data['signal'][data['concentration'].index(max(data['concentration']))]
@@ -138,7 +155,7 @@ def plot_generator(source=[],**kwargs):
             pn.add_layout(pn_band)
         p.cross('concentration', 'signal',
                 source=fit_result['outlier'], angle=80, size=20, line_width=2, color='red',alpha=alpha)
-        p.circle(
+        p_render = p.circle(
             'x', 'y', source=fit_result['raw_data'], color=j, line_width=2, legend=name,alpha=alpha)
         p_data_hover = HoverTool(
             tooltips=[('x: ', '@x{0.00}'), ('y: ', '@y{0,0.00}')])
@@ -172,6 +189,26 @@ def plot_generator(source=[],**kwargs):
     else:
         p.legend.location = 'center_right'
         pn.legend.location = 'center_right'
+    
+    # if Echem data is there, change axis to minutes. and add box select tool.
+    if Echem_contained:
+        p.xaxis.axis_label = 'Time / minutes'
+        p.yaxis.axis_label = 'Raw Signal / nA'
+        pn.xaxis.axis_label = 'Time / minutes'
+        pn.yaxis.axis_label = 'Normalized Signal A.U.'
+        box_select = BoxSelectTool(callback=box_select_callback,renderers=[p_render])
+        p.add_tools(box_select)
+        rect = Rect(x='x',
+                    y='y',
+                    width='width',
+                    height='height',
+                    fill_alpha=0.1,
+                    fill_color='green')
+        p.add_glyph(box_select_source, rect,
+                    selection_glyph=rect, nonselection_glyph=rect)
+        p.on_event(Tap, mouse_click_cb)
+
+
     p.legend.click_policy = 'hide'
     p.legend.border_line_alpha = 0
     p.legend.background_fill_alpha = 0.1
@@ -185,6 +222,10 @@ def plot_generator(source=[],**kwargs):
     if need_save_:
         save_data()
     return p, pn
+
+
+
+
 
 # fitting related functions
 def fit_method_para_reader(fit_method, selected_items=[]):
@@ -242,9 +283,10 @@ def fit_method_para_reader(fit_method, selected_items=[]):
         cf_fit_method.value = 'kd_ns_w_depletion'
         cf_kd_bound.value, cf_ns_bound.value,cf_a_0_bound.value,cf_Fmax_bound.value, cf_Fmin_bound.value = bounds_formatter(
             selected_items, fit_method)
-    elif fit_method == 'hplc':
-        cf_fit_method.value = 'hplc'
-        cf_fit_bound.children = [cf_fit_method]
+    elif fit_method == 'none':
+        cf_fit_method.value = 'none'
+        cf_fit_bound.children = [cf_fit_method,cf_x_offset,cf_y_offset,cf_auto_align]
+        cf_x_offset.value,cf_y_offset.value = bounds_formatter(selected_items,fit_method)
     else:
         cf_fit_bound.children = [cf_fit_method]
         cf_fit_method.value = 'various'
@@ -259,6 +301,8 @@ def bounds_formatter(sele, fit_method):
     bounds = [raw_data.experiment[i].get('bounds', {}) for i in sele]
 
     def list_formatter(bounds, tag):
+        if tag in ('x_offset','y_offset'):
+            return ','.join(str(i.get(tag)) if i.get(tag,'default') != 'default' else '0' for i in bounds )
         r = ','.join([str(i.get(tag)[0])+'-'+str(i.get(tag)[1]) if i.get(tag,
                                                                          'default') != 'default' else 'default' for i in bounds])
         return r
@@ -277,6 +321,8 @@ def bounds_formatter(sele, fit_method):
     S = list_formatter(bounds,'S')
     slope = list_formatter(bounds,'slope')
     b = list_formatter(bounds,'b')
+    x_offset = list_formatter(bounds,'x_offset')
+    y_offset = list_formatter(bounds,'y_offset')
     if fit_method == 'kd':
         result = (kd, Fmax, Fmin)
     elif fit_method == 'ic_50':
@@ -295,11 +341,13 @@ def bounds_formatter(sele, fit_method):
         result = (ec_50,Fmax,Fmin,Hill,S)
     elif fit_method == 'linear':
         result = (slope,b)
+    elif fit_method == 'none':
+        result = (x_offset,y_offset)
     else:
         pass
     return result
 
-def parser(string):
+def parser(string,fit_method=None):
     list_string = string.split(',')
     for idx, text in enumerate(list_string):
         if ':' in text:
@@ -311,6 +359,13 @@ def parser(string):
                 info_box.text = info_deque(
                     'Bound is not a range, use default instead.')
                 raise NameError('no valid input')
+        elif fit_method == 'none':
+            try:
+                list_string[idx] = float(text)
+            except:
+                info_box.text = info_deque(
+                    'Offset is not a valid number.')
+                raise NameError('no valid offset input')
         elif '-' in text:
             try:
                 list_string[idx] = [float(i) if i != '' else [
@@ -322,12 +377,16 @@ def parser(string):
                 raise NameError('no valid input')
         elif text == 'default' or text == '':
             list_string[idx] = 'default'
+       
         else:
             info_box.text = info_deque('Bound is not a range,try again.')
             raise NameError('not valid input')
     return list_string
 
 def dict_getter(sele_list, valuelist, namelist):
+    """
+    combine the value and name list to a dict
+    """
     sele_length = len(sele_list)
     for idx,i in enumerate(valuelist):
         if len(i)==sele_length:
@@ -360,6 +419,8 @@ def bounds_generator():
     S = parser(cf_S_bound.value)
     slope = parser(cf_slope_bound.value)
     b = parser(cf_b_bound.value)
+    x_offset = parser(cf_x_offset.value,fit_method)
+    y_offset = parser(cf_y_offset.value,fit_method)
     if fit_method == 'kd':
         dict_of_bounds = dict_getter(
             selected_items, [kd, Fmax, Fmin], ['kd', 'Fmax', 'Fmin'])
@@ -387,8 +448,9 @@ def bounds_generator():
     elif fit_method == 'linear':
         dict_of_bounds = dict_getter(
             selected_items, [slope,b], ['slope','b'])
-    elif fit_method == 'hplc':
-        dict_of_bounds = {}
+    elif fit_method == 'none':
+        dict_of_bounds = dict_getter(
+            selected_items, [x_offset,y_offset] , ['x_offset','y_offset'] )
     else:
         pass
     return dict_of_bounds
@@ -476,6 +538,11 @@ def syn_plot_display(selected_items, **kwargs):
     curve_fit_plots.children=[raw_plot,norm_plot]
 
 def sync_fitting_para(selected_items):
+    """
+    update the fitting result to Fitting result tab. 
+    this is done by update the data stored in para_source ColumnDataSource
+    and update the TableColumn with new columns. 
+    """
     fit_para_field = set()
     fitting_dict = {}
     for i in selected_items:
@@ -505,6 +572,7 @@ def sync_fitting_para(selected_items):
     cf_parameter_viewer.columns=columns
 
 def input_to_rawdata(data):
+    "read input from Experiment Data to data to save."
     load_data(reload_menu=False,reload_data=False)
     if data == 'None':
         info_box.text = info_deque('No data entered.')
@@ -512,8 +580,8 @@ def input_to_rawdata(data):
     author = sd_author.value
     date = sd_date.value
     assay_type = sd_assay_type.value
-    if assay_type == 'N/A':
-        fit_method = 'kd'
+    if assay_type in ('N/A','echem'):
+        fit_method = 'none'
     else:
         fit_method = assay_type.split('-')[1]
     data = data.strip('\n')
@@ -691,6 +759,9 @@ read_layout_plots=column(plot_, norm_plot)
 cf_fit_method = Select(title='Fit method:', value='kd',
                        options=fb.supported_fit_method)
 cf_kd_bound = TextInput(title='Kd range in nM:', value='default')
+cf_x_offset = TextInput(title='X-axis offset', value='0')
+cf_y_offset = TextInput(title='Y-axis offset', value='0')
+cf_auto_align = Button(label='Auto Align', button_type='warning', width=100)
 cf_ic_50_bound = TextInput(title='IC50 range in nM:', value='default')
 cf_a_0_bound = TextInput(title='Fixed Component Conc. in nM:', value='default')
 cf_ns_bound = TextInput(title='Non Specific AU/nM : ', value='default')
@@ -762,6 +833,27 @@ login_info = Div(text=time_text)
 
 
 # call back functions
+
+# call back to handle box_selection.
+box_select_callback = CustomJS(args=dict(source=box_select_source), code="""
+        // get data source from Callback args
+        /// get BoxSelectTool dimensions from cb_data parameter of Callback
+        var geometry = cb_data['geometry'];
+
+        /// calculate Rect attributes
+        var width = geometry['x1'] - geometry['x0'];
+        var height = geometry['y1'] - geometry['y0'];
+        var x = geometry['x0'] + width/2;
+        var y = geometry['y0'] + height/2;
+
+        /// update data source with new Rect attributes
+        source.data={'x':[x],'y':[y],'width':[width],'height':[height]};
+        // emit update of data source
+        source.change.emit();
+
+    """)
+
+
 sd_upload_opt.callback = CustomJS(args=dict(file_source=upload_file_source), code = """
 function read_file(filename) {
     var reader = new FileReader();
@@ -868,7 +960,6 @@ def refine_select_menu():
     else:
         info_box.text = info_deque('Empty search scope.')
 
-
 def cf_focused_select_data_cb(attr, old, new):
     selected_items = cf_focused_select_data.value
     if len(selected_items) == 1:
@@ -972,6 +1063,14 @@ def cf_fit_method_callback(attr, old, new):
     fit_method_para_reader(choice, selected_items)
 
 def cf_fit_plot_callback():
+    """
+    fit and plot button call back. 
+    first generate bounds from input fields. 
+    then read outlier from outliner selection menu. 
+    then update the raw_data class to reflect new boudns and outlier and fitting parameters. 
+    then draw the plot. 
+    update fitting result. 
+    """
     info_box.text = info_deque('start fitting...')
     selected_items = cf_focused_select_data.value
     fit_method = cf_fit_method.value
@@ -1030,7 +1129,6 @@ def make_alias_callback():
     cf_focused_select_data.value = [alias]
     cf_select_data.title='Select Experiment Data To View ( ' + str(len(cf_select_data.options)) + ' items)'
     info_box.text = info_deque('Data copy created.')
-
 
 def cf_mark_outlier_callback():
     """
@@ -1107,16 +1205,6 @@ def login_btn_callback():
 def login_user_cb(attr,old,new):
     login_btn_callback()
 
-# def refresh_time_cb():
-#     ltime = datetime.datetime.now()
-#     botton_spacer.text = ("""<div style="text-align:right;"><pre>"""+'\n\n\nToday is : '+ltime.strftime('%Y-%m-%d, %a')
-#                        + '\n\nCurrent time: '+ltime.strftime('%I:%M:%S %p')+"<pre>")
-#     # ('<pre>'+'\n'*2+' '*53+'Today is : '+ltime.strftime('%Y-%m-%d, %a')+','
-#     #                       + '\tCurrent time: '+ltime.strftime('%I:%M:%S %p')+"\n\n"+' '*77+
-#     #                       """<a href="http://www.aptitudemedical.com/index.html">Aptitude Medical Systems, Inc.</a>"""+'<pre>')
-#     # # login_info.text = ('Today is : '+ltime.strftime('%Y-%m-%d, %a')
-#     #                    + '\nCurrent time: '+ltime.strftime('%I:%M:%S %p'))
-
 def cf_copy_cb():
     global bounds_temp_saver
     bounds_temp_saver = {}
@@ -1160,7 +1248,7 @@ def plot_dropdown_cb(attr,old,new):
             plot_CI = new
             info_box.text = info_deque('Plot {} 95% confidence interval.'.format(new))
         selected_items = cf_focused_select_data.value
-        syn_plot_display(selected_items)
+        syn_plot_display(selected_items,from_plot_dropdown=True)
     elif new == 'outlier':
         cf_mark_outlier_callback()
 
@@ -1249,6 +1337,46 @@ def project_dropdown_cb(attr,old,new):
         info_box.text = info_deque('Error during project_dropdown_cb.')
     project_dropdown.value='none'
 
+
+def mouse_click_cb(event):
+    "clear the box_select_source"
+    box_select_source.data = dict(x=[], y=[], width=[], height=[])
+
+def cf_auto_align_cb():
+    x = box_select_source.data['x']
+    w = box_select_source.data['width']
+    selected_items = active_selected_item()
+    if len(x) == 0 or len(selected_items) < 2:
+        return None
+    x1, x2 = x[0]-0.5*w[0], x[0]+0.5*w[0]
+    firstdata = raw_data.experiment[selected_items[0]] 
+    print('here')
+    x_offset = firstdata.get('bounds',{}).get('x_offset',0)
+    y_offset = firstdata.get('bounds',{}).get('y_offset',0)
+    timesignal = sorted([i for i in zip(firstdata.get(
+        'concentration', []), firstdata.get('signal', [])) if x1-x_offset < i[0] < x2-x_offset], key=lambda x: x[1])
+    maxsignal = timesignal[-1][1] + y_offset
+    maxtime = timesignal[-1][0] + x_offset
+    print('here2')
+    for index in selected_items[1:]:
+        data = raw_data.experiment[index]
+        c_x_offset = data.get('bounds', {}).get('x_offset', 0)
+        c_y_offset = data.get('bounds', {}).get('y_offset', 0)
+        timesignal = sorted([i for i in zip(data.get(
+            'concentration', []), data.get('signal', [])) if x1 < i[0] < x2], key=lambda x: x[1])
+        if len(timesignal) == 0:
+            info_box.text = info_deque(f'{index} is not inside selection box thus not aligned.' )
+            continue
+        c_maxsignal = timesignal[-1][1]
+        c_maxtime = timesignal[-1][0]
+        newx_offset = maxtime - c_maxtime  
+        newy_offset = maxsignal - c_maxsignal 
+        raw_data.experiment[index].update(bounds={'x_offset':newx_offset,'y_offset':newy_offset})
+        raw_data.experiment_to_save.update({index:'sync'})
+    syn_plot_display(selected_items,new_fit=True)
+    fit_method_para_reader('none',selected_items)
+
+
 # assign callback to elements
 button_load.on_click(load_data)
 button_save.on_click(save_data)
@@ -1280,8 +1408,8 @@ upload_file_source.on_change('data',upload_file_source_cb)
 project_list.on_change('value',project_list_cb)
 project_dropdown.on_change('value',project_dropdown_cb)
 edit_dropdown.on_change('value',edit_dropdown_cb)
-
-
+# box_select_source.on_change('data', box_select_source_cb)
+cf_auto_align.on_click(cf_auto_align_cb)
 
 # layouts
 save_layout = layout([button_mode, info_box,edit_dropdown,plot_dropdown, button_load, button_save], [sd_row_1], [

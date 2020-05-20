@@ -77,8 +77,6 @@ def generate_cds(run_index,**kwargs):
         curve_dict = run.get(curve,{})
         extinction_coeff = curve_dict.get('extcoef',0)
         curve_dict_raw = run_raw.get(curve,{})
-
-
         time_space = curve_dict_raw.get('time',None) or curve_dict_raw.get('volume',None)
         x_unit = 'time' if 'time' in curve_dict_raw.keys() else 'volume'
         if time_space:
