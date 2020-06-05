@@ -325,9 +325,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
         Ploter.plot(finished=True)
 
 if __name__ == "__main__":
-    # targetfolder = input('Enter folder to monitor:\n').strip().replace('\ ',' ')
-    escapechar = [' ','&',]
-    p = re.compile('\\[^\]')
+    targetfolder = input('Enter folder to monitor:\n').strip()
     targetfolder = '/Users/hui/Downloads/test echem folder'
     if os.path.exists(targetfolder):
         start_monitor(targetfolder,loglevel='DEBUG')
