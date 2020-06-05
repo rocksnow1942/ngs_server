@@ -71,7 +71,6 @@ class ProcessPlotter:
         timer.add_callback(self.call_back)
         timer.start()
         plt.tight_layout()
-        print('...done')
         plt.show()
 
 
@@ -102,17 +101,17 @@ class PSS_Handler(PatternMatchingEventHandler):
         self.info = logger.info
 
     def on_created(self, event):
-        pass
-        # self.info(f"Watchdog: Create {event.src_path}")
-        # self.logger.create(event.src_path)
+        self.info(f"Watchdog: Create {event.src_path}")
+        self.logger.create(event.src_path)
 
     def on_deleted(self, event):
         self.info(f"Watchdog: Delete {event.src_path}")
         # self.logger.delete(event.src_path)
 
     def on_modified(self, event):
-        self.info(f"Watchdog: Modify {event.src_path}")
-        self.logger.create(event.src_path)
+        pass
+        # self.info(f"Watchdog: Modify {event.src_path}")
+        # self.logger.create(event.src_path)
 
     def on_moved(self, event):
         self.info(
