@@ -1,6 +1,5 @@
 import time
 import os
-import re
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 from pathlib import Path
@@ -9,14 +8,10 @@ import requests
 import logging
 from logging.handlers import RotatingFileHandler
 import hashlib
-import csv 
+import csv
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from multiprocessing import Process
-import subprocess 
-import multiprocessing as mp 
+import multiprocessing as mp
 from collections import deque
-print(plt.get_backend())
 
 SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
@@ -60,12 +55,12 @@ class ProcessPlotter:
         print('starting plotter...')
         # plt.ion()
         params = {
-                  
+
                   'axes.labelsize': 6,
                   'axes.titlesize': 6,
                   'xtick.labelsize': 6,
                   'ytick.labelsize':6,}
-                 
+
 
 
         plt.rcParams.update(params)
@@ -75,7 +70,7 @@ class ProcessPlotter:
         # self.fig.canvas.layout.width = '500px'
         # self.fig.canvas.layout.height = '500px'
         self.axes = [i for j in axes for i in j]
-       
+
         timer = self.fig.canvas.new_timer(interval=5000)
         timer.add_callback(self.call_back)
         timer.start()
@@ -96,14 +91,14 @@ class PlotMessenger:
         send = self.plot_pipe.send
         if finished:
             send(None)
-        else:          
+        else:
             send(index)
 
 
 
 class PSS_Handler(PatternMatchingEventHandler):
     """
-    watchdog event listner. 
+    watchdog event listner.
     """
     def __init__(self, logger):
         super().__init__(patterns=["*.pss",], ignore_patterns=["*~$*", "*Conflict*"],
@@ -128,12 +123,12 @@ class PSS_Handler(PatternMatchingEventHandler):
             f"Watchdog: Rename {event.src_path} to {event.dest_path}")
 
 class PSS_Logger():
-    def __init__(self, target_folder="", ploter=None, loglevel='INFO'): 
+    def __init__(self, target_folder="", ploter=None, loglevel='INFO'):
         "target_folder: the folder to watch, "
         self.pstraces = {}
         self.target_foler = target_folder
         self.ploter = ploter
-        
+
 
         level = getattr(logging, loglevel.upper(), 20)
         logger = logging.getLogger('Monitor')
@@ -149,7 +144,7 @@ class PSS_Logger():
         def wrapper(func):
             def wrap(msg):
                 print(msg)
-                return func(msg) 
+                return func(msg)
             return wrap
 
         for i in ['debug', 'info', 'warning', 'error', 'critical']:
@@ -179,23 +174,23 @@ class PSS_Logger():
         folder = str(filepath.parent)
 
         if folder not in self.pstraces:
-            self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'needtoskip':0,'starttime':None,'keys':[]} 
-        
+            self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'needtoskip':0,'starttime':None,'keys':[]}
+
         lasttime = self.pstraces[folder]['time'][-1]
 
         with open(psmethod,'rt',encoding='utf-16') as f:
             psmethoddata = f.read()
-            timestring = psmethoddata.split('\n')[2][1:] 
+            timestring = psmethoddata.split('\n')[2][1:]
             time = datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
-        
-        
+
+
         # if need to skip , skip this file.
         if self.pstraces[folder]['needtoskip'] > 0:
             self.pstraces[folder]['needtoskip'] -= 1
             self.pstraces[folder]['time'].append(time)
-            return 
-        
-        
+            return
+
+
         with open(file,'rt') as f:
             data =f.read().strip()
             data = data.split('\n')
@@ -203,56 +198,56 @@ class PSS_Logger():
             amp = [float(i.split()[1]) for i in data[1:]]
 
         data_tosend = dict(potential=voltage,amp=amp,filename=file,date=timestring,)
-        
+
         if (time - lasttime).seconds > MAX_SCAN_GAP:
             if self.pstraces[folder]['key']:
                 self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
-            self.pstraces[folder]['key'] = None 
-            self.pstraces[folder]['needtoskip'] = 0 
-            self.pstraces[folder]['starttime'] = time 
-            
+            self.pstraces[folder]['key'] = None
+            self.pstraces[folder]['needtoskip'] = 0
+            self.pstraces[folder]['starttime'] = time
+
             md5 = self.get_md5(psmethoddata)
             data_tosend.update(md5=md5,time=0)
         else:
             starttime = self.pstraces[folder]['starttime']
             data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'])
-        
+
         self.pstraces[folder]['time'].append(time)
 
         try:
             response = requests.post(url=SERVER_POST_URL, json=data_tosend)
             if response.status_code == 200:
-                result = response.text 
+                result = response.text
             else:
-                self.error(f"Error - respons code: {response.status_code}, datapacket: {data_tosend}") 
-                return 
+                self.error(f"Error - respons code: {response.status_code}, datapacket: {data_tosend}")
+                return
         except Exception as e:
             self.error(f"Error - {e}")
-            return 
+            return
 
         result = result.split('-')
 
         if result[0] == 'Add':
-            self.pstraces[folder]['key'] = result[1] 
+            self.pstraces[folder]['key'] = result[1]
             if PLOT_TRACE:
-                
+
                 # self.plot_process=[i for i in self.plot_process if i.is_alive()]
-                # self.to_plot.add(result[1]) 
+                # self.to_plot.add(result[1])
                 self.ploter.plot(index=result[1])
 
 
-                # self.plot_process.append(plottrace(result[1])) 
+                # self.plot_process.append(plottrace(result[1]))
 
             self.debug(f'Add - {result[1]} {file}')
         elif result[0] == 'Exist':
             self.pstraces[folder]['key'] = result[1]
-            
+
             self.pstraces[folder]['needtoskip'] = int(result[2]) -1
             self.debug(f'Exist - {result[1]} {file}')
         elif result[0] == 'OK':
             self.debug(f"OK - {self.pstraces[folder]['key']} {file}")
         else:
-            self.error(f"API-Error - {'-'.join(result)}") 
+            self.error(f"API-Error - {'-'.join(result)}")
 
     def write_csv(self):
         for folder,item in self.pstraces.items():
@@ -265,7 +260,7 @@ class PSS_Logger():
                     result = response.json()
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
-                
+
                 csvname = str(Path(folder).parent) + '.csv'
                 with open(csvname, 'at') as f:
                     writer = csv.writer(f,delimiter=',')
@@ -278,12 +273,12 @@ class PSS_Logger():
                         else:
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
-                self.error(f"Error Write CSV- {e}")           
+                self.error(f"Error Write CSV- {e}")
             item['keys'] = []
-        
 
-        
-def start_monitor(target_folder,loglevel='DEBUG'): 
+
+
+def start_monitor(target_folder,loglevel='DEBUG'):
     # p = Process(target=animateplot, args=('ams1001',))
     # p.start()
     if PLOT_TRACE:
@@ -295,13 +290,13 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     logger.info('****Init Done.****')
     observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
     observer.start()
-   
+
     logger.info(f'****Monitor Started <{target_folder}>.****')
     print('PID=', os.getpid())
     try:
-       
+
         while True:
-           
+
             time.sleep(60)
             # while logger.to_plot:
             #     print('PID= Here', os.getpid())
@@ -320,7 +315,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
         logger.write_csv()
         logger.info(f'****Monitor Stopped****')
         observer.stop()
-        observer.join() 
+        observer.join()
     finally:
         Ploter.plot(finished=True)
 
