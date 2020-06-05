@@ -105,7 +105,8 @@ class PSS_Handler(PatternMatchingEventHandler):
         self.logger.create(event.src_path)
 
     def on_deleted(self, event):
-        self.info(f"Watchdog: Delete {event.src_path}")
+        pass
+        # self.info(f"Watchdog: Delete {event.src_path}")
         # self.logger.delete(event.src_path)
 
     def on_modified(self, event):
@@ -163,20 +164,27 @@ class PSS_Logger():
     def create(self,file):
         ".pss file"
         self.debug(f'Created {file}')
+        self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
-        psmethod = file[0:-1] + 'method'
         folder = str(filepath.parent)
 
         if folder not in self.pstraces:
-            self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'needtoskip':0,'starttime':None,'keys':[]}
+            self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'md5':None,
+                                    'needtoskip':0,'starttime':None,'keys':[],'deque':deque()}
 
+        if len(self.pstraces[folder]['deque']) > 0:
+            self.pstraces[folder]['deque'].append(file)
+            file = self.pstraces[folder]['deque'].popleft()
+        else:
+            return
+
+        psmethod = file[0:-1] + 'method'
         lasttime = self.pstraces[folder]['time'][-1]
 
         with open(psmethod,'rt',encoding='utf-16') as f:
             psmethoddata = f.read()
             timestring = psmethoddata.split('\n')[2][1:]
             time = datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
-
 
         # if need to skip , skip this file.
         if self.pstraces[folder]['needtoskip'] > 0:
@@ -199,12 +207,13 @@ class PSS_Logger():
             self.pstraces[folder]['key'] = None
             self.pstraces[folder]['needtoskip'] = 0
             self.pstraces[folder]['starttime'] = time
-
-            md5 = self.get_md5(psmethoddata)
+            md5 = self.get_md5(data)
+            self.pstraces[folder]['md5'] = md5
             data_tosend.update(md5=md5,time=0)
         else:
             starttime = self.pstraces[folder]['starttime']
-            data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'])
+            md5 = self.pstraces[folder]['md5']
+            data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'],md5=md5)
 
         self.pstraces[folder]['time'].append(time)
 
@@ -212,8 +221,9 @@ class PSS_Logger():
             response = requests.post(url=SERVER_POST_URL, json=data_tosend)
             if response.status_code == 200:
                 result = response.text
+                self.debug(f'Response {result} datapack: Filename: {data_tosend["filename"]} Key: {data_tosend.get("key",None)}')
             else:
-                self.error(f"Error - respons code: {response.status_code}, datapacket: {data_tosend}")
+                self.error(f"Post Data Error - respons code: {response.status_code}, datapacket: {data_tosend}")
                 return
         except Exception as e:
             self.error(f"Error - {e}")
@@ -225,7 +235,7 @@ class PSS_Logger():
             self.pstraces[folder]['key'] = result[1]
             if PLOT_TRACE:
                 self.ploter.plot(index=result[1])
-            self.debug(f'Add - {result[1]} {file}')
+            self.debug(f'Added - {result[1]} {file}')
         elif result[0] == 'Exist':
             self.pstraces[folder]['key'] = result[1]
 
@@ -235,6 +245,15 @@ class PSS_Logger():
             self.debug(f"OK - {self.pstraces[folder]['key']} {file}")
         else:
             self.error(f"API-Error - {'-'.join(result)}")
+
+    def wrap_up(self):
+        'cleanup stuff'
+        for folder in self.pstraces:
+            if self.pstraces[folder]['deque']:
+                self.create(self.pstraces[folder]['deque'][0],)
+            if self.pstraces[folder]['key']:
+                self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
+        self.write_csv()
 
     def write_csv(self):
         for folder,item in self.pstraces.items():
@@ -283,13 +302,10 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     logger.info(f'****Monitor Started <{target_folder}>.****')
     try:
         while True:
-            time.sleep(60)
+            time.sleep(120)
             logger.write_csv()
     except KeyboardInterrupt:
-        for folder in logger.pstraces:
-            if logger.pstraces[folder]['key']:
-                logger.pstraces[folder]['keys'].append(logger.pstraces[folder]['key'])
-        logger.write_csv()
+        logger.wrap_up()
         logger.info(f'****Monitor Stopped****')
         observer.stop()
         observer.join()

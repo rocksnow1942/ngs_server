@@ -13,6 +13,15 @@ def add_echem_pstrace(amsid, data):
     add a new echem scan data to Plojo_Data and Plojo_Project
     data: {md5, key, filename, date, potential, amp}
     """
+    potential = data.get('potential', None)
+    amp = data.get('amp', None)
+    if potential and amp:
+        xydataIn = numpy.array([potential, amp])
+        res = fitpeak(xydataIn)
+        peakcurrent = round(float(res[5]), 6)
+    else:
+        peakcurrent = -100  # to indicate fitting error
+
     plojodata = Plojo_Data.query.get(amsid) 
     plojodata_data = plojodata.data
     md5 = data.get('md5', None)
@@ -20,19 +29,10 @@ def add_echem_pstrace(amsid, data):
     filename = data.get('filename', 'Unknown') 
     time = round(float(data.get('time', 0)),6)
     date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
-    if not data_key: 
-        plojodata_data.update(flag=md5, note='Starting file: '+filename, name=date,
-                              author='Script upload', date=datetime.now().strftime('%Y%m%d'), assay_type="echem",
-                              fit_method='none',)
     
-    potential = data.get('potential',None)
-    amp = data.get('amp',None)
-    if potential and amp:
-        xydataIn = numpy.array([potential, amp])
-        res = fitpeak(xydataIn) 
-        peakcurrent = round(float(res[5]),6)
-    else:
-        peakcurrent = -100 # to indicate fitting error
+    plojodata_data.update(flag=md5, note='Last File: '+filename, name=date,
+                            author='Script upload', date=datetime.now().strftime('%Y%m%d'), assay_type="echem",
+                            fit_method='none',)
     for i, j in zip(['concentration', 'signal'], [time, peakcurrent]):
         plojodata_data[i] = plojodata_data.get(i,[]) 
         plojodata_data[i].append(j)
