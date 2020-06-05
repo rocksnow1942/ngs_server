@@ -21,7 +21,7 @@ SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
 MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
 PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
-INITIATE = False # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
+INITIATE = True # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
@@ -164,7 +164,7 @@ class PSS_Logger():
     def create(self,file):
         ".pss file"
         self.debug(f'Created {file}')
-        self.debug(f"PS traces: {str(self.pstraces)}")
+        # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
 
@@ -194,8 +194,8 @@ class PSS_Logger():
 
 
         with open(file,'rt') as f:
-            data =f.read().strip()
-            data = data.split('\n')
+            pssdata =f.read().strip()
+            data = pssdata.split('\n')
             voltage = [float(i.split()[0]) for i in data[1:]]
             amp = [float(i.split()[1]) for i in data[1:]]
 
@@ -207,7 +207,7 @@ class PSS_Logger():
             self.pstraces[folder]['key'] = None
             self.pstraces[folder]['needtoskip'] = 0
             self.pstraces[folder]['starttime'] = time
-            md5 = self.get_md5(data)
+            md5 = self.get_md5(pssdata)
             self.pstraces[folder]['md5'] = md5
             data_tosend.update(md5=md5,time=0)
         else:
@@ -238,7 +238,6 @@ class PSS_Logger():
             self.debug(f'Added - {result[1]} {file}')
         elif result[0] == 'Exist':
             self.pstraces[folder]['key'] = result[1]
-
             self.pstraces[folder]['needtoskip'] = int(result[2]) -1
             self.debug(f'Exist - {result[1]} {file}')
         elif result[0] == 'OK':
@@ -266,17 +265,17 @@ class PSS_Logger():
                     result = response.json()
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
-
                 csvname = str(Path(folder).parent) + '.csv'
                 with open(csvname, 'at') as f:
-                    writer = csv.writer(f,delimiter=',')
                     for key in keys:
                         if key in result:
                             time = result[key].get('concentration',None)
                             signal = result[key].get('signal',None)
                             if time and signal:
-                                writer.writerow([key + '_time'] + time )
-                                writer.writerow([key + '_signal'] +signal)
+                                f.write(','.join([key + '_time'] + time))
+                                f.write('\n')
+                                f.write(','.join([key + '_signal'] + signal))
+                                f.write('\n')
                         else:
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
@@ -291,7 +290,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     else:
         Ploter = None
     observer = Observer()
-    logger = PSS_Logger(target_folder=target_folder,ploter=Ploter)
+    logger = PSS_Logger(target_folder=target_folder,ploter=Ploter,loglevel=loglevel)
     logger.info('*****PSS monitor started*****')
     if INITIATE:
         logger.init()
@@ -303,7 +302,6 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     try:
         while True:
             time.sleep(120)
-            logger.write_csv()
     except KeyboardInterrupt:
         logger.wrap_up()
         logger.info(f'****Monitor Stopped****')
