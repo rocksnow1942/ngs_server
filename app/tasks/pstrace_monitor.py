@@ -102,8 +102,9 @@ class PSS_Handler(PatternMatchingEventHandler):
         self.info = logger.info
 
     def on_created(self, event):
-        self.info(f"Watchdog: Create {event.src_path}")
-        self.logger.create(event.src_path)
+        pass
+        # self.info(f"Watchdog: Create {event.src_path}")
+        # self.logger.create(event.src_path)
 
     def on_deleted(self, event):
         self.info(f"Watchdog: Delete {event.src_path}")
@@ -253,10 +254,11 @@ class PSS_Logger():
                     writer = csv.writer(f,delimiter=',')
                     for key in keys:
                         if key in result:
-                            time = result[key]['concentration']
-                            signal = result[key]['signal']
-                            writer.writerow([key + '_time'] + time )
-                            writer.writerow([key + '_signal'] +signal)
+                            time = result[key].get('concentration',None)
+                            signal = result[key].get('signal',None)
+                            if time and signal:
+                                writer.writerow([key + '_time'] + time )
+                                writer.writerow([key + '_signal'] +signal)
                         else:
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
@@ -273,7 +275,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     observer = Observer()
     logger = PSS_Logger(target_folder=target_folder,ploter=Ploter)
     logger.info('*****PSS monitor started*****')
-    logger.init()
+    # logger.init()
     logger.info('****Init Done.****')
     observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
     observer.start()
