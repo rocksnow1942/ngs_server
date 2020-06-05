@@ -94,6 +94,16 @@ class Plojo_Data(db.Model):
             db.session.commit()
         except Exception as e:
             print(e)
+    
+    @staticmethod
+    def next_index( ):
+        entry = [i[0] for i in db.session.query(Plojo_Data.index).all()]
+        if not entry:
+            entry_start = 0
+        else:
+            entry = sorted(entry, key=lambda x: int(x.split('-')[0][3:]))[-1]
+            entry_start = int(entry.split('-')[0][3:])+1
+        return 'ams'+str(entry_start)
 
 
 class Plojo_Project(db.Model):
@@ -117,5 +127,17 @@ class Plojo_Project(db.Model):
         if newkey!=None:
             u.index=newkey
         db.session.commit()
-        # except Exception as e:
-        #     print(e)
+    
+    @staticmethod
+    def next_index(projectname):
+        allprojects = [i[0]
+                       for i in db.session.query(Plojo_Project.index).all()]
+        if not allprojects:
+            allprojects = ['0']
+        allprojects.sort(key=lambda x: int(x.split('-')[0]), reverse=True)
+        entry = allprojects[0]
+        entry_start = int(entry.split('-')[0])+1
+        return str(entry_start) + '-'+projectname
+
+plojo_models = {'pjdata': Plojonior_Data,
+                'pjindex': Plojonior_Index, 'pproject': Plojo_Project,'pdata':Plojo_Data}
