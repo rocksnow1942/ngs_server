@@ -128,7 +128,7 @@ class PSS_Logger():
         level = getattr(logging, loglevel.upper(), 20)
         logger = logging.getLogger('Monitor')
         logger.setLevel(level)
-        fh = RotatingFileHandler(os.path.join(target_folder,'plojo_upload_log.txt'), maxBytes=1024000, backupCount=2)
+        fh = RotatingFileHandler(os.path.join(target_folder,'plojo_upload_log.txt'), maxBytes=10240000000, backupCount=2)
         fh.setLevel(level)
         fh.setFormatter(logging.Formatter(
             '%(asctime)s - %(levelname)s: %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p'
