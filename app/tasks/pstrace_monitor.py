@@ -21,7 +21,7 @@ SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
 MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
 PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
-INITIATE = False # INITIATE all folder, if already ran alot, this will use a tone of bandwith. 
+INITIATE = False # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
@@ -299,7 +299,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
 
 if __name__ == "__main__":
     targetfolder = input('Enter folder to monitor:\n').strip()
-    targetfolder = '/Users/hui/Downloads/test echem folder'
+    # targetfolder = '/Users/hui/Downloads/test echem folder'
     if os.path.exists(targetfolder):
         start_monitor(targetfolder,loglevel='DEBUG')
     else:
