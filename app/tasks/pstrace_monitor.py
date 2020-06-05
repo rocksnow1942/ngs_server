@@ -21,7 +21,7 @@ SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
 MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
 PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
-
+INITIATE = False # INITIATE all folder, if already ran alot, this will use a tone of bandwith. 
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
@@ -275,7 +275,8 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     observer = Observer()
     logger = PSS_Logger(target_folder=target_folder,ploter=Ploter)
     logger.info('*****PSS monitor started*****')
-    # logger.init()
+    if INITIATE:
+        logger.init()
     logger.info('****Init Done.****')
     observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
     observer.start()
