@@ -2,6 +2,15 @@ from pptx import Presentation
 from dateutil import parser
 from datetime import datetime
 import re
+
+import requests
+
+
+
+r=requests.get('http://ams/api/get_plojo_data',json={'keys':['ams1234']})
+
+r.json()
+
 flag = "note"
 regx = re.compile(f'<(?P<pt>{flag})>(.+)</(?P=pt)>')
 

@@ -13,11 +13,17 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 from collections import deque
 
-SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
-SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
-MAX_SCAN_GAP = 8 # in seconds
-PRINT_MESSAGES = True
+
+SERVER_POST_URL = 'http://192.168.86.200/api/add_echem_pstrace'
+SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
+
+
+MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
+PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
+
+# SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
+# SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
 
 class ProcessPlotter:
@@ -52,25 +58,15 @@ class ProcessPlotter:
         return True
 
     def __call__(self, pipe):
-        print('starting plotter...')
-        # plt.ion()
-        params = {
-
-                  'axes.labelsize': 6,
+        params = {'axes.labelsize': 6,
                   'axes.titlesize': 6,
                   'xtick.labelsize': 6,
                   'ytick.labelsize':6,}
-
-
-
         plt.rcParams.update(params)
         self.pipe = pipe
         self.fig, axes = plt.subplots(self.ROW,self.COL,figsize=(self.COL*2,self.ROW*1.6))
         self.fig.subplots_adjust(top=0.95,bottom=0.1,left=0.1,right=0.9)
-        # self.fig.canvas.layout.width = '500px'
-        # self.fig.canvas.layout.height = '500px'
         self.axes = [i for j in axes for i in j]
-
         timer = self.fig.canvas.new_timer(interval=5000)
         timer.add_callback(self.call_back)
         timer.start()
@@ -93,7 +89,6 @@ class PlotMessenger:
             send(None)
         else:
             send(index)
-
 
 
 class PSS_Handler(PatternMatchingEventHandler):
@@ -128,7 +123,6 @@ class PSS_Logger():
         self.pstraces = {}
         self.target_foler = target_folder
         self.ploter = ploter
-
 
         level = getattr(logging, loglevel.upper(), 20)
         logger = logging.getLogger('Monitor')
@@ -230,14 +224,7 @@ class PSS_Logger():
         if result[0] == 'Add':
             self.pstraces[folder]['key'] = result[1]
             if PLOT_TRACE:
-
-                # self.plot_process=[i for i in self.plot_process if i.is_alive()]
-                # self.to_plot.add(result[1])
                 self.ploter.plot(index=result[1])
-
-
-                # self.plot_process.append(plottrace(result[1]))
-
             self.debug(f'Add - {result[1]} {file}')
         elif result[0] == 'Exist':
             self.pstraces[folder]['key'] = result[1]
@@ -279,10 +266,10 @@ class PSS_Logger():
 
 
 def start_monitor(target_folder,loglevel='DEBUG'):
-    # p = Process(target=animateplot, args=('ams1001',))
-    # p.start()
     if PLOT_TRACE:
         Ploter = PlotMessenger()
+    else:
+        Ploter = None
     observer = Observer()
     logger = PSS_Logger(target_folder=target_folder,ploter=Ploter)
     logger.info('*****PSS monitor started*****')
@@ -292,21 +279,9 @@ def start_monitor(target_folder,loglevel='DEBUG'):
     observer.start()
 
     logger.info(f'****Monitor Started <{target_folder}>.****')
-    print('PID=', os.getpid())
     try:
-
         while True:
-
             time.sleep(60)
-            # while logger.to_plot:
-            #     print('PID= Here', os.getpid())
-            #     top = logger.to_plot.pop()
-            #     print(top)
-            #     # subprocess.run(['python','plot_window.py',top])
-            #     p = Process(target=animateplot, args=('ams1001',), daemon=True)
-            #     p.start()
-                # print(p)
-                # logger.plot_process.append(p)
             logger.write_csv()
     except KeyboardInterrupt:
         for folder in logger.pstraces:
