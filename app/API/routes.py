@@ -19,6 +19,7 @@ def add_echem_pstrace():
                 key: index of plojo entry if it is already created,
                 filename: file path of the pss file,
                 date: date of the first pss file, read from corresponding psmethod file,
+                time: the time point of this scan, in minutes,
                 potential: voltage data,
                 amp: amperage data,}
     the data is for one scan, 
@@ -47,11 +48,11 @@ def add_echem_pstrace():
                 existed_data = [i.index for i in plojo_data]
                 return f"Error-Filename: {filename}, md5 {md5} have more than one existance. In {','.join(existed_data)}"
             elif len(plojo_data) == 1:
-                return f"Exist-{plojo_data[0].index}-{str(len(plojo_data[0].data.get('signal', [])))}"
+                return f"Exist-{plojo_data[0].index}-{len(plojo_data[0].data.get('signal', []))}"
             else:
                 newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
                 db.session.add(newdata)
-                project.data = project.data.append(newdata.index)
+                project.data = project.data + [newdata.index]
                 db.session.commit()
                 current_app.task_queue.enqueue(
                     'app.tasks.echem_fitting.add_echem_pstrace', newdata.index, data, job_timeout=3600)
@@ -59,7 +60,7 @@ def add_echem_pstrace():
         else:
             plojo_data = Plojo_Data.query.get(data_key) 
             if plojo_data:
-                current_app.task_quene.enquene(
+                current_app.task_queue.enqueue(
                     'app.tasks.echem_fitting.add_echem_pstrace',data_key,data, job_timeout=3600) 
                 return "OK"
             else:
@@ -68,8 +69,17 @@ def add_echem_pstrace():
 
 @bp.route('/get_plojo_data', methods=['GET'])
 def get_plojo_data():
+    """
+    get a plojo data dictionary 
+    request format: json={keys:['ams124','ams123'],project:'7-Echem_Scan'}
+    """
     keys = request.json.get('keys',None)
+    project = request.json.get('project',None)
     if keys:
         res = Plojo_Data.query.filter(Plojo_Data.index.in_(keys)).all()
         return jsonify({i.index:i.data for i in res})
+    if project:
+        res = Plojo_Project.query.filter(
+            Plojo_Project.index.contains(project)).all()
+        return jsonify([i.data for i in res])
     return jsonify("Error-Invalid request")

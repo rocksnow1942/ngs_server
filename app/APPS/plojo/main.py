@@ -981,13 +981,13 @@ def cf_focused_select_data_cb(attr, old, new):
     info_box.text = info_deque('New plot generated.')
 
 def vd_delete_data_cb():
-    global current_time
-    current = datetime.datetime.now()
-    if (current-current_time).total_seconds() > 2:
-        current_time = datetime.datetime.now()
-        info_box.text = info_deque(
-            'Caution! Click again within 2s to delete data.')
-        raise ValueError('click again')
+    # global current_time
+    # current = datetime.datetime.now()
+    # if (current-current_time).total_seconds() > 2:
+    #     current_time = datetime.datetime.now()
+    #     info_box.text = info_deque(
+    #         'Caution! Click again within 2s to delete data.')
+    #     raise ValueError('click again')
     to_delete = active_selected_item()
     if len(to_delete) == 0:
         info_box.text = info_deque('Select Data in Experiment or To plot tab')

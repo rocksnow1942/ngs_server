@@ -3,6 +3,7 @@ from scipy import signal, optimize
 from app import create_app
 from app.plojo_models import Plojo_Data
 from datetime import datetime
+from app import db
 
 app = create_app(keeplog=False)
 app.app_context().push()
@@ -17,7 +18,7 @@ def add_echem_pstrace(amsid, data):
     md5 = data.get('md5', None)
     data_key = data.get('key', None)
     filename = data.get('filename', 'Unknown') 
-    time = data.get('time',0)
+    time = round(float(data.get('time', 0)),6)
     date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
     if not data_key: 
         plojodata_data.update(flag=md5, note='Starting file: '+filename, name=date,
@@ -29,13 +30,13 @@ def add_echem_pstrace(amsid, data):
     if potential and amp:
         xydataIn = numpy.array([potential, amp])
         res = fitpeak(xydataIn) 
-        peakcurrent = res[5]
+        peakcurrent = round(float(res[5]),6)
     else:
         peakcurrent = -100 # to indicate fitting error
     for i, j in zip(['concentration', 'signal'], [time, peakcurrent]):
         plojodata_data[i] = plojodata_data.get(i,[]) 
         plojodata_data[i].append(j)
-
+    
     plojodata.data = plojodata_data 
     db.session.commit()
 
