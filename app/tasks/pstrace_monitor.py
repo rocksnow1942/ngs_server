@@ -8,7 +8,6 @@ import requests
 import logging
 from logging.handlers import RotatingFileHandler
 import hashlib
-import csv
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 from collections import deque
@@ -193,7 +192,7 @@ class PSS_Logger():
         if self.pstraces[folder]['needtoskip'] > 0:
             self.pstraces[folder]['needtoskip'] -= 1
             self.pstraces[folder]['time'].append(time)
-            self.debug(f'Need to skip, still have {self.pstraces[folder]['needtoskip']} files to skip.')
+            self.debug(f'Need to skip, still have {self.pstraces[folder]["needtoskip"]} files to skip.')
             return
 
 
@@ -208,7 +207,7 @@ class PSS_Logger():
         if (time - lasttime).seconds > MAX_SCAN_GAP:
             self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.')
             if self.pstraces[folder]['key']:
-                self.debug(f'Previous Key stored in keys to save: {self.pstraces[folder]['key']}.')
+                self.debug(f'Previous Key stored in keys to save: {self.pstraces[folder]["key"]}.')
                 self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
             self.pstraces[folder]['key'] = None
             self.pstraces[folder]['needtoskip'] = 0
@@ -217,7 +216,7 @@ class PSS_Logger():
             self.pstraces[folder]['md5'] = md5
             data_tosend.update(md5=md5,time=0)
         else:
-            self.debug(f'Continuous from previous scan, {(time - lasttime).seconds} seconds, Key={self.pstraces[folder]['key']}.')
+            self.debug(f'Continuous from previous scan, {(time - lasttime).seconds} seconds, Key={self.pstraces[folder]["key"]}.')
             starttime = self.pstraces[folder]['starttime']
             md5 = self.pstraces[folder]['md5']
             data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'],md5=md5)
@@ -257,10 +256,10 @@ class PSS_Logger():
 
         for folder in self.pstraces:
             if self.pstraces[folder]['deque']:
-                self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]['deque']}')
+                self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]["deque"]}')
                 self.create(self.pstraces[folder]['deque'][0],)
             if self.pstraces[folder]['key']:
-                self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]['key']}')
+                self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]["key"]}')
                 self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
         self.write_csv()
 
