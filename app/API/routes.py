@@ -31,8 +31,9 @@ def add_echem_pstrace():
     data = request.json 
     md5 = data.get('md5',None)
     data_key = data.get('key',None)
-    filename = data.get('filename','Unknown')
+    filename = data.get('filename','Unknown File')
     date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
+    chanel = data.get('chanel','Unknown Chanel')
     if md5 or data_key:
         projectname = data.get('project', 'Echem_Scan')
         project = Plojo_Project.query.filter(
@@ -54,7 +55,7 @@ def add_echem_pstrace():
             else:
                 note = "Starting File: " + filename
                 newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
-                newdata.data = dict(flag=md5, note=note, name=date, author='Script upload', concentration=[], signal=[],
+                newdata.data = dict(flag=md5, note=note, name=chanel+" | "+date, author='Script upload', concentration=[], signal=[],
                                     date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
                 db.session.add(newdata)
                 project.data = project.data + [newdata.index]

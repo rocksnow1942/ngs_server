@@ -26,7 +26,8 @@ def add_echem_pstrace(amsid, data):
     plojodata_data = plojodata.data
     # md5 = data.get('md5', None)
     # data_key = data.get('key', None)
-    # filename = data.get('filename', 'Unknown') 
+    filename = data.get('filename', 'Unknown') 
+    plojodata_data['note'] = plojodata_data.get('note','No Note').split('||')[0] + "||" + f"Ending File: {filename}"
     time = round(float(data.get('time', 0)),6)
     # date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
     # if data_key:

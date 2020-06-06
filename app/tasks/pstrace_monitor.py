@@ -2,7 +2,7 @@ import time
 import os
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from pathlib import Path
+from pathlib import Path,PureWindowsPath
 from datetime import datetime
 import requests
 import logging
@@ -11,6 +11,9 @@ import hashlib
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 from collections import deque
+import sys
+
+
 
 
 SERVER_POST_URL = 'http://192.168.86.200/api/add_echem_pstrace'
@@ -28,10 +31,14 @@ LOG_LEVEL = 'DEBUG'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
 
+if 'win' in sys.platform:
+    Path = PureWindowsPath
+
 class ProcessPlotter:
     ROW = 3
     COL = 4
     def __init__(self):
+        # index is a q of (ams101,chanel name)
         self.index = deque(maxlen=self.ROW * self.COL)
 
     def terminate(self):
@@ -39,20 +46,20 @@ class ProcessPlotter:
 
     def call_back(self):
         while self.pipe.poll():
-            index = self.pipe.recv()
-            if index is None:
+            msg = self.pipe.recv()
+            if msg is None:
                 self.terminate()
                 return False
             else:
-                self.index.appendleft(index)
-        r = requests.get(url=SERVER_GET_URL, json={'keys': list(self.index)})
+                self.index.appendleft(msg)
+        r = requests.get(url=SERVER_GET_URL, json={'keys': [i[0] for i in self.index]})
         data = r.json()
-        for k,ax in zip(self.index,self.axes):
+        for (k,chanel),ax in zip(self.index,self.axes):
             ax.clear()
             c = data.get(k,{}).get('concentration',[0])
             s = data.get(k, {}).get('signal', [0])
             ax.plot(c,s,color='b',marker='o',linestyle='',markersize=3,markerfacecolor='w')
-            ax.set_title(f'{k} curve',fontsize=8)
+            ax.set_title(f'{k}-{chanel}')
             ax.set_xlabel('Time / Minutes')
             ax.set_ylabel('Singal / nA')
 
@@ -84,12 +91,12 @@ class PlotMessenger:
             target=self.plotter, args=(plotter_pipe,), daemon=True)
         self.plot_process.start()
 
-    def plot(self,index=None,finished=False):
+    def plot(self,index=None,chanel = 'Unknown', finished=False):
         send = self.plot_pipe.send
         if finished:
             send(None)
         else:
-            send(index)
+            send((index, chanel))
 
 
 class PSS_Handler(PatternMatchingEventHandler):
@@ -166,7 +173,7 @@ class PSS_Logger():
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
-
+        
         if folder not in self.pstraces:
             self.debug(f'Created Folder {folder}')
             self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'md5':None,
@@ -183,6 +190,7 @@ class PSS_Logger():
 
         psmethod = file[0:-1] + 'method'
         lasttime = self.pstraces[folder]['time'][-1]
+        chanel = Path(file).parts[-3]
 
         with open(psmethod,'rt',encoding='utf-16') as f:
             psmethoddata = f.read()
@@ -196,15 +204,17 @@ class PSS_Logger():
             self.debug(f'Need to skip, still have {self.pstraces[folder]["needtoskip"]} files to skip.')
             return
 
-
+        # read pss data
         with open(file,'rt') as f:
             pssdata =f.read().strip()
             data = pssdata.split('\n')
             voltage = [float(i.split()[0]) for i in data[1:]]
             amp = [float(i.split()[1]) for i in data[1:]]
 
-        data_tosend = dict(potential=voltage,amp=amp,filename=file,date=timestring,)
+        data_tosend = dict(potential=voltage, amp=amp,
+                           filename=file, date=timestring, chanel=chanel)
 
+        # determine if the data is a new scan or is continued from pervious and handle it.
         if (time - lasttime).seconds > MAX_SCAN_GAP:
             self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.')
             if self.pstraces[folder]['key']:
@@ -238,16 +248,17 @@ class PSS_Logger():
 
         result = result.split('-')
 
-        if result[0] == 'Add':
+        # depend on the response from server, handle result differently
+        if result[0] == 'Add': # if it is starting a new trace
             self.pstraces[folder]['key'] = result[1]
             if PLOT_TRACE:
-                self.ploter.plot(index=result[1])
+                self.ploter.plot(index=result[1], chanel = chanel )
             self.info(f'Added - {result[1]} {file}')
-        elif result[0] == 'Exist':
+        elif result[0] == 'Exist':  # if it's a existing trace.
             self.pstraces[folder]['key'] = result[1]
             self.pstraces[folder]['needtoskip'] = int(result[2]) -1
             self.info(f'Exist - {result[1]} {file}')
-        elif result[0] == 'OK':
+        elif result[0] == 'OK':  # if it's continue from a known trace.
             self.info(f"OK - {self.pstraces[folder]['key']} {file}")
         else:
             self.error(f"API-Error - {'-'.join(result)}")
@@ -330,9 +341,11 @@ def start_monitor(target_folder,loglevel='DEBUG'):
 
 
 if __name__ == "__main__":
-    targetfolder = input('Enter folder to monitor:\n').strip()
-    # targetfolder = '/Users/hui/Downloads/test echem folder'
-    if os.path.exists(targetfolder):
-        start_monitor(targetfolder,loglevel=LOG_LEVEL)
-    else:
-        print(f"{targetfolder} doesn't exist.")
+    while 1:
+        print('='*20)
+        targetfolder = input('Enter folder to monitor:\n').strip()
+        # targetfolder = '/Users/hui/Downloads/test echem folder'
+        if os.path.exists(targetfolder):
+            start_monitor(targetfolder,loglevel=LOG_LEVEL)
+        else:
+            print(f"{targetfolder} doesn't exist.\n"+"="*20)
