@@ -54,7 +54,7 @@ def add_echem_pstrace():
             else:
                 note = "Starting File: " + filename
                 newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
-                newdata.data = dict(flag=md5, note=note, name=date, author='Script upload',
+                newdata.data = dict(flag=md5, note=note, name=date, author='Script upload', concentration=[], signal=[],
                                     date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
                 db.session.add(newdata)
                 project.data = project.data + [newdata.index]
