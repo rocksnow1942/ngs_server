@@ -177,6 +177,7 @@ class PSS_Logger():
             file = self.pstraces[folder]['deque'].popleft()
             self.debug(f'Actually Created File {file}')
         else:
+            self.pstraces[folder]['deque'].append(file)
             self.debug(f'Deque length <=0, not created.')
             return
 
