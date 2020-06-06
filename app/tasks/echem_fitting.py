@@ -24,18 +24,18 @@ def add_echem_pstrace(amsid, data):
 
     plojodata = Plojo_Data.query.get(amsid) 
     plojodata_data = plojodata.data
-    md5 = data.get('md5', None)
-    data_key = data.get('key', None)
-    filename = data.get('filename', 'Unknown') 
+    # md5 = data.get('md5', None)
+    # data_key = data.get('key', None)
+    # filename = data.get('filename', 'Unknown') 
     time = round(float(data.get('time', 0)),6)
-    date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
-    if data_key:
-        note = plojodata_data.get('note', 'No note')
-    else:
-        note = "Starting File: " + filename
+    # date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
+    # if data_key:
+    #     note = plojodata_data.get('note', 'No note')
+    # else:
+    #     note = "Starting File: " + filename
 
-    plojodata_data.update(flag=md5, note=note, name=date, author='Script upload', 
-        date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
+    # plojodata_data.update(flag=md5, note=note, name=date, author='Script upload', 
+    #     date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
     for i, j in zip(['concentration', 'signal'], [time, peakcurrent]):
         plojodata_data[i] = plojodata_data.get(i,[]) 
         plojodata_data[i].append(j)

@@ -4,6 +4,7 @@ from flask_login import current_user,login_required
 from app.API import bp
 from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
 from app.plojo_models import Plojo_Data, Plojo_Project
+from datetime import datetime
 
 @bp.route('/testapi', methods=['POST','GET'])
 def testapi():
@@ -31,6 +32,7 @@ def add_echem_pstrace():
     md5 = data.get('md5',None)
     data_key = data.get('key',None)
     filename = data.get('filename','Unknown')
+    date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
     if md5 or data_key:
         projectname = data.get('project', 'Echem_Scan')
         project = Plojo_Project.query.filter(
@@ -50,7 +52,10 @@ def add_echem_pstrace():
             elif len(plojo_data) == 1:
                 return f"Exist-{plojo_data[0].index}-{len(plojo_data[0].data.get('signal', []))}"
             else:
+                note = "Starting File: " + filename
                 newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
+                newdata.data = dict(flag=md5, note=note, name=date, author='Script upload',
+                                    date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
                 db.session.add(newdata)
                 project.data = project.data + [newdata.index]
                 db.session.commit()
