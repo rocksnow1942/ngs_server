@@ -106,17 +106,14 @@ class PSS_Handler(PatternMatchingEventHandler):
 
     def on_deleted(self, event):
         pass
-        # self.info(f"Watchdog: Delete {event.src_path}")
-        # self.logger.delete(event.src_path)
+
 
     def on_modified(self, event):
         pass
-        # self.info(f"Watchdog: Modify {event.src_path}")
-        # self.logger.create(event.src_path)
+
 
     def on_moved(self, event):
-        self.info(
-            f"Watchdog: Rename {event.src_path} to {event.dest_path}")
+        pass
 
 class PSS_Logger():
     def __init__(self, target_folder="", ploter=None, loglevel='INFO'):
@@ -163,19 +160,22 @@ class PSS_Logger():
 
     def create(self,file):
         ".pss file"
-        self.debug(f'Created {file}')
+        self.debug(f'Call Created File {file}')
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
 
         if folder not in self.pstraces:
+            self.debug(f'Created Folder {folder}')
             self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'md5':None,
                                     'needtoskip':0,'starttime':None,'keys':[],'deque':deque()}
 
         if len(self.pstraces[folder]['deque']) > 0:
             self.pstraces[folder]['deque'].append(file)
             file = self.pstraces[folder]['deque'].popleft()
+            self.debug(f'Actually Created File {file}')
         else:
+            self.debug(f'Deque length <=0, not created.')
             return
 
         psmethod = file[0:-1] + 'method'
@@ -190,6 +190,7 @@ class PSS_Logger():
         if self.pstraces[folder]['needtoskip'] > 0:
             self.pstraces[folder]['needtoskip'] -= 1
             self.pstraces[folder]['time'].append(time)
+            self.debug(f'Need to skip, still have {self.pstraces[folder]['needtoskip']} files to skip.')
             return
 
 
@@ -202,7 +203,9 @@ class PSS_Logger():
         data_tosend = dict(potential=voltage,amp=amp,filename=file,date=timestring,)
 
         if (time - lasttime).seconds > MAX_SCAN_GAP:
+            self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.')
             if self.pstraces[folder]['key']:
+                self.debug(f'Previous Key stored in keys to save: {self.pstraces[folder]['key']}.')
                 self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
             self.pstraces[folder]['key'] = None
             self.pstraces[folder]['needtoskip'] = 0
@@ -211,6 +214,7 @@ class PSS_Logger():
             self.pstraces[folder]['md5'] = md5
             data_tosend.update(md5=md5,time=0)
         else:
+            self.debug(f'Continuous from previous scan, {(time - lasttime).seconds} seconds, Key={self.pstraces[folder]['key']}.')
             starttime = self.pstraces[folder]['starttime']
             md5 = self.pstraces[folder]['md5']
             data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'],md5=md5)
@@ -235,29 +239,32 @@ class PSS_Logger():
             self.pstraces[folder]['key'] = result[1]
             if PLOT_TRACE:
                 self.ploter.plot(index=result[1])
-            self.debug(f'Added - {result[1]} {file}')
+            self.info(f'Added - {result[1]} {file}')
         elif result[0] == 'Exist':
             self.pstraces[folder]['key'] = result[1]
             self.pstraces[folder]['needtoskip'] = int(result[2]) -1
-            self.debug(f'Exist - {result[1]} {file}')
+            self.info(f'Exist - {result[1]} {file}')
         elif result[0] == 'OK':
-            self.debug(f"OK - {self.pstraces[folder]['key']} {file}")
+            self.info(f"OK - {self.pstraces[folder]['key']} {file}")
         else:
             self.error(f"API-Error - {'-'.join(result)}")
 
     def wrap_up(self):
         'cleanup stuff'
+
         for folder in self.pstraces:
             if self.pstraces[folder]['deque']:
+                self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]['deque']}')
                 self.create(self.pstraces[folder]['deque'][0],)
             if self.pstraces[folder]['key']:
+                self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]['key']}')
                 self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
         self.write_csv()
 
     def write_csv(self):
         for folder,item in self.pstraces.items():
             keys = item['keys']
-            self.debug(f"Write CSV {','.join(keys)}")
+            self.debug(f"Write CSV for {folder}, keys={','.join(keys)}")
             try:
                 response = requests.get(
                     url=SERVER_GET_URL, json={'keys':keys})
@@ -272,10 +279,13 @@ class PSS_Logger():
                             time = result[key].get('concentration',None)
                             signal = result[key].get('signal',None)
                             if time and signal:
+                                self.debug(f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
                                 f.write(','.join([key + '_time'] + time))
                                 f.write('\n')
                                 f.write(','.join([key + '_signal'] + signal))
                                 f.write('\n')
+                            else:
+                                self.warning(f"No time or signal in {key},time={time},signal ={signal}")
                         else:
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
@@ -285,30 +295,36 @@ class PSS_Logger():
 
 
 def start_monitor(target_folder,loglevel='DEBUG'):
-    if PLOT_TRACE:
-        Ploter = PlotMessenger()
-    else:
-        Ploter = None
-    observer = Observer()
-    logger = PSS_Logger(target_folder=target_folder,ploter=Ploter,loglevel=loglevel)
-    logger.info('*****PSS monitor started*****')
-    if INITIATE:
-        logger.init()
-    logger.info('****Init Done.****')
-    observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
-    observer.start()
-
-    logger.info(f'****Monitor Started <{target_folder}>.****')
     try:
-        while True:
-            time.sleep(120)
-    except KeyboardInterrupt:
-        logger.wrap_up()
-        logger.info(f'****Monitor Stopped****')
-        observer.stop()
-        observer.join()
-    finally:
-        Ploter.plot(finished=True)
+        if PLOT_TRACE:
+            Ploter = PlotMessenger()
+        else:
+            Ploter = None
+        observer = Observer()
+        logger = PSS_Logger(target_folder=target_folder,ploter=Ploter,loglevel=loglevel)
+        logger.info('*****PSS monitor started*****')
+        if INITIATE:
+            logger.info('****Start initiation.****')
+            logger.init()
+            logger.info('****Init Done.****')
+
+        observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
+        observer.start()
+        logger.info(f'****Monitor Started <{target_folder}>.****')
+        try:
+            while True:
+                time.sleep(120)
+        except KeyboardInterrupt:
+            logger.wrap_up()
+            logger.info(f'****Monitor Stopped****')
+            observer.stop()
+            observer.join()
+        finally:
+            Ploter.plot(finished=True)
+    except Exception as e:
+        logger.error(f'Error during monitoring {e}')
+
+
 
 if __name__ == "__main__":
     targetfolder = input('Enter folder to monitor:\n').strip()
