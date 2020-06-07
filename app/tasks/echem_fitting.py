@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import signal, optimize
+from scipy import signal
 from app import create_app
 from app.plojo_models import Plojo_Data
 from app import db
@@ -17,7 +17,7 @@ def add_echem_pstrace(amsid, data):
     if potential and amp:
         try:
             xydataIn = numpy.array([potential, amp])
-            res = fitpeak(xydataIn)
+            res = myfitpeak(xydataIn)
             peakcurrent = round(float(res[5]), 6)
         except:
             peakcurrent = -100 # to indicate fitting error
@@ -46,210 +46,111 @@ def add_echem_pstrace(amsid, data):
     db.session.commit()
 
 
-def fitpeak(xydataIn, nstd=3.1, peakwidth=0.25, minpot=-1, maxpot=0.1):
-    '''Gives me the peak current from a scan
-    fits the data to a polynomial and a gaussian, then subtracts the
-    xydataIn this is the current and voltage data set for one scan
-    nstd = 3.5  this is normally obtained from the user - the number of standard deviations to look
-    peakwidth = 0.2 %% this is the peakwidth of the gaussianpolynomial to find peak current on a scan by scan basis
-    nstd = 3.1
-    peakwidth = 0.25  # not used any more - taken care of automatically in fitpeak
-    minpot = -1  # not necessary any more - peakfitting is robust enough to not require chopping of the edges
-    maxpot = .1
-    '''
-    #
-    # Assign voltage and current data
+def smooth(x, windowlenth=11, window='hanning'):
+    "windowlenth need to be an odd number"
+    s = np.r_[x[windowlenth-1:0:-1], x, x[-2:-windowlenth-1:-1]]
+    w = getattr(np, window)(windowlenth)
+    return np.convolve(w/w.sum(), s, mode='valid')[windowlenth//2:-(windowlenth//2)]
+
+
+def intercept(x, x1, x2, whole=False):
+    """
+    determine whether the line that cross x1 and x2 and x[x1],x[x2] will intercept x. 
+    if whole == False, will only consider one side. 
+    Only consider the direction from x2 -> x1, 
+    that is:
+    if x1 > x2; consider the right side of x2
+    if x1 < x2; consider the left side of x2
+    """
+    # set tolerance to be 1/1e6 of the amplitude
+    xtol = - (x.max() - x.min())/1e6
+    y1 = x[x1]
+    y2 = x[x2]
+    k = (y2-y1)/(x2-x1)
+    b = -k*x2 + y2
+    maxlength = len(x)
+    res = x - k*(np.array(range(maxlength)))-b
+    if whole:
+
+        return np.any(res[x1 - maxlength//20 - 5:x2 + maxlength//20 + 5] < xtol)
+    if x1 > x2:
+        return np.any(res[x2:min(maxlength, x1 + maxlength//20 + 5)] < xtol)
+    else:
+        # only consider extra half max width; make sure at least 5 points
+        return np.any(res[max(0, x1 - maxlength//20 - 5):x2] < xtol)
+
+
+def sway(x, center, step, fixpoint):
+    "move the center left (step = -1) or right (step = 1) until there is no interception."
+    if center == 0 or center == len(x):
+        return center
+    if not intercept(x, center, fixpoint):
+        return center
+    return sway(x, center+step, step, fixpoint)
+
+
+def find_tangent(x, center):
+    left = center - 1
+    right = center + 1
+    while intercept(x, left, right, True):
+        if intercept(x, left, right):
+            newleft = sway(x, left, -1, right)
+        if intercept(x, right, left):
+            newright = sway(x, right, 1, newleft)
+        if newleft == left and newright == right:
+            break
+        left = newleft
+        right = newright
+    return left, right
+
+
+def pickpeaks(peaks, props, totalpoints):
+    "the way to pick a peak"
+    if len(peaks) == 1:
+        return peaks[0]
+    # scores = np.zeros(len(peaks))
+    # heights = np.sort(props['peak_heights'])
+    # prominences = np.sort(props['prominences'])
+    # widths = np.sort(props['widths'])
+    normheights = props['peak_heights']/(props['peak_heights']).sum()
+    normprominences = props['prominences']/(props['prominences']).sum()
+    normwidths = props['widths']/(props['widths']).sum()
+    bases = ((props['left_bases'] == props['left_bases'].min()) &
+             (props['right_bases'] == props['right_bases'].max()))
+    scores = normheights + normprominences + normwidths - 2*bases
+    topick = scores.argmax()
+    return peaks[topick]
+
+
+def myfitpeak(xydataIn):
     x = xydataIn[0, :]  # voltage
     y = xydataIn[1, :]  # current
 
-    # Cut out the bad data; didn't cut since the old code is not doing it.
-    truncx, truncy = x, y
+    y = smooth(y)
+    # limit peak width to 1/50 of the totoal scan length to entire scan.
+    # limit minimum peak height to be over 0.2 percentile of all neighbors
+    heightlimit = np.quantile(np.absolute(y[0:-1] - y[1:]), 0.2)
+    peaks, props = signal.find_peaks(
+        y, height=heightlimit, width=len(y) / 50, rel_height=0.5)
 
-    # Normalize the current by the average current value
-    norm = truncy.mean()
-    truncy = truncy/norm
+    if len(peaks) == 0:
+        return x, y, 0, 0, 0, 0, 0, -1
 
-    # Apply butterfilter
-    voltageInterval = abs(truncx[1]-truncx[0])
-    fs = 1/voltageInterval  # Sampling rate
-    fc = 0.1*fs  # Cut off frequency ***We made up this scale factor based on limited emperical data***
+    peak = pickpeaks(peaks, props, len(y))
 
-    sos = signal.butter(1, fc, btype='lowpass', output='sos', fs=fs)
-    truncy = signal.sosfilt(sos, truncy)
+    # find tagent to 3X peak width window
+    x1, x2 = find_tangent(y, peak)
 
-    # Override values
-    nstd = 4.5  # 4 is good
-    peakwidthScaleFactor = 4  # 3.1 is good
+    y1 = y[x1]
+    y2 = y[x2]
+    k = (y2-y1)/(x2-x1)
+    b = -k*x2 + y2
 
-    # Find the peak location and its height
-    # MinPeakProminence can cause issues if peak is too small, if getting
-    # "Matrix dimensions must agree error" on line 54 (baseMask 0
-    # (truncx...), decrease MinPeakProminenece
-    centerLocs, peakProps = signal.find_peaks(
-        truncy, height=0, width=0, rel_height=0.5)
+    peakcurrent = y[peak] - (k*peak + b)
+    peakvoltage = x[peak]
 
-    if len(peakProps["peak_heights"]) > 2:
-        prom = 0
-        while len(peakProps["peak_heights"]) > 2:
-            prom = prom + .01
-            centerLocs, peakProps = signal.find_peaks(
-                truncy, height=100*(10**(-9)), prominence=prom, width=100*(10**(-3)), rel_height=0.5)
+    twopointx = np.array([x[x1], x[x2]])
+    twopointy = np.array([y[x1], y[x2]])
 
-    # Remove false peaks at extreme voltages
-    edge = 0.015  # Emperically chosen cut off value in Volts
-
-    for i in range(0, len(centerLocs)):
-        if (truncx[centerLocs[i]] > ((truncx.max())-edge)) or (truncx[centerLocs[i]] < ((truncx.min())+edge)):
-            centerLocs[i] = 0
-    peakHeights = peakProps["peak_heights"]
-    peakwidths = peakProps["widths"]
-    # Need to cut out all elements peak height, width, centerlocs where we are outside of edge
-    peakHeights = np.delete(
-        peakHeights, [i for i in range(len(centerLocs)) if centerLocs[i] == 0])
-    peakwidths = np.delete(peakwidths, [i for i in range(
-        len(centerLocs)) if centerLocs[i] == 0])
-    centerLocs = np.delete(centerLocs, [i for i in range(
-        len(centerLocs)) if centerLocs[i] == 0])
-
-    peakHeight = 0
-    if(len(peakHeights) > 0):
-        peakHeight = max(peakHeights)
-    centerLoc = centerLocs[[i for i in range(
-        len(peakHeights)) if peakHeights[i] == peakHeight]]
-    peakwidth = peakwidths[[i for i in range(
-        len(peakHeights)) if peakHeights[i] == peakHeight]]
-
-    if len(centerLoc) > 1:
-        centerLoc = min(centerLoc)
-        peakwidth = sum(peakwidths[[i for i in range(
-            len(peakHeights)) if peakHeights[i] == peakHeight]])
-        peakHeight = truncy[centerLoc]
-
-    center = truncx[centerLoc]
-    # Convert peakwidth to voltage and scale
-    # Scale value is arbitrary, was 4 previously
-    peakwidth = peakwidthScaleFactor*peakwidth[0]*(voltageInterval)
-
-    if len(centerLoc) == 0:
-        xnotjunk = truncx
-        ynotjunk = truncy*norm
-        xforfit = 0
-        gauss = 0
-        baseline = 0
-        peakcurrent = 0
-        peakvoltage = 0
-        fiterror = -0.001  # increase so that it can be seen
-        return xnotjunk, ynotjunk, xforfit, gauss, baseline, peakcurrent, peakvoltage, fiterror
-    else:
-        # this is to get the base part of the peak, that is -PW/1.5 ~ - PW/2.5 , PW/2.5 ~ PW/1.5; this peakwidth is weirdly scaled.
-        peakandbaseMask = np.logical_and(np.logical_or(truncx < (center - peakwidth/2.5), truncx > (center + peakwidth/2.5)),
-                                         np.logical_and(truncx > (center - peakwidth/1.5), truncx < (center + peakwidth/1.5)))
-        xbase = truncx[peakandbaseMask]
-        ybase = truncy[peakandbaseMask]
-
-        # Get liner least squares fit for baseline data
-        vp = np.polyfit(xbase, ybase, 1)
-
-        # Get reasonable guesses for non-linear regression
-        # give reasonable starting values for non-linear regression
-        v0 = [vp[0], vp[1], np.log(
-            peakHeight-linFit(vp, center))[0], center[0], peakwidth/6]
-
-        # Run minimization of fitting error to get optimal values for the fitting parameters v
-        v = optimize.fmin(getFillFitError, v0, (truncx, truncy), disp=False)
-        fiterrornorm = getFillFitError(v, truncx, truncy)
-
-        ip = gaussAndLinFit(v, v[3]) - linFit(v, v[3])
-        potp = v[3]
-
-        # peak mask that is number of SD away.
-        peakMask = np.logical_and(
-            truncx > (v[3] - nstd*v[4]), truncx < (v[3] + nstd*v[4]))
-
-        truncxMasked = x[peakMask]
-        full = gaussAndLinFit(v, truncxMasked)
-        base = linFit(v, truncxMasked)
-
-        # Outputs
-        xnotjunk = truncx
-        ynotjunk = truncy * norm
-        xforfit = truncxMasked
-        gauss = full * norm
-        baseline = base * norm
-        peakcurrent = ip * norm
-        peakvoltage = potp
-        fiterror = fiterrornorm*norm*100
-        if len(gauss) == 0:
-            xnotjunk = truncx
-            ynotjunk = truncy * norm
-            xforfit = 0
-            gauss = 0
-            baseline = 0
-            peakcurrent = 0
-            peakvoltage = 0
-            fiterror = -0.002  # increase so that it can be seen
-        return xnotjunk, ynotjunk, xforfit, gauss, baseline, peakcurrent, peakvoltage, fiterror
-
-
-def linFit(v, x):
-    '''Linear portion of fit.
-       This function attempts to describe current (y) as a function of voltage
-       (x). That function captures the linear portion
-       Fitting parameters are handed by the arrary (v),
-       where v = [slope intercept]'''
-    y = v[0]*x + v[1]
-    return y
-
-
-def gaussAndLinFit(v, x):
-    '''
-        Gaussian on a lienar baseline
-           This function attempts to describe current (y) as a function of voltage
-           (x).  That function is a combination of gaussian on a cosh baseline.
-           Fitting parameters are handed by the arrary (v),
-           where v = [slope, y-intecept, Gaussian scalar, Gaussian mean, SD]    
-    '''
-    return v[0]*x + v[1] + np.exp(v[2])*np.exp(-(((x-v[3])**2)/(2*v[4]**2)))
-
-
-def gaussNormFit(v, x):
-    '''
-    linear portion of fit 
-       This function attempts to describe current (y) as a function of voltage
-       (x). That function captures the gaussian portion
-       Fitting parameters are handed by the arrary (v),
-       where v = [y-intecept, slope, Gaussian scalar, Gaussian mean, SD]
-    '''
-    return np.exp(-(((x-v[3])**2)/(2*v[4]**2)))
-
-
-def getFillFitError(v, x, y):
-    '''
-        This function fits the peak only within the number of standard
-        deviations (nSD) of the peak in a weighted manner
-    '''
-    nstd = 4.5
-
-    peakMask = np.logical_and(x > (v[3] - 2.5*v[4]), x < (v[3] + 2.5*v[4]))
-    baseMask = np.logical_or(np.logical_and(x > (v[3] - nstd*v[4]), x < (v[3] - 2.5*v[4])),
-                             np.logical_and(x > (v[3] + 2.5*v[4]), x < (v[3] + nstd*v[4])))
-
-    normMask = gaussNormFit(v, x) * peakMask + baseMask
-
-    return (((gaussAndLinFit(v, x) - y) * normMask) ** 2 / (peakMask.sum() + baseMask.sum())).sum()
-
-    # This Following code is a strict implement of the original code,
-    # but I think it's more reasonable to use the number of both peak and base as error denominator.
-    # xbase = x[baseMask]
-    # ybase = y[baseMask]
-    # subGaussAndLin = gaussAndLinFit(v, xbase) - ybase
-    # error_vector = subGaussAndLin/np.sqrt(baseMask.sum())
-    #
-    # # Peak error is weighted by exp(-distance from peak)
-    # xpeak = x[peakMask]
-    # ypeak = y[peakMask]
-    # subGaussAndLin = gaussAndLinFit(v, xpeak)-ypeak
-    # multGuassNorm = gaussNormFit(v,xpeak)
-    # productArray = subGaussAndLin/np.sqrt(peakMask.sum()) * multGuassNorm
-    #
-    # return (error_vector ** 2).sum() + (productArray**2).sum()
+    # for compatibility return the same length tuple.
+    return x, y, twopointx, twopointy, twopointy, peakcurrent, peakvoltage, 0
