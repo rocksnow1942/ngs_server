@@ -297,7 +297,7 @@ class PSS_Logger():
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
                 csvname = str(Path(folder).parent) + '.csv'
-                with open(csvname, 'at') as f:
+                with open(csvname, 'wt') as f:
                     for key,timestamp in keys:
                         if key in result:
                             time = result[key].get('concentration',None)
@@ -314,7 +314,7 @@ class PSS_Logger():
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
                 self.error(f"Error Write CSV- {e}")
-            item['keys'] = [i for i in item['keys'] if i not in result]
+            # item['keys'] = [i for i in item['keys'] if i not in result]
 
 
 
@@ -337,7 +337,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
         logger.info(f'****Monitor Started <{target_folder}>.****')
         try:
             while True:
-                time.sleep(120)
+                time.sleep(300)
                 logger.write_csv()
         except KeyboardInterrupt:
             logger.wrap_up()
