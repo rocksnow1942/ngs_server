@@ -304,9 +304,9 @@ class PSS_Logger():
                             signal = result[key].get('signal',None)
                             if time and signal:
                                 self.debug(f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
-                                f.write(','.join([key + '_time'] + time))
+                                f.write(','.join([key + '_time'] + [str(i) for i in time]))
                                 f.write('\n')
-                                f.write(','.join([key + '_signal'] + signal))
+                                f.write(','.join([key + '_signal'] + [str(i) for i in signal]))
                                 f.write('\n')
                             else:
                                 self.warning(f"No time or signal in {key},time={time},signal ={signal}")
