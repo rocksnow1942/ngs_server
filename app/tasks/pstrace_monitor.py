@@ -25,6 +25,7 @@ PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
 INITIATE = True # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
 LOG_LEVEL = 'DEBUG'
+PROJECT_FOLDER = 'Echem_Scan'
 
 
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
@@ -211,7 +212,7 @@ class PSS_Logger():
             voltage = [float(i.split()[0]) for i in data[1:]]
             amp = [float(i.split()[1]) for i in data[1:]]
 
-        data_tosend = dict(potential=voltage, amp=amp,
+        data_tosend = dict(potential=voltage, amp=amp,project = PROJECT_FOLDER,
                            filename=file, date=timestring, chanel=chanel)
 
         # determine if the data is a new scan or is continued from pervious and handle it.
@@ -219,7 +220,8 @@ class PSS_Logger():
             self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.')
             if self.pstraces[folder]['key']:
                 self.debug(f'Previous Key stored in keys to save: {self.pstraces[folder]["key"]}.')
-                self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
+                self.pstraces[folder]['keys'].append(
+                    (self.pstraces[folder]['key'],datetime.now()))
             self.pstraces[folder]['key'] = None
             self.pstraces[folder]['needtoskip'] = 0
             self.pstraces[folder]['starttime'] = time
@@ -265,30 +267,37 @@ class PSS_Logger():
 
     def wrap_up(self):
         'cleanup stuff'
-
         for folder in self.pstraces:
             if self.pstraces[folder]['deque']:
                 self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]["deque"]}')
                 self.create(self.pstraces[folder]['deque'][0],)
             if self.pstraces[folder]['key']:
                 self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]["key"]}')
-                self.pstraces[folder]['keys'].append(self.pstraces[folder]['key'])
+                self.pstraces[folder]['keys'].append(
+                    (self.pstraces[folder]['key'],datetime.now()))
+        # sleep 10 seconds before writting.
+        time.sleep(10)
         self.write_csv()
+        for folder, item in self.pstraces.items():
+            keys = item['keys']
+            self.info(
+                f"Keys in folder {folder} after wrap up: keys = {','.join(f'{i[0]}-{i[1].strftime('%Y%m%d %H:%M:%S')}' for i in keys)}")
 
     def write_csv(self):
         for folder,item in self.pstraces.items():
             keys = item['keys']
-            self.debug(f"Write CSV for {folder}, keys={','.join(keys)}")
+            self.debug(f"Write CSV for {folder}, keys={','.join(i[0] for i in keys)}")
             try:
+                # only read the data that was generated at least 10 seconds ago. 
                 response = requests.get(
-                    url=SERVER_GET_URL, json={'keys':keys})
+                    url=SERVER_GET_URL, json={'keys': [i[0] for i in keys if (datetime.now() - i[1]).seconds >= 10]})
                 if response.status_code == 200:
                     result = response.json()
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
                 csvname = str(Path(folder).parent) + '.csv'
                 with open(csvname, 'at') as f:
-                    for key in keys:
+                    for key,timestamp in keys:
                         if key in result:
                             time = result[key].get('concentration',None)
                             signal = result[key].get('signal',None)
@@ -304,7 +313,7 @@ class PSS_Logger():
                             self.error(f"Error Write CSV - Key missing {key}")
             except Exception as e:
                 self.error(f"Error Write CSV- {e}")
-            item['keys'] = []
+            item['keys'] = [i for i in item['keys'] if i not in result]
 
 
 
@@ -328,6 +337,7 @@ def start_monitor(target_folder,loglevel='DEBUG'):
         try:
             while True:
                 time.sleep(120)
+                logger.write_csv()
         except KeyboardInterrupt:
             logger.wrap_up()
             logger.info(f'****Monitor Stopped****')
@@ -344,6 +354,8 @@ if __name__ == "__main__":
     while 1:
         print('='*20)
         targetfolder = input('Enter folder to monitor:\n').strip()
+        PROJECT_FOLDER = input(
+            'Enter Project Folder to upload data to: (Default "Echem_Scan")').strip() or PROJECT_FOLDER
         # targetfolder = '/Users/hui/Downloads/test echem folder'
         if os.path.exists(targetfolder):
             start_monitor(targetfolder,loglevel=LOG_LEVEL)
