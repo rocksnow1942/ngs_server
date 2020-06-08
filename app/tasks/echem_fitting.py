@@ -14,12 +14,13 @@ def add_echem_pstrace(amsid, data):
     """
     potential = data.get('potential', None)
     amp = data.get('amp', None)
+    fittingerror = ""
     if potential and amp:
         try:
-            xydataIn = numpy.array([potential, amp])
+            xydataIn = np.array([potential, amp])
             res = myfitpeak(xydataIn)
             peakcurrent = round(float(res[5]), 6)
-        except:
+        except Exception as fittingerror:
             peakcurrent = -100 # to indicate fitting error
     else:
         peakcurrent = -50  # to indicate missing value
@@ -29,6 +30,9 @@ def add_echem_pstrace(amsid, data):
     # md5 = data.get('md5', None)
     # data_key = data.get('key', None)
     filename = data.get('filename', 'Unknown') 
+    if fittingerror:
+        plojodata_data['note'] = "Fitting Error "+str(fittingerror)+ ' ON ' + filename+ ":::" +plojodata_data['note']
+
     plojodata_data['note'] = plojodata_data.get('note','No Note').split('||')[0] + "||" + f"Ending File: {filename}"
     time = round(float(data.get('time', 0)),6)
     # date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
@@ -55,9 +59,9 @@ def smooth(x, windowlenth=11, window='hanning'):
 
 def intercept(x, x1, x2, whole=False):
     """
-    determine whether the line that cross x1 and x2 and x[x1],x[x2] will intercept x. 
-    if whole == False, will only consider one side. 
-    Only consider the direction from x2 -> x1, 
+    determine whether the line that cross x1 and x2 and x[x1],x[x2] will intercept x.
+    if whole == False, will only consider one side.
+    Only consider the direction from x2 -> x1,
     that is:
     if x1 > x2; consider the right side of x2
     if x1 < x2; consider the left side of x2
@@ -81,9 +85,9 @@ def intercept(x, x1, x2, whole=False):
 
 
 def sway(x, center, step, fixpoint):
-    "move the center left (step = -1) or right (step = 1) until there is no interception."
     if center == 0 or center == len(x):
         return center
+
     if not intercept(x, center, fixpoint):
         return center
     return sway(x, center+step, step, fixpoint)
@@ -133,6 +137,7 @@ def myfitpeak(xydataIn):
     peaks, props = signal.find_peaks(
         y, height=heightlimit, width=len(y) / 50, rel_height=0.5)
 
+    # return if no peaks found.
     if len(peaks) == 0:
         return x, y, 0, 0, 0, 0, 0, -1
 
