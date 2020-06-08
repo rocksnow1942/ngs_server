@@ -280,8 +280,9 @@ class PSS_Logger():
         self.write_csv()
         for folder, item in self.pstraces.items():
             keys = item['keys']
+            keysstring = ','.join(f"{i[0]}-{i[1].strftime('%Y%m%d %H:%M:%S')}" for i in keys)
             self.info(
-                f"Keys in folder {folder} after wrap up: keys = {','.join(f'{i[0]}-{i[1].strftime('%Y%m%d %H:%M:%S')}' for i in keys)}")
+                f"Keys in folder {folder} after wrap up: keys = {keysstring}")
 
     def write_csv(self):
         for folder,item in self.pstraces.items():
