@@ -24,14 +24,7 @@ matplotlib.use('TKAgg')
 # SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
 
 
-MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
-PRINT_MESSAGES = True # whether print message
-LOG_LEVEL = 'INFO'
-PROJECT_FOLDER = 'Echem_Scan'
 
-
-SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
-SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
 
 
@@ -303,15 +296,52 @@ def animate_figure(s):
             ax.set_yticks([])
     except Exception as e:
         print(e)
-       
-       
-                
-    
+
+
+def load_settings():
+    pp = (Path(__file__).parent / '.pssconfig').absolute()
+    if os.path.exists(pp):
+        results = json.load(open(pp, 'rt'))
+    else:
+        results = {}
+    return results
+
+def save_settings():
+    data = {
+        "TARGET_FOLDER":TARGET_FOLDER ,
+        'MAX_SCAN_GAP' : MAX_SCAN_GAP,
+        'LOG_LEVEL': LOG_LEVEL,
+        'PROJECT_FOLDER': PROJECT_FOLDER,
+        'SERVER_GET_URL': SERVER_GET_URL,
+        'SERVER_POST_URL': SERVER_POST_URL,
+    }
+    pp = (Path(__file__).parent / '.pssconfig').absolute()
+    with open(pp,'wt') as f:
+        json.dump(data,f)
+        # f.write(self.target_folder)  
+
+
+
+# default settings
+MAX_SCAN_GAP = 8  # mas interval to be considerred as two traces in seconds
+PRINT_MESSAGES = True  # whether print message
+LOG_LEVEL = 'INFO'
+PROJECT_FOLDER = 'Echem_Scan'
+SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
+SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
+TARGET_FOLDER = str((Path(__file__).parent / '.pssconfig').absolute())
+
+
+settings = load_settings()
+for k,i in settings.items():
+    exec(f"{k} = {i}")
+
+
 class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.load_settings()
+        self.target_folder = TARGET_FOLDER
         self.pack()
         self.create_menus()
         self.create_widgets()
@@ -319,17 +349,17 @@ class Application(tk.Frame):
         self.MONITORING = True 
         
     
-    def load_settings(self):
-        pp = (Path(__file__).parent / '.pssconfig').absolute()
-        if os.path.exists(pp):
-            self.target_folder = open(pp, 'rt').read()
-        else:
-            self.target_folder = str(pp)
+    # def load_settings(self):
+    #     pp = (Path(__file__).parent / '.pssconfig').absolute()
+    #     if os.path.exists(pp):
+    #         self.target_folder = open(pp, 'rt').read()
+    #     else:
+    #         self.target_folder = str(pp)
 
-    def save_settings(self):
-        pp = (Path(__file__).parent / '.pssconfig').absolute()
-        with open(pp,'wt') as f:
-            f.write(self.target_folder)
+    # def save_settings(self):
+    #     pp = (Path(__file__).parent / '.pssconfig').absolute()
+    #     with open(pp,'wt') as f:
+    #         f.write(self.target_folder)
 
 
     def create_menus(self):
@@ -345,7 +375,7 @@ class Application(tk.Frame):
             initialdir=str(Path(self.target_folder).parent))
         self.folderinput.delete(0,tk.END)
         self.folderinput.insert(tk.END,self.target_folder)
-        self.save_settings()
+        save_settings()
 
     def create_figure(self):
         canvas = FigureCanvasTkAgg(f, self)
@@ -354,7 +384,6 @@ class Application(tk.Frame):
         tkwidget.grid(column=0,row=2,columnspan=6,rowspan=4,sticky=tk.E)
         # tkwidget.pack(side=tk.TOP, fill=tk.BOTH, expand=False)
        
-
     def create_widgets(self):
         self.master.title("PSS monitor")
         self.pack(fill=tk.BOTH,expand=True) 
