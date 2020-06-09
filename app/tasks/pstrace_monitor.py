@@ -29,6 +29,8 @@ LOG_LEVEL = 'INFO'
 PROJECT_FOLDER = 'Echem_Scan'
 
 
+DEQUE_MAXLENGTH = 3
+
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
@@ -175,19 +177,19 @@ class PSS_Logger():
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
-        
+
         if folder not in self.pstraces:
             self.debug(f'Created Folder {folder}')
             self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'md5':None,
                                     'needtoskip':0,'starttime':None,'keys':[],'deque':deque()}
 
-        if len(self.pstraces[folder]['deque']) > 0:
+        if len(self.pstraces[folder]['deque']) >= DEQUE_MAXLENGTH:
             self.pstraces[folder]['deque'].append(file)
             file = self.pstraces[folder]['deque'].popleft()
             self.debug(f'Actually Created File {file}')
         else:
             self.pstraces[folder]['deque'].append(file)
-            self.debug(f'Deque length <=0, not created.')
+            self.debug(f'Deque length < {DEQUE_MAXLENGTH}, not created.')
             return
 
         psmethod = file[0:-1] + 'method'
@@ -196,8 +198,9 @@ class PSS_Logger():
 
         with open(psmethod,'rt',encoding='utf-16') as f:
             psmethoddata = f.read()
-            timestring = psmethoddata.split('\n')[2][1:]
-            time = datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
+
+        timestring = psmethoddata.split('\n')[2][1:]
+        time = datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
 
         # if need to skip , skip this file.
         if self.pstraces[folder]['needtoskip'] > 0:
@@ -208,10 +211,11 @@ class PSS_Logger():
 
         # read pss data
         with open(file,'rt') as f:
-            pssdata =f.read().strip()
-            data = pssdata.split('\n')
-            voltage = [float(i.split()[0]) for i in data[1:]]
-            amp = [float(i.split()[1]) for i in data[1:]]
+            pssdata =f.read()
+
+        data = pssdata.strip().split('\n')
+        voltage = [float(i.split()[0]) for i in data[1:]]
+        amp = [float(i.split()[1]) for i in data[1:]]
 
         data_tosend = dict(potential=voltage, amp=amp,project = PROJECT_FOLDER,
                            filename=file, date=timestring, chanel=chanel)
@@ -271,7 +275,8 @@ class PSS_Logger():
         for folder in self.pstraces:
             if self.pstraces[folder]['deque']:
                 self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]["deque"]}')
-                self.create(self.pstraces[folder]['deque'][0],)
+                for file in self.pstraces[folder]['deque']:
+                    self.create(file)
             if self.pstraces[folder]['key']:
                 self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]["key"]}')
                 self.pstraces[folder]['keys'].append(
@@ -290,14 +295,14 @@ class PSS_Logger():
             keys = item['keys']
             self.debug(f"Write CSV for {folder}, keys={','.join(i[0] for i in keys)}")
             try:
-                # only read the data that was generated at least 10 seconds ago. 
+                # only read the data that was generated at least 10 seconds ago.
                 response = requests.get(
                     url=SERVER_GET_URL, json={'keys': [i[0] for i in keys if (datetime.now() - i[1]).seconds >= 10]})
                 if response.status_code == 200:
                     result = response.json()
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
-                
+
                 csvname = str(Path(folder).parent) + '.csv'
 
                 # gather data to write in csv
