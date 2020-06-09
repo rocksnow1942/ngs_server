@@ -18,20 +18,6 @@ from matplotlib.figure import Figure
 import matplotlib.animation as animation
 matplotlib.use('TKAgg')
 
-
-
-# SERVER_POST_URL = 'http://192.168.86.200/api/add_echem_pstrace'
-# SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
-
-
-
-
-
-
-if 'win32' in sys.platform:
-    Path = PureWindowsPath
-
-
 class PSS_Handler(PatternMatchingEventHandler):
     """
     watchdog event listner.
@@ -297,7 +283,6 @@ def animate_figure(s):
     except Exception as e:
         print(e)
 
-
 def load_settings():
     pp = (Path(__file__).parent / '.pssconfig').absolute()
     if os.path.exists(pp):
@@ -334,7 +319,7 @@ TARGET_FOLDER = str((Path(__file__).parent / '.pssconfig').absolute())
 
 settings = load_settings()
 for k,i in settings.items():
-    exec(f"{k} = {i}")
+    globals()[k] = i
 
 
 class Application(tk.Frame):
@@ -348,19 +333,6 @@ class Application(tk.Frame):
         self.create_figure()
         self.MONITORING = True 
         
-    
-    # def load_settings(self):
-    #     pp = (Path(__file__).parent / '.pssconfig').absolute()
-    #     if os.path.exists(pp):
-    #         self.target_folder = open(pp, 'rt').read()
-    #     else:
-    #         self.target_folder = str(pp)
-
-    # def save_settings(self):
-    #     pp = (Path(__file__).parent / '.pssconfig').absolute()
-    #     with open(pp,'wt') as f:
-    #         f.write(self.target_folder)
-
 
     def create_menus(self):
         menu = tk.Menu(self.master)
@@ -371,10 +343,12 @@ class Application(tk.Frame):
         filemenu.add_command(label='Quit',command=self.master.destroy)
 
     def new_folder(self):
+        global TARGET_FOLDER
         self.target_folder = tk.filedialog.askdirectory(
             initialdir=str(Path(self.target_folder).parent))
         self.folderinput.delete(0,tk.END)
         self.folderinput.insert(tk.END,self.target_folder)
+        TARGET_FOLDER = self.target_folder
         save_settings()
 
     def create_figure(self):
