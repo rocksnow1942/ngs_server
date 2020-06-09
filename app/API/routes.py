@@ -16,8 +16,7 @@ def testapi():
 def add_echem_pstrace():
     """
     add echem pstrace to plojo data base. 
-    data format: {md5: md5 of the first pss file, 
-                key: index of plojo entry if it is already created,
+    data format: {key: index of plojo entry if it is already created, if not created, key = ""
                 filename: file path of the pss file,
                 date: date of the first pss file, read from corresponding psmethod file,
                 time: the time point of this scan, in minutes,
@@ -29,13 +28,13 @@ def add_echem_pstrace():
     this trace is already added. and return the current length of trace. 
     """
     data = request.json 
-    md5 = data.get('md5',None)
     data_key = data.get('key',None)
     filename = data.get('filename','Unknown File')
-    date = data.get('date', datetime.now().strftime('%Y%m%d %H:%M'))
+    date = data.get('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     chanel = data.get('chanel','Unknown Chanel')
-    if md5 or data_key:
-        projectname = data.get('project', 'Echem_Scan')
+    projectname = data.get('project', None)
+    
+    if projectname:
         project = Plojo_Project.query.filter(
         Plojo_Project.index.contains(projectname)).first()
 
@@ -46,23 +45,17 @@ def add_echem_pstrace():
             db.session.commit()
 
         if not data_key:
-            plojo_data = Plojo_Data.query.filter(Plojo_Data._data.contains(md5)).all()
-            if len(plojo_data) > 1:
-                existed_data = [i.index for i in plojo_data]
-                return f"Error-Filename: {filename}, md5 {md5} have more than one existance. In {','.join(existed_data)}"
-            elif len(plojo_data) == 1:
-                return f"Exist-{plojo_data[0].index}-{len(plojo_data[0].data.get('signal', []))}"
-            else:
-                note = "Starting File: " + filename
-                newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
-                newdata.data = dict(flag=md5, note=note, name=chanel+" | "+date, author='Script upload', concentration=[], signal=[],
-                                    date=datetime.now().strftime('%Y%m%d'), assay_type="echem", fit_method='none',)
-                db.session.add(newdata)
-                project.data = project.data + [newdata.index]
-                db.session.commit()
-                current_app.task_queue.enqueue(
-                    'app.tasks.echem_fitting.add_echem_pstrace', newdata.index, data, job_timeout=3600)
-                return f"Add-{newdata.index}"
+            note = "Starting File: " + filename
+            expdate = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+            newdata = Plojo_Data(index= Plojo_Data.next_index(),_data="{}")
+            newdata.data = dict( note=note, name=chanel+" | "+date, author='Script upload', concentration=[], signal=[],
+                                date=expdate.strftime("%Y%m%d"), assay_type="echem", fit_method='none',)
+            db.session.add(newdata)
+            project.data = project.data + [newdata.index]
+            db.session.commit()
+            current_app.task_queue.enqueue(
+                'app.tasks.echem_fitting.add_echem_pstrace', newdata.index, data, job_timeout=3600)
+            return f"Add-{newdata.index}"
         else:
             plojo_data = Plojo_Data.query.get(data_key) 
             if plojo_data:

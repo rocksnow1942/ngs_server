@@ -26,8 +26,6 @@ matplotlib.use('TKAgg')
 
 MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
 PRINT_MESSAGES = True # whether print message
-PLOT_TRACE = True
-INITIATE = True # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
 LOG_LEVEL = 'INFO'
 PROJECT_FOLDER = 'Echem_Scan'
 
@@ -165,7 +163,6 @@ class PSS_Logger():
 
     def add(self,file):
         ".pss file"
-        
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
@@ -228,8 +225,7 @@ class PSS_Logger():
         
         if result[0] == 'Add': # if it is starting a new trace
             amskey = result[1]
-            # if PLOT_TRACE:
-            #     self.ploter.plot(index=result[1], chanel = chanel )
+            
             self.info(f'Added - {result[1]} {file}')
         elif result[0] == 'OK':  # if it's continue from a known trace.
             self.info(f"OK - {amskey} {file}")
@@ -263,8 +259,7 @@ class PSS_Logger():
                         signal = result[key].get('signal', None)
                         name = result[key].get('name','No Name')
                         if time and signal:
-                            self.debug(
-                                f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
+                            self.debug(f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
                             datatowrite.append([key + '_time', name] + [str(i) for i in time])
                             datatowrite.append([key + '_signal',name] + [str(i) for i in signal])
                         else:
