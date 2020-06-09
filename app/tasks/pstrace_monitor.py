@@ -29,7 +29,7 @@ LOG_LEVEL = 'INFO'
 PROJECT_FOLDER = 'Echem_Scan'
 
 
-DEQUE_MAXLENGTH = 3
+DEQUE_MAXLENGTH = 3 # how many files in lag to avoid file conflict
 
 # SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
 # SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
@@ -152,11 +152,16 @@ class PSS_Logger():
                 return func(msg)
             return wrap
 
-        for i in ['debug', 'info', 'warning', 'error', 'critical']:
-            if PRINT_MESSAGES:
+        _log_level = ['debug', 'info', 'warning', 'error', 'critical']
+        _log_index = _log_level.index(loglevel.lower())
+        
+        for i in _log_level:
+            setattr(self, i,getattr(self.logger, i))
+        
+        if PRINT_MESSAGES: # if print message, only print for info above that level.
+            for i in _log_level[_log_index:]:
                 setattr(self, i, wrapper(getattr(self.logger, i)))
-            else:
-                setattr(self, i,getattr(self.logger, i))
+            
 
     def get_md5(self,data):
         hasher = hashlib.md5()
