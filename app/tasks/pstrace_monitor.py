@@ -228,7 +228,7 @@ class PSS_Logger():
             
         self.pstraces[folder].append( [file, amskey, time, thistimepoint ] )
         if (amskey,chanel) not in self.plotqueue:
-            self.plotqueue.append((amskey,chanel))
+            self.plotqueue.appendleft((amskey, chanel))
             
     def write_csv(self):
         for folder,item in self.pstraces.items():
