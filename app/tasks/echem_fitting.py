@@ -53,9 +53,9 @@ def smooth(x, windowlenth=11, window='hanning'):
 
 def intercept(x, x1, x2, whole=False):
     """
-    determine whether the line that cross x1 and x2 and x[x1],x[x2] will intercept x.
-    if whole == False, will only consider one side.
-    Only consider the direction from x2 -> x1,
+    determine whether the line that cross x1 and x2 and x[x1],x[x2] will intercept x. 
+    if whole == False, will only consider one side. 
+    Only consider the direction from x2 -> x1, 
     that is:
     if x1 > x2; consider the right side of x2
     if x1 < x2; consider the left side of x2
@@ -69,10 +69,9 @@ def intercept(x, x1, x2, whole=False):
     maxlength = len(x)
     res = x - k*(np.array(range(maxlength)))-b
     if whole:
-
-        return np.any(res[x1 - maxlength//20 - 5:x2 + maxlength//20 + 5] < xtol)
+        return np.any(res[max(0, x1 - maxlength//20 - 5):x2 + maxlength//20 + 5] < xtol)
     if x1 > x2:
-        return np.any(res[x2:min(maxlength, x1 + maxlength//20 + 5)] < xtol)
+        return np.any(res[x2: x1 + maxlength//20 + 5] < xtol)
     else:
         # only consider extra half max width; make sure at least 5 points
         return np.any(res[max(0, x1 - maxlength//20 - 5):x2] < xtol)
@@ -126,10 +125,11 @@ def myfitpeak(xydataIn):
 
     y = smooth(y)
     # limit peak width to 1/50 of the totoal scan length to entire scan.
-    # limit minimum peak height to be over 0.2 percentile of all neighbors
-    heightlimit = np.quantile(np.absolute(y[0:-1] - y[1:]), 0.2)
+    # limit minimum peak height to be over 0.7 percentile of all neighbors
+    heightlimit = np.quantile(np.absolute(y[0:-1] - y[1:]), 0.7)
+    # set height limit so that props return limits
     peaks, props = signal.find_peaks(
-        y, height=heightlimit, width=len(y) / 50, rel_height=0.5)
+        y, height=heightlimit, prominence=heightlimit, width=len(y) / 50, rel_height=0.5)
 
     # return if no peaks found.
     if len(peaks) == 0:
