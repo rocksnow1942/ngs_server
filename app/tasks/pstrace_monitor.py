@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 from collections import deque
 import sys
+from itertools import zip_longest
 
 
 
@@ -24,7 +25,7 @@ MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
 PRINT_MESSAGES = True # whether print message
 PLOT_TRACE = True
 INITIATE = True # INITIATE all folder, if already ran alot, this will use a tone of bandwith.
-LOG_LEVEL = 'DEBUG'
+LOG_LEVEL = 'INFO'
 PROJECT_FOLDER = 'Echem_Scan'
 
 
@@ -296,22 +297,30 @@ class PSS_Logger():
                     result = response.json()
                 else:
                     raise ValueError(f"Error Get data - respons code: {response.status_code}, datapacket: {keys}")
+                
                 csvname = str(Path(folder).parent) + '.csv'
-                with open(csvname, 'wt') as f:
-                    for key,timestamp in keys:
-                        if key in result:
-                            time = result[key].get('concentration',None)
-                            signal = result[key].get('signal',None)
-                            if time and signal:
-                                self.debug(f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
-                                f.write(','.join([key + '_time'] + [str(i) for i in time]))
-                                f.write('\n')
-                                f.write(','.join([key + '_signal'] + [str(i) for i in signal]))
-                                f.write('\n')
-                            else:
-                                self.warning(f"No time or signal in {key},time={time},signal ={signal}")
+
+                # gather data to write in csv
+                datatowrite = []
+                for key, timestamp in keys:
+                    if key in result:
+                        time = result[key].get('concentration', None)
+                        signal = result[key].get('signal', None)
+                        if time and signal:
+                            self.debug(
+                                f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
+                            datatowrite.append([key + '_time'] + [str(i) for i in time])
+                            datatowrite.append([key + '_signal'] + [str(i) for i in signal])
                         else:
-                            self.error(f"Error Write CSV - Key missing {key}")
+                            self.warning(
+                                f"No time or signal in {key},time={time},signal ={signal}")
+                    else:
+                        self.error(f"Error Write CSV - Key missing {key}")
+
+                with open(csvname, 'wt') as f:
+                    for i in zip_longest(*datatowrite,fillvalue=""):
+                        f.write(','.join(i))
+                        f.write('\n')
             except Exception as e:
                 self.error(f"Error Write CSV- {e}")
             # item['keys'] = [i for i in item['keys'] if i not in result]
