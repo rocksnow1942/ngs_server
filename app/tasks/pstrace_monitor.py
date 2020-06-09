@@ -7,18 +7,21 @@ from datetime import datetime
 import requests
 import logging
 from logging.handlers import RotatingFileHandler
-import hashlib
-import matplotlib.pyplot as plt
-import multiprocessing as mp
+import matplotlib
 from collections import deque
 import sys
 from itertools import zip_longest
+import json
+import tkinter as tk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.animation as animation
+matplotlib.use('TKAgg')
 
 
 
-
-SERVER_POST_URL = 'http://192.168.86.200/api/add_echem_pstrace'
-SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
+# SERVER_POST_URL = 'http://192.168.86.200/api/add_echem_pstrace'
+# SERVER_GET_URL = "http://192.168.86.200/api/get_plojo_data"
 
 
 MAX_SCAN_GAP = 8 # mas interval to be considerred as two traces in seconds
@@ -29,78 +32,13 @@ LOG_LEVEL = 'INFO'
 PROJECT_FOLDER = 'Echem_Scan'
 
 
-DEQUE_MAXLENGTH = 3 # how many files in lag to avoid file conflict
-
-# SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
-# SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
+SERVER_POST_URL = 'http://127.0.0.1:5000/api/add_echem_pstrace'
+SERVER_GET_URL = "http://127.0.0.1:5000/api/get_plojo_data"
 
 
-if 'win' in sys.platform:
+
+if 'win32' in sys.platform:
     Path = PureWindowsPath
-
-class ProcessPlotter:
-    ROW = 3
-    COL = 4
-    def __init__(self):
-        # index is a q of (ams101,chanel name)
-        self.index = deque(maxlen=self.ROW * self.COL)
-
-    def terminate(self):
-        plt.close('all')
-
-    def call_back(self):
-        while self.pipe.poll():
-            msg = self.pipe.recv()
-            if msg is None:
-                self.terminate()
-                return False
-            else:
-                self.index.appendleft(msg)
-        r = requests.get(url=SERVER_GET_URL, json={'keys': [i[0] for i in self.index]})
-        data = r.json()
-        for (k,chanel),ax in zip(self.index,self.axes):
-            ax.clear()
-            c = data.get(k,{}).get('concentration',[0])
-            s = data.get(k, {}).get('signal', [0])
-            ax.plot(c,s,color='b',marker='o',linestyle='',markersize=3,markerfacecolor='w')
-            ax.set_title(f'{k}-{chanel}')
-            ax.set_xlabel('Time / Minutes')
-            ax.set_ylabel('Singal / nA')
-
-        self.fig.canvas.draw()
-        return True
-
-    def __call__(self, pipe):
-        params = {'axes.labelsize': 6,
-                  'axes.titlesize': 6,
-                  'xtick.labelsize': 6,
-                  'ytick.labelsize':6,}
-        plt.rcParams.update(params)
-        self.pipe = pipe
-        self.fig, axes = plt.subplots(self.ROW,self.COL,figsize=(self.COL*2,self.ROW*1.6))
-        self.fig.subplots_adjust(top=0.95,bottom=0.1,left=0.1,right=0.9)
-        self.axes = [i for j in axes for i in j]
-        timer = self.fig.canvas.new_timer(interval=5000)
-        timer.add_callback(self.call_back)
-        timer.start()
-        plt.tight_layout()
-        plt.show()
-
-
-class PlotMessenger:
-    def __init__(self):
-        self.plot_pipe, plotter_pipe = mp.Pipe()
-        self.plotter = ProcessPlotter()
-        self.plot_process = mp.Process(
-            target=self.plotter, args=(plotter_pipe,), daemon=True)
-        self.plot_process.start()
-
-    def plot(self,index=None,chanel = 'Unknown', finished=False):
-        send = self.plot_pipe.send
-        if finished:
-            send(None)
-        else:
-            send((index, chanel))
 
 
 class PSS_Handler(PatternMatchingEventHandler):
@@ -129,11 +67,20 @@ class PSS_Handler(PatternMatchingEventHandler):
         pass
 
 class PSS_Logger():
+    debug= lambda x: 0
+    info= lambda x: 0
+    warning=lambda x: 0
+    error = lambda x: 0
+    critical = lambda x: 0
     def __init__(self, target_folder="", ploter=None, loglevel='INFO'):
         "target_folder: the folder to watch, "
         self.pstraces = {}
-        self.target_foler = target_folder
-        self.ploter = ploter
+        self.target_folder = target_folder
+        # self.ploter = ploter
+        self.queue = deque() 
+        self.plotqueue = deque(maxlen=12)
+        self.added = []
+        self.load_pstraces()
 
         level = getattr(logging, loglevel.upper(), 20)
         logger = logging.getLogger('Monitor')
@@ -162,57 +109,84 @@ class PSS_Logger():
             for i in _log_level[_log_index:]:
                 setattr(self, i, wrapper(getattr(self.logger, i)))
             
+    def load_pstraces(self):
+        folder = self.target_folder
+        pstrace = os.path.join(folder,'pstracelog_DONT_TOUCH.json')
+        if os.path.exists(pstrace):
+            with open(pstrace,'rt') as f:
+                data = json.load(f)
+            for k,i in data.items():
+                for entry in i:
+                    entry[2] = datetime.strptime(entry[2],'%Y-%m-%d %H:%M:%S')
+            self.pstraces = data
+    
+    def save_pstraces(self):
+        pstrace = os.path.join(self.target_folder,'pstracelog_DONT_TOUCH.json')
+        data = {}
+        for k,i in self.pstraces.items():
+            data[k] = [[e[0],e[1],datetime.strftime(e[2],'%Y-%m-%d %H:%M:%S'), e[3]] for e in i]
+            
+        with open(pstrace,'wt') as f:
+            json.dump(data,f,indent=2)
 
-    def get_md5(self,data):
-        hasher = hashlib.md5()
-        hasher.update(data.encode('utf-16'))
-        return hasher.hexdigest()
 
     def init(self):
-        for root,dirs,files in os.walk(self.target_foler):
+        addedfiles = [i[0] for k,j in self.pstraces.items() for i in j]
+        for root,dirs,files in os.walk(self.target_folder):
             files = [os.path.join(root,file) for file in files if file.endswith('.pss') and (
                 'conflict' not in file.lower()) and (not file.startswith('~$'))]
             files = sorted(files,key = lambda x: os.path.getmtime(x))
             for file in files:
-                self.create(file)
-
+                if file not in addedfiles:
+                    self.create(file)
+                
     def create(self,file):
+        "add file to queue with time stamp"
+        self.queue.append((datetime.now(),file))
+        self.debug(f'Create - {file} queue length: {len(self.queue)}.')
+        return
+        
+    def sync(self,delay=10):
+        "sync files in queue, delay seconds in delay"
+        while self.queue:
+            t,f = self.queue[0]
+            currentdelay = (datetime.now()-t).seconds
+            if  currentdelay >=delay:
+                t,f = self.queue.popleft()
+                self.debug(f'Add - {f} delayed: {currentdelay} seconds.')
+                self.add(f) 
+            else:
+                return 
+    def finalsync(self,):
+        "sync all files in queue"
+        while self.queue:
+            self.sync()
+            time.sleep(0.1)
+
+    def add(self,file):
         ".pss file"
-        self.debug(f'Call Created File {file}')
+        
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
-
+        
         if folder not in self.pstraces:
-            self.debug(f'Created Folder {folder}')
-            self.pstraces[folder] = {'time':[datetime(2000,1,1)],'key':None,'md5':None,
-                                    'needtoskip':0,'starttime':None,'keys':[],'deque':deque()}
-
-        if len(self.pstraces[folder]['deque']) >= DEQUE_MAXLENGTH:
-            self.pstraces[folder]['deque'].append(file)
-            file = self.pstraces[folder]['deque'].popleft()
-            self.debug(f'Actually Created File {file}')
-        else:
-            self.pstraces[folder]['deque'].append(file)
-            self.debug(f'Deque length < {DEQUE_MAXLENGTH}, not created.')
-            return
-
+            self.pstraces[folder] = []
+            # strucutre: [[file1, amskey, datetime, timepoint]]
+    
         psmethod = file[0:-1] + 'method'
-        lasttime = self.pstraces[folder]['time'][-1]
-        chanel = Path(file).parts[-3]
+        if self.pstraces[folder]:
+            lasttime = self.pstraces[folder][-1][2]
+        else:
+            lasttime = datetime(2000,1,1)
+
+        chanel = filepath.parts[-3]
 
         with open(psmethod,'rt',encoding='utf-16') as f:
             psmethoddata = f.read()
 
         timestring = psmethoddata.split('\n')[2][1:]
         time = datetime.strptime(timestring, '%Y-%m-%d %H:%M:%S')
-
-        # if need to skip , skip this file.
-        if self.pstraces[folder]['needtoskip'] > 0:
-            self.pstraces[folder]['needtoskip'] -= 1
-            self.pstraces[folder]['time'].append(time)
-            self.debug(f'Need to skip, still have {self.pstraces[folder]["needtoskip"]} files to skip.')
-            return
 
         # read pss data
         with open(file,'rt') as f:
@@ -227,24 +201,15 @@ class PSS_Logger():
 
         # determine if the data is a new scan or is continued from pervious and handle it.
         if (time - lasttime).seconds > MAX_SCAN_GAP:
-            self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.')
-            if self.pstraces[folder]['key']:
-                self.debug(f'Previous Key stored in keys to save: {self.pstraces[folder]["key"]}.')
-                self.pstraces[folder]['keys'].append(
-                    (self.pstraces[folder]['key'],datetime.now()))
-            self.pstraces[folder]['key'] = None
-            self.pstraces[folder]['needtoskip'] = 0
-            self.pstraces[folder]['starttime'] = time
-            md5 = self.get_md5(pssdata)
-            self.pstraces[folder]['md5'] = md5
-            data_tosend.update(md5=md5,time=0)
+            self.debug(f'MAX_SCAN_GAP reached, {(time - lasttime).seconds} seconds.') 
+            thistimepoint = 0
+            amskey = ""
         else:
-            self.debug(f'Continuous from previous scan, {(time - lasttime).seconds} seconds, Key={self.pstraces[folder]["key"]}.')
-            starttime = self.pstraces[folder]['starttime']
-            md5 = self.pstraces[folder]['md5']
-            data_tosend.update(time=(time-starttime).seconds/60,key=self.pstraces[folder]['key'],md5=md5)
-
-        self.pstraces[folder]['time'].append(time)
+            thistimepoint = self.pstraces[folder][-1][3] + (time-lasttime).seconds/60
+            amskey = self.pstraces[folder][-1][1]
+            self.debug(f'Continuous from previous scan {amskey}, after {thistimepoint} seconds.')
+        
+        data_tosend.update(time=thistimepoint,key=amskey )    
 
         try:
             response = requests.post(url=SERVER_POST_URL, json=data_tosend)
@@ -259,50 +224,31 @@ class PSS_Logger():
             return
 
         result = result.split('-')
-
         # depend on the response from server, handle result differently
+        
         if result[0] == 'Add': # if it is starting a new trace
-            self.pstraces[folder]['key'] = result[1]
-            if PLOT_TRACE:
-                self.ploter.plot(index=result[1], chanel = chanel )
+            amskey = result[1]
+            # if PLOT_TRACE:
+            #     self.ploter.plot(index=result[1], chanel = chanel )
             self.info(f'Added - {result[1]} {file}')
-        elif result[0] == 'Exist':  # if it's a existing trace.
-            self.pstraces[folder]['key'] = result[1]
-            self.pstraces[folder]['needtoskip'] = int(result[2]) -1
-            self.info(f'Exist - {result[1]} {file}')
         elif result[0] == 'OK':  # if it's continue from a known trace.
-            self.info(f"OK - {self.pstraces[folder]['key']} {file}")
+            self.info(f"OK - {amskey} {file}")
         else:
             self.error(f"API-Error - {'-'.join(result)}")
-
-    def wrap_up(self):
-        'cleanup stuff'
-        for folder in self.pstraces:
-            if self.pstraces[folder]['deque']:
-                self.debug(f'Wrap Up folder {folder}, deque = {self.pstraces[folder]["deque"]}')
-                for file in self.pstraces[folder]['deque']:
-                    self.create(file)
-            if self.pstraces[folder]['key']:
-                self.debug(f'Wrap Up folder {folder}, add key to keys:{self.pstraces[folder]["key"]}')
-                self.pstraces[folder]['keys'].append(
-                    (self.pstraces[folder]['key'],datetime.now()))
-        # sleep 10 seconds before writting.
-        time.sleep(10)
-        self.write_csv()
-        for folder, item in self.pstraces.items():
-            keys = item['keys']
-            keysstring = ','.join(f"{i[0]}-{i[1].strftime('%Y%m%d %H:%M:%S')}" for i in keys)
-            self.info(
-                f"Keys in folder {folder} after wrap up: keys = {keysstring}")
-
+            return  
+            
+        self.pstraces[folder].append( [file, amskey, time, thistimepoint ] )
+        if (amskey,chanel) not in self.plotqueue:
+            self.plotqueue.append((amskey,chanel))
+            
     def write_csv(self):
         for folder,item in self.pstraces.items():
-            keys = item['keys']
-            self.debug(f"Write CSV for {folder}, keys={','.join(i[0] for i in keys)}")
+            keys = list(set([i[1] for i in item]))
+            self.debug(f"Write CSV for {folder}, keys={','.join(keys)}")
             try:
                 # only read the data that was generated at least 10 seconds ago.
                 response = requests.get(
-                    url=SERVER_GET_URL, json={'keys': [i[0] for i in keys if (datetime.now() - i[1]).seconds >= 10]})
+                    url=SERVER_GET_URL, json={'keys':keys })
                 if response.status_code == 200:
                     result = response.json()
                 else:
@@ -310,17 +256,17 @@ class PSS_Logger():
 
                 csvname = str(Path(folder).parent) + '.csv'
 
-                # gather data to write in csv
                 datatowrite = []
-                for key, timestamp in keys:
+                for key in keys:
                     if key in result:
                         time = result[key].get('concentration', None)
                         signal = result[key].get('signal', None)
+                        name = result[key].get('name','No Name')
                         if time and signal:
                             self.debug(
                                 f"write time and signal for {key}, time length = {len(time)}, signal length = {len(signal)}")
-                            datatowrite.append([key + '_time'] + [str(i) for i in time])
-                            datatowrite.append([key + '_signal'] + [str(i) for i in signal])
+                            datatowrite.append([key + '_time', name] + [str(i) for i in time])
+                            datatowrite.append([key + '_signal',name] + [str(i) for i in signal])
                         else:
                             self.warning(
                                 f"No time or signal in {key},time={time},signal ={signal}")
@@ -333,51 +279,185 @@ class PSS_Logger():
                         f.write('\n')
             except Exception as e:
                 self.error(f"Error Write CSV- {e}")
-            # item['keys'] = [i for i in item['keys'] if i not in result]
+        
 
 
+    
+f = Figure(figsize=(8, 5), dpi=100)
+axes = f.subplots(3, 4, )
+axes = [i for j in axes for i in j] 
+for ax in axes:
+    ax.axis('off')
 
-def start_monitor(target_folder,loglevel='DEBUG'):
+global TODRAW
+TODRAW = []
+
+def animate_figure(s):
+    global TODRAW
     try:
-        if PLOT_TRACE:
-            Ploter = PlotMessenger()
-        else:
-            Ploter = None
-        observer = Observer()
-        logger = PSS_Logger(target_folder=target_folder,ploter=Ploter,loglevel=loglevel)
-        logger.info('*****PSS monitor started*****')
-        if INITIATE:
-            logger.info('****Start initiation.****')
-            logger.init()
-            logger.info('****Init Done.****')
-
-        observer.schedule(PSS_Handler(logger=logger),target_folder,recursive=True)
-        observer.start()
-        logger.info(f'****Monitor Started <{target_folder}>.****')
-        try:
-            while True:
-                time.sleep(300)
-                logger.write_csv()
-        except KeyboardInterrupt:
-            logger.wrap_up()
-            logger.info(f'****Monitor Stopped****')
-            observer.stop()
-            observer.join()
-        finally:
-            Ploter.plot(finished=True)
+        data = requests.get(url=SERVER_GET_URL, json={
+                            'keys': [i[0] for i in TODRAW]}).json()
+        for (k, chanel), ax in zip(TODRAW, axes):
+            ax.clear()
+            c = data.get(k, {}).get('concentration', [0])
+            s = data.get(k, {}).get('signal', [0])
+            ax.plot(c, s, color='b', marker='o', linestyle='',
+                    markersize=3, markerfacecolor='w')
+            ax.set_title(f'{k}-{chanel}',fontsize=8)
+            ax.set_xticks([])
+            ax.set_yticks([])
     except Exception as e:
-        logger.error(f'Error during monitoring {e}')
-
-
-
-if __name__ == "__main__":
-    while 1:
-        print('='*20)
-        targetfolder = input('Enter folder to monitor:\n').strip()
-        PROJECT_FOLDER = input(
-            'Enter Project Folder to upload data to: (Default "Echem_Scan")').strip() or PROJECT_FOLDER
-        # targetfolder = '/Users/hui/Downloads/test echem folder'
-        if os.path.exists(targetfolder):
-            start_monitor(targetfolder,loglevel=LOG_LEVEL)
+        print(e)
+       
+       
+                
+    
+class Application(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.load_settings()
+        self.pack()
+        self.create_menus()
+        self.create_widgets()
+        self.create_figure()
+        self.MONITORING = True 
+        
+    
+    def load_settings(self):
+        pp = (Path(__file__).parent / '.pssconfig').absolute()
+        if os.path.exists(pp):
+            self.target_folder = open(pp, 'rt').read()
         else:
-            print(f"{targetfolder} doesn't exist.\n"+"="*20)
+            self.target_folder = str(pp)
+
+    def save_settings(self):
+        pp = (Path(__file__).parent / '.pssconfig').absolute()
+        with open(pp,'wt') as f:
+            f.write(self.target_folder)
+
+
+    def create_menus(self):
+        menu = tk.Menu(self.master)
+        self.master.config(menu=menu) 
+        filemenu = tk.Menu(menu)
+        menu.add_cascade(label='File',menu=filemenu)
+        filemenu.add_command(label='New Monitor Folder',command=self.new_folder)
+        filemenu.add_command(label='Quit',command=self.master.destroy)
+
+    def new_folder(self):
+        self.target_folder = tk.filedialog.askdirectory(
+            initialdir=str(Path(self.target_folder).parent))
+        self.folderinput.delete(0,tk.END)
+        self.folderinput.insert(tk.END,self.target_folder)
+        self.save_settings()
+
+    def create_figure(self):
+        canvas = FigureCanvasTkAgg(f, self)
+        canvas.draw()
+        tkwidget = canvas.get_tk_widget()
+        tkwidget.grid(column=0,row=2,columnspan=6,rowspan=4,sticky=tk.E)
+        # tkwidget.pack(side=tk.TOP, fill=tk.BOTH, expand=False)
+       
+
+    def create_widgets(self):
+        self.master.title("PSS monitor")
+        self.pack(fill=tk.BOTH,expand=True) 
+
+        # self.grid_columnconfigure() 
+        self.folderbutton = tk.Button(self,text='Folder',command=self.new_folder)
+        self.folderbutton.grid(row=0, column=0, padx=10, pady=10, sticky=tk.E)
+        self.folderinput = tk.Entry(self, width=50)
+        self.folderinput.insert(tk.END, self.target_folder)
+        self.folderinput.grid(row=0, column=1, sticky=tk.W)
+
+        self.msg = tk.StringVar()
+        self.msg.set('PSS MONITOR READY')
+        self.msglabel = tk.Label(self, textvariable=self.msg, bg='cyan')
+        # self.msg.config(bg='green', width=50)
+        self.msglabel.grid(row=6, column=0, columnspan=10)
+        # self.msg.pack()
+        
+        self.start_monitor_button = tk.Button(self, text="Start Monitor", command=self.start_monitor)
+        self.start_monitor_button.grid(row=0,column=2,)
+        # self.start_monitor_button.pack(side="top")
+        
+        self.stop_monitor_button = tk.Button(self, text="Stop Monitor", fg="red", state='disabled',
+                              command=self.stop_monitor)
+        self.stop_monitor_button.grid(row=0, column=3, )
+        # self.stop_monitor_button.pack(side='bottom')
+
+        self.save_csv_button = tk.Button(self, text="Save CSV", fg="green", state='disabled',
+                                             command=self.save_csv)
+        self.save_csv_button.grid(row=0, column=4, )
+
+    def save_csv(self):
+        self.msg.set(f"Saving CSV .... Please wait!")
+        self.logger.write_csv()
+        self.msg.set(f"CSV Saved To {self.logger.target_folder}!")
+
+    def stop_monitor(self):
+        # self.appPipe.send('stop')
+        self.msg.set(f"Stopping Monitor Process .... Please wait!")
+        self.msglabel.config(bg='red')
+        self.MONITORING = False
+
+    def start_monitor(self, ):
+        self.target_folder = self.folderinput.get()
+
+        if not os.path.exists(self.target_folder):
+            self.msg.set(f"'{self.target_folder}' is not a valid folder.")
+            self.msglabel.config(bg='red')
+            return
+        
+        self.start_monitor_button['state'] = 'disabled'
+        self.folderinput['state'] = 'disabled'
+        self.stop_monitor_button['state'] = 'normal'
+        self.save_csv_button['state'] = 'disabled'
+        self.folderbutton['state'] = 'disabled'
+
+        self.msg.set(f"Starting......")
+        self.msglabel.config(bg='yellow')
+    
+        observer = Observer()
+        logger = PSS_Logger(target_folder=self.target_folder, loglevel=LOG_LEVEL)
+        logger.info('*****PSS monitor started*****')
+        logger.info('****Start initiation.****')
+        logger.init()
+        logger.info('****Init Done.****')
+        observer.schedule(PSS_Handler(logger=logger),
+                          self.target_folder, recursive=True)
+        observer.start()
+        logger.info(f'****Monitor Started <{self.target_folder}>.****')
+        self.msg.set(f"Monitoring......")
+        self.logger = logger 
+        self.observer = observer
+        self.MONITORING = True
+        self.after(1000, self.syncLogger)
+    
+    def syncLogger(self):
+        global TODRAW
+        if self.MONITORING:
+            TODRAW = self.logger.plotqueue
+            self.logger.sync()
+            self.after(1000,self.syncLogger)
+        else:
+            self.logger.finalsync()
+            self.logger.save_pstraces()
+            self.observer.stop()
+            self.observer.join()
+            self.logger.info('Monitor Stopped.')
+            self.start_monitor_button['state'] = 'normal'
+            self.folderinput['state'] = 'normal'
+            self.save_csv_button['state'] = 'normal'
+            self.stop_monitor_button['state'] = 'disabled'
+            self.folderbutton['state'] = 'normal'
+            self.msg.set(f"Monitoring Stopped!")
+            self.msglabel.config(bg='cyan')
+
+
+root = tk.Tk()
+root.geometry('840x600')
+app = Application(master=root)
+ani = animation.FuncAnimation(f, animate_figure, interval=5000)
+app.mainloop()
