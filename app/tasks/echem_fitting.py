@@ -2,7 +2,7 @@ import numpy as np
 from app import create_app
 from app.plojo_models import Plojo_Data
 from app import db
-from myfit import myfitpeak
+from app.tasks.myfit import myfitpeak
 
 app = create_app(keeplog=False)
 app.app_context().push()
