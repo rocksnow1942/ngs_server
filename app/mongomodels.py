@@ -7,7 +7,7 @@ class EchemData(Document):
     created = DateTimeField(default=datetime.now)
 
     meta = {
-        'db_alias':'buglogger'
+        'db_alias':'echem'
     }
 
 
@@ -24,7 +24,7 @@ class Experiment(Document):
 
     meta = {
         'indexes': ['name'],
-        'db_alias': 'test'
+        'db_alias': 'echem'
     }
 
 
