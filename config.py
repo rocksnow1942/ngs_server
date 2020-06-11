@@ -37,3 +37,15 @@ class Config():
     DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'
 
     ANIMAL_DATA_PATH = os.environ.get('ANIMAL_DATA_PATH') or '.'
+
+    # MONGO_URI = os.environ.get('MONGO_URI') or "mongodb://hui:kanghui@pi.hole:27017/test"
+
+    MONGODB_SETTINGS = [{
+        'ALIAS':'test',
+        'host': os.environ.get(
+        'MONGO_DATABSE_1') or "mongodb://hui:kanghui@pi.hole:27017/test"},
+        { 
+            'ALIAS': 'buglogger',
+            'host': os.environ.get(
+            'MONGO_DATABSE_2') or "mongodb://buglogger:buglogger@pi.hole:27017/buglogger"},
+        ]

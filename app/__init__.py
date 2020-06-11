@@ -12,6 +12,8 @@ from redis import Redis
 import rq
 from rq.job import Job
 from elasticsearch import Elasticsearch
+# from flask_pymongo import PyMongo
+from flask_mongoengine import MongoEngine
 
 db = SQLAlchemy()
 migrate=Migrate()
@@ -20,6 +22,7 @@ mail = Mail()
 login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = 'Please log in to access this page.'
+mongo = MongoEngine()
 
 def fetch_job_from_queue(rdqueue):
     def wrapped(taskid):
@@ -45,6 +48,7 @@ def create_app(config_class = Config,keeplog=True):
     bootstrap.init_app(app)
     login.init_app(app)
     mail.init_app(app)
+    mongo.init_app(app)
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('ngs-server-tasks', connection=app.redis)
@@ -98,4 +102,4 @@ def create_app(config_class = Config,keeplog=True):
 
 
 
-from app import models,plojo_models
+from app import models,plojo_models,mongomodels
