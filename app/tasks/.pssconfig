@@ -1,1 +1,1 @@
-/Users/hui/Downloads/test echem folder
+{"TARGET_FOLDER": "/Users/hui/Downloads/MSQ Training Slides", "MAX_SCAN_GAP": 8, "LOG_LEVEL": "INFO", "PROJECT_FOLDER": "Echem_Scan", "SERVER_GET_URL": "http://192.168.86.200/api/get_plojo_data", "SERVER_POST_URL": "http://192.168.86.200/api/get_plojo_data"}

@@ -2,14 +2,13 @@ import time
 import os
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-from pathlib import Path,PureWindowsPath
+from pathlib import Path
 from datetime import datetime
 import requests
 import logging
 from logging.handlers import RotatingFileHandler
 import matplotlib
 from collections import deque
-import sys
 from itertools import zip_longest
 import json
 import tkinter as tk
@@ -255,33 +254,30 @@ class PSS_Logger():
                 self.error(f"Error Write CSV- {e}")
         
 
-
-    
+matplotlib.rc('font',**{'size':8})
 f = Figure(figsize=(8, 5), dpi=100)
 axes = f.subplots(3, 4, )
 axes = [i for j in axes for i in j] 
-for ax in axes:
-    ax.axis('off')
+f.set_tight_layout(True)
 
 global TODRAW
-TODRAW = []
+TODRAW = [ ]
 
 def animate_figure(s):
     global TODRAW
-    try:
-        data = requests.get(url=SERVER_GET_URL, json={
-                            'keys': [i[0] for i in TODRAW]}).json()
-        for (k, chanel), ax in zip(TODRAW, axes):
-            ax.clear()
-            c = data.get(k, {}).get('concentration', [0])
-            s = data.get(k, {}).get('signal', [0])
-            ax.plot(c, s, color='b', marker='o', linestyle='',
-                    markersize=3, markerfacecolor='w')
-            ax.set_title(f'{k}-{chanel}',fontsize=8)
-            ax.set_xticks([])
-            ax.set_yticks([])
-    except Exception as e:
-        print(e)
+    data = requests.get(url=SERVER_GET_URL, json={
+                        'keys': [i[0] for i in TODRAW]}).json()
+    for (k, chanel), ax in zip(TODRAW, axes):
+        ax.clear()
+        c = data.get(k, {}).get('concentration', [0])
+        s = data.get(k, {}).get('signal', [0])
+        ax.plot(c, s, color='b', marker='o', linestyle='',
+                markersize=3, markerfacecolor='w')
+        ax.set_title(f'{k}-{chanel}')
+        # ax.set_xlabel('Time/min',fontsize=6)
+        # ax.set_ylabel('Signal/nA', fontsize=6)
+        
+ 
 
 def load_settings():
     pp = (Path(__file__).parent / '.pssconfig').absolute()
@@ -440,10 +436,16 @@ class Application(tk.Frame):
             self.logger.sync()
             self.after(1000,self.syncLogger)
         else:
-            self.logger.finalsync()
-            self.logger.save_pstraces()
-            self.observer.stop()
-            self.observer.join()
+            try:
+                self.logger.info("Stopping monitor...")
+                self.logger.finalsync()
+                self.logger.save_pstraces()
+                self.logger.info("Logger saved pstrace record.")
+                self.observer.stop()
+                self.observer.join()
+                self.logger.info("Monitor stopped.")
+            except Exception as e:
+                self.logger.error(f'STOP monitor error {e}')
             self.logger.info('Monitor Stopped.')
             self.start_monitor_button['state'] = 'normal'
             self.folderinput['state'] = 'normal'
