@@ -19,6 +19,8 @@ Flask-Bootstrap==3.3.7.1
 Flask-Login==0.4.1
 Flask-Mail==0.9.1
 Flask-Migrate==2.5.2
+flask-mongoengine==0.9.5
+Flask-PyMongo==2.3.0
 Flask-SQLAlchemy==2.4.0
 Flask-Uploads==0.2.1
 Flask-User==1.0.1.5
@@ -36,6 +38,7 @@ MarkupSafe==1.1.1
 matplotlib==3.1.1
 matplotlib-venn==0.11.5
 mccabe==0.6.1
+mongoengine==0.20.0
 numpy==1.17.2
 packaging==19.2
 pandas==0.25.1
@@ -48,6 +51,7 @@ pycparser==2.19
 pyflakes==2.2.0
 PyJWT==1.7.1
 pylint==2.3.1
+pymongo==3.10.1
 PyMySQL==0.9.3
 pyparsing==2.4.2
 python-dateutil==2.8.0
