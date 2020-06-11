@@ -41,11 +41,11 @@ class Config():
     # MONGO_URI = os.environ.get('MONGO_URI') or "mongodb://hui:kanghui@pi.hole:27017/test"
 
     MONGODB_SETTINGS = [{
-        'ALIAS':'test',
+        'ALIAS':'default',
         'host': os.environ.get(
         'MONGO_DATABSE_1') or "mongodb://hui:kanghui@pi.hole:27017/test"},
         { 
-            'ALIAS': 'buglogger',
+            'ALIAS': 'echem',
             'host': os.environ.get(
             'MONGO_DATABSE_2') or "mongodb://buglogger:buglogger@pi.hole:27017/buglogger"},
         ]
