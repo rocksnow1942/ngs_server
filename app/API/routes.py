@@ -125,5 +125,5 @@ def add_echem_data():
     add echem data to mongodb collection. 
     """
     data = request.json
-
+    
     return 'WOOW'
