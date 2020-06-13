@@ -1,13 +1,12 @@
 from app import db,mongo
 from flask import current_app,render_template, flash, redirect, url_for, request, current_app, jsonify
-from flask_login import current_user,login_required
+# from flask_login import current_user,login_required
 from app.API import bp
-from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
+# from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
 from app.plojo_models import Plojo_Data, Plojo_Project
 from datetime import datetime
 from app.tasks.myfit import myfitpeak
 from app.mongomodels import Experiment,Project,EchemData
-import numpy as np
 from dateutil import parser
 
 @bp.route('/testapi', methods=['POST','GET'])
