@@ -1,37 +1,80 @@
 from mongoengine import * 
-from datetime import datetime 
-
-
-
-
-
-class Experiment(DynamicDocument):
-    name = StringField(max_length=1000, required=True, unique=True)
-    tag = StringField(max_length=1000)
-    author = StringField(max_length=1000)
-    note = StringField(max_length=9999)
-    desc = StringField(max_length=9999)
-    dataType = StringField(max_length=100)
-    data = DictField()
-    
-    created = DateTimeField(default=datetime.now)
-
-    meta = {
-        'indexes': ['name'],
-        'db_alias': 'echem'
-    }
+from datetime import datetime , timedelta
 
 
 class Project(DynamicDocument):
     name = StringField(max_length=1000, required=True, unique=True)
     desc = StringField(max_length=9000, default='A project.')
-    exps = ListField(ReferenceField(Experiment, reverse_delete_rule=PULL))
+    # exps = ListField(ReferenceField(Experiment, reverse_delete_rule=PULL))
     created = DateTimeField(default=datetime.now)
 
     meta = {
         'indexes': ['name'],
-        'db_alias': 'echem'
+        'db_alias': 'echem',
+        'ordering': ['-created']
     }
-    
 
-mongomodels = {'exp': Experiment, 'eProject': Project}
+
+class Experiment(DynamicDocument):
+    name = StringField(max_length=1000, required=True,)
+    author = StringField(max_length=1000)
+    note = StringField(max_length=9999)
+    desc = StringField(max_length=9999)
+    project = ReferenceField('Project',reverse_delete_rule=CASCADE)
+    # data = ListField(ReferenceField(EchemData,reverse_delete_rule=PULL))
+    
+    created = DateTimeField(default=datetime.now)
+
+    meta = {
+        'indexes': [
+            {
+                'fields': ['$name','$author','$note','$desc'],
+                'default_language':'english',
+                'weights': {'name':10, 'note': 5, 'desc': 5, 'author': 5,}
+            }
+        ],
+        'db_alias': 'echem',
+        'ordering': ['-created'],
+    }
+
+    @queryset_manager
+    def recent(doc_cls, queryset):
+        return queryset.filter(created__gte=datetime.now()-timedelta(days=7))
+
+
+class EchemData(DynamicDocument):
+    """
+    dtype = covid-trace
+    name: 
+    desc: 
+    exp: 
+    data : {
+        time: [timestamp,...]
+        rawdata: [[v,a],[...]]
+        fit:[{fx:,fy:,pc:,pv:,err:,},...]
+    }
+    """
+    DTYPE = ['covid-trace', ]
+    dtype = StringField(max_length=100, choices=DTYPE)
+    name = StringField(max_length=1000)
+    desc = StringField(max_length=1000)
+    data = DictField()
+    exp = ReferenceField('Experiment', reverse_delete_rule=CASCADE)
+    created = DateTimeField(default=datetime.now)
+
+    meta = {
+        'indexes': [
+            {
+                'fields': ['$name', '$desc', '$dtype'],
+                'default_language':'english',
+                'weights': {'name': 10,  'desc': 5,  'dtype': 4}
+            }
+        ],
+        'db_alias': 'echem',
+        'ordering': ['-created'],
+    }
+
+
+
+
+mongomodels = {'exp': Experiment, 'eProject': Project,'eData':EchemData}

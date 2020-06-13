@@ -6,12 +6,16 @@ from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary
 from app.plojo_models import Plojo_Data, Plojo_Project
 from datetime import datetime
 from app.tasks.myfit import myfitpeak
+from app.mongomodels import Experiment,Project,EchemData
 import numpy as np
+from dateutil import parser
 
 @bp.route('/testapi', methods=['POST','GET'])
 def testapi():
     data = request.json
     print(data)
+    # if request.method == 'GET':
+    #     return render_template('sudoku/index.html')
     return jsonify(data)
 
 
@@ -54,9 +58,8 @@ def add_echem_pstrace():
         fittingerror = ""
         if potential and amp:
             try:
-                xydataIn = np.array([potential, amp])
-                res = myfitpeak(xydataIn)
-                peakcurrent = round(float(res[5]), 6)
+                res = myfitpeak(potential, amp)
+                peakcurrent = round(float(res['pc']), 6)
             except Exception as e:
                 fittingerror = str(e)
                 peakcurrent = -100  # to indicate fitting error
@@ -123,7 +126,151 @@ def get_plojo_data():
 def add_echem_data():
     """
     add echem data to mongodb collection. 
+    json format:
+    {
+        experiment:{} # add new experiment , refer to create_echem_experiment for formatting
+        project: {} # add new project , refer to create_echem_project for formatting
+        rawdata: {} # add to EchemData, refer to create_echem_rawdata for formatting
+    }
     """
-    data = request.json
+    package = request.json
+    response = {}
+    for key, payload in package.items():
+        try:
+            if key == 'experiment':
+                res = create_echem_experiment(payload)
+            elif key == 'project':
+                res = create_echem_project(payload)
+            elif key == 'rawdata':
+                res = create_echem_rawdata(payload)
+            else:
+                res = {key: {'status': 'error', 'err': 'Error -  invalid key.'}}
+        except Exception as e:
+            res = {key: {'status': 'error', 'err': str(e)}}
+        response.update(res)
+    return response
     
-    return 'WOOW'
+def create_echem_experiment(payload):
+    """create a new echem experiment
+    payload format:
+    {   
+        id: string, if id is provided, will update the experiment with the same id.
+        name : string, 
+        author : string, 
+        note: string, 
+        desc: string, 
+        project: string, id of the project it need to add to.
+        if other key is passed in, will use it. 
+    }
+    """
+    try:
+        project = payload.get('project',None)
+        if not project:
+            project = Project.objects(name='Unassigned experiments').first()
+            if not project:
+                project = Project(name='Unassigned experiments',
+                                  desc="To store experiments that doesn't belong to any project.").save()
+                
+            payload.update(project=project)
+        id = payload.pop('id',None)
+        if id==None:
+            exp = Experiment(**payload)
+            exp.save()
+            id = exp.id
+        else:
+            Experiment.objects(id=id).update_one(**payload)
+        return {'experiment': {'status': 'ok', 'id': str(id)}}
+    except Exception as e:
+        return {'experiment': {'status': 'error', 'err': str(e)}}
+
+def create_echem_project(payload):
+    """
+    create echemproject 
+    payload format:
+    {   
+        id: string of project id. if id is provided, will update the existing document.
+        name: string, 
+        desc: string ,
+        other keys will be saved.
+    }
+    """
+    try:
+        id = payload.pop('id',None)
+        if id == None:
+            project = Project(**payload).save()
+            id = project.id
+        else:
+            Project.objects(id=id).update_one(**payload)
+        return {'project':{'status':'ok','id':str(id)}}
+    except Exception as e:
+        return {'project':{'status':'error','err':str(e)}}
+
+def create_echem_rawdata(payload):
+    """
+    raw data format:
+    id: if no id, then create new EchemData. if have id, then append data or update data.
+    dtype: also required, this determine how the payload is read.
+    name: string, name of echem data. 
+    desc: string, description of data. 
+    exp: id of experiment, if not, will create a new experiment to add data. 
+    data: data package 
+    dtype=='covid-trace' payload data format:
+    {
+        time: [timestamp ... ]
+        rawdata: [[v,a]...]
+    }
+    """
+    data = payload.pop('data',None)
+
+    id = payload.get('id',None)
+    # if no data provided and id is provided, will update other fields.
+    if (not data) and id:
+        EchemData.objects(id=id).update_one(**payload)
+        return {'rawdata': {'status': 'ok', 'response': 'updated raw data meta info', 'id':id}}
+
+    # return error if dtype is not supported by EchemData class.
+    dtype = payload.get('dtype', None)
+    if dtype not in EchemData.DTYPE:
+        return {'rawdata': {'status': 'error', 'response': 'invalid dtype'}}
+    
+
+    # create a new EchemData document if id is not provided.
+    if not id:
+        # if id for echem data is not provided, need to put it in new experiment.
+        exp = payload.get('exp', None) 
+        if not exp:
+            exp = Experiment.objects(name='Unassigned experiments').first()
+            if not exp:
+                exp = Experiment(name='Unassigned Data', author='Unknown',
+                                desc="Data that don't belong to any experiments.").save()
+            payload.update(exp=exp)
+    
+        echemdata = EchemData(**payload)
+        echemdata.save()
+        id = echemdata.id
+
+    if dtype == 'covid-trace':
+        updatedict = payload
+        try:
+            t = [parser.parse(i) for i in data['time']]
+            rawdata = data['rawdata']
+            fitres = [myfitpeak(v, a) for v, a in rawdata]
+            updatedict["push_all__data__time"] = t
+            updatedict["push_all__data__rawdata"] = rawdata
+            updatedict["push_all__data__fit"] = fitres
+            EchemData.objects(id=id).update_one(**updatedict)
+            return {'rawdata': {'status': 'ok', 'id':  str(id)}}
+        except Exception as e:
+            return {'rawdata': {'status': 'error', 'response': str(e)}}
+
+    return {'rawdata': {'status': 'error', 'response': "weird, nobody can reach here."}}
+
+
+@bp.route('/get_echem_data',methods=['GET'])
+def get_echem_data():
+    "return data."
+    data = request.json 
+    
+    
+    
+    return {}

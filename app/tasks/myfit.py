@@ -87,9 +87,12 @@ def pickpeaks(peaks, props, totalpoints):
     return peaks[topick]
 
 
-def myfitpeak(xydataIn):
-    x = xydataIn[0, :]  # voltage
-    y = xydataIn[1, :]  # current
+def myfitpeak(v,a):
+    """
+    This method has been modified to use dict output, to work with API for upload data. 
+    """
+    x = np.array(v) # voltage
+    y = np.array(a) # current
 
     y = smooth(y)
     # limit peak width to 1/50 of the totoal scan length to entire scan.
@@ -102,7 +105,7 @@ def myfitpeak(xydataIn):
 
     # return if no peaks found.
     if len(peaks) == 0:
-        return x, y, 0, 0, 0, 0, 0, -1
+        return {'fx': [v[0],v[1]], 'fy': [0,0], 'pc': 0, 'pv': 0, 'err': 1}
 
     peak = pickpeaks(peaks, props, len(y))
 
@@ -117,9 +120,9 @@ def myfitpeak(xydataIn):
     peakcurrent = y[peak] - (k*peak + b)
     peakvoltage = x[peak]
 
-    twopointx = np.array([x[x1], x[x2]])
-    twopointy = np.array([y[x1], y[x2]])
+    twopointx = np.array([x[x1], x[x2]]).tolist()
+    twopointy = np.array([y[x1], y[x2]]).tolist()
 
     # for compatibility return the same length tuple of results.
     # currently, no error is calculated.
-    return x, y, twopointx, twopointy, twopointy, peakcurrent, peakvoltage, 0
+    return {'fx': twopointx, 'fy': twopointy, 'pc': float(peakcurrent), 'pv': float(peakvoltage), 'err': 0}
