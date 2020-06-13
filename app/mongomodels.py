@@ -1,4 +1,7 @@
-from mongoengine import * 
+from mongoengine import (DynamicDocument, StringField,
+    ReferenceField, DateTimeField, ListField, CASCADE, DictField, queryset_manager
+)
+
 from datetime import datetime , timedelta
 
 
@@ -13,6 +16,11 @@ class Project(DynamicDocument):
         'db_alias': 'echem',
         'ordering': ['-created']
     }
+
+    @property
+    def exps(self):
+        " load all epxeriments"
+        return Experiment.objects(project=self)
 
 
 class Experiment(DynamicDocument):
@@ -38,8 +46,14 @@ class Experiment(DynamicDocument):
     }
 
     @queryset_manager
-    def recent(doc_cls, queryset):
+    def recent(self, queryset):
         return queryset.filter(created__gte=datetime.now()-timedelta(days=7))
+    
+    @property
+    def data(self):
+        " load all epxeriments"
+        return EchemData.objects(exp=self)
+
 
 
 class EchemData(DynamicDocument):
@@ -61,6 +75,7 @@ class EchemData(DynamicDocument):
     data = DictField()
     exp = ReferenceField('Experiment', reverse_delete_rule=CASCADE)
     created = DateTimeField(default=datetime.now)
+    modified = DateTimeField(default=datetime.now)
 
     meta = {
         'indexes': [
