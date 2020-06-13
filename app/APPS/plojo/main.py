@@ -419,8 +419,8 @@ def bounds_generator():
     S = parser(cf_S_bound.value)
     slope = parser(cf_slope_bound.value)
     b = parser(cf_b_bound.value)
-    x_offset = parser(cf_x_offset.value,fit_method)
-    y_offset = parser(cf_y_offset.value,fit_method)
+    x_offset = parser(cf_x_offset.value,'none')
+    y_offset = parser(cf_y_offset.value,'none')
     if fit_method == 'kd':
         dict_of_bounds = dict_getter(
             selected_items, [kd, Fmax, Fmin], ['kd', 'Fmax', 'Fmin'])
