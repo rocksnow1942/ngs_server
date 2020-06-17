@@ -245,4 +245,15 @@
     RestartSec=2 # restart every 2 seconds after a crash 
     $ sudo systemctl restart nginx. 
 
+22. Jupyter notebook remote access:
+    pip install jupyterlab
+    then generate config for jupyter: jupyter notebook --generate-config
+    Add following edit in the config:
+    c.NotebookApp.ip = "*"
+    c.NotebookApp.open_browser = False
+    c.NotebookApp.notebook_dir = '/'
+    c.NotebookApp.allow_password_change = False
+    Run > jupyter notebook password 
+    to set password for jupyter notebook. 
+    Then set up supervisord to auto run jupyter. nano /etc/supervisor/conf.d/jupyter.conf
     
