@@ -77,14 +77,14 @@ def pickpeaks(peaks, props, totalpoints):
     # heights = np.sort(props['peak_heights'])
     # prominences = np.sort(props['prominences'])
     # widths = np.sort(props['widths'])
-    normheights = props['peak_heights']/(props['peak_heights']).sum()
-    normprominences = props['prominences']/(props['prominences']).sum()
-    normwidths = props['widths']/(props['widths']).sum()
-    bases = ((props['left_bases'] == props['left_bases'].min()) &
-             (props['right_bases'] == props['right_bases'].max()))
-    leftbases = props['left_bases'] == 0 
-    
-    scores = normheights + normprominences + normwidths - 2*leftbases - bases
+    normheights = props['peak_heights']/(props['peak_heights']).max()
+    normprominences = props['prominences']/(props['prominences']).max()
+    normwidths = props['widths']/(props['widths']).max()
+    # bases = ((props['left_ips'] == props['left_ips'].min()) &
+    #      (props['right_ips'] == props['right_ips'].max()))
+    leftbases = props['left_ips'] < totalpoints/10
+
+    scores = normheights + normprominences + normwidths - 2*leftbases  # - 2*bases
     topick = scores.argmax()
     return peaks[topick]
 
