@@ -75,7 +75,8 @@ def find_tangent(x,center):
         right = newright
     return left,right
 
-def pickpeaks(peaks,props,totalpoints):
+
+def pickpeaks(peaks, props, totalpoints):
     "the way to pick a peak"
     if len(peaks) == 1:
         return peaks[0]
@@ -86,11 +87,13 @@ def pickpeaks(peaks,props,totalpoints):
     normheights = props['peak_heights']/(props['peak_heights']).sum()
     normprominences = props['prominences']/(props['prominences']).sum()
     normwidths = props['widths']/(props['widths']).sum()
-    bases = ( (props['left_bases'] == props['left_bases'].min() ) &
-              (props['right_bases'] == props['right_bases'].max()) )
-    scores = normheights + normprominences + normwidths - 2*bases
+    bases = ((props['left_bases'] == props['left_bases'].min()) &
+             (props['right_bases'] == props['right_bases'].max()))
+    leftbases = props['left_bases'] == 0
+
+    scores = normheights + normprominences + normwidths - 2*leftbases - bases
     topick = scores.argmax()
-    return   peaks[topick]
+    return peaks[topick]
 
 
 def myfitpeak(xydataIn):
