@@ -232,7 +232,7 @@ class PSS_Logger():
     def write_csv(self):
         for folder,item in self.pstraces.items():
             keys = list(set([i[1] for i in item]))
-            keys.sort(lambda x: int(x.replace('ams','')))
+            keys.sort(key=lambda x: int(x.replace('ams','')))
             self.debug(f"Write CSV for {folder}, keys={','.join(keys)}")
             try:
                 # only read the data that was generated at least 10 seconds ago.
