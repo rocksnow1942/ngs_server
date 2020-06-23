@@ -140,7 +140,21 @@ class PSS_Logger():
             time.sleep(0.1)
 
     def add(self,file):
-        ".pss file"
+        """
+        self.pstrace is a log for tracking syncing. 
+        self.pstrace: {
+            folder: [
+                [file, amskey, time, thistimepoint],
+                [file, amskey, time, thistimepoint],
+                ...
+            ]
+        }
+        folder is the sub folder name of monitoring parent folder. 
+        file is the file path, 
+        amskey is the ams key in plojo 
+        time is the time stamp of this pss file. 
+        thistimepoint is the time point of this pss in the whole trace in minutes. 
+        """
         # self.debug(f"PS traces: {str(self.pstraces)}")
         filepath = Path(file)
         folder = str(filepath.parent)
@@ -298,7 +312,7 @@ def save_settings():
     }
     pp = (Path(__file__).parent / '.pssconfig').absolute()
     with open(pp,'wt') as f:
-        json.dump(data,f)
+        json.dump(data,f,indent=2)
         # f.write(self.target_folder)  
 
 
