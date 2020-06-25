@@ -230,6 +230,7 @@ def upsert_echem_rawdata():
     {
         time: [timestamp ... ]
         rawdata: [[v,a]...]
+        fit: [{...},{...}...]
     }
     """
     payload = request.json
@@ -273,7 +274,8 @@ def upsert_echem_rawdata():
         try:
             t = [parser.parse(i) for i in data['time']]
             rawdata = data['rawdata']
-            fitres = [myfitpeak(v, a) for v, a in rawdata]
+            # fitres = [myfitpeak(v, a) for v, a in rawdata]
+            fitres = data['fit']
             updatedict["push_all__data__time"] = t
             updatedict["push_all__data__rawdata"] = rawdata
             updatedict["push_all__data__fit"] = fitres
