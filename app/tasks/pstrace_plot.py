@@ -15,7 +15,7 @@ TODO:
 2. heuristic for finding tangent.
 3. ways to measure fitting error by the angle between tangent line and curve slope at contact point.
 update 6/9:
-change intercept to account for min(0,) in whole 
+change intercept to account for min(0,) in whole
 change peak finding prominence requirements.
 """
 
@@ -134,16 +134,15 @@ def myfitpeak(xydataIn):
     return x,y,twopointx,twopointy,twopointy,peakcurrent,peakvoltage,0
 
 def readpss(f):
-    ff = open(f, 'rt')
-    data = ff.read()
-    ff.close()
+    with open(f,'rt',encoding='utf-16') as f:
+        data = f.read()
     data = data.strip().split('\n')
-    v = [float(i.split()[0]) for i in data[1:]]
-    a = [float(i.split()[1]) for i in data[1:]]
+    v = [float(i.split(',')[0]) for i in data[6:-1]]
+    a =  [float(i.split(',')[1]) for i in data[6:-1]]
     return v, a
 
 
-def myfitplotax(v, a, ax, index, color):
+def myfitplotax(v, a, ax, index, color,axislabel=False):
     fit = myfitpeak(np.array([v, a]))
     xnotjunk, ynotjunk, xforfit, gauss, baseline, peakcurrent, peakvoltage, fiterror = fit
     if isinstance(xforfit, int):
@@ -161,32 +160,42 @@ def myfitplotax(v, a, ax, index, color):
             [peakvoltage, peakvoltage], [baselineatpeak, baselineatpeak+peakcurrent])
     ax.set_title("{}-{:.2f}nA".format(index, peakcurrent),
                  fontsize=10, color=color)
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if not axislabel:
+        ax.set_xticks([])
+        ax.set_yticks([])
     ax.axis('on')
     return peakcurrent
 
 
-def plottogrid(files,save='ams101.png'):
-    l = len(files) 
-    rows = int(np.ceil(np.sqrt(l))) 
+def plottogrid(files,axislabel=False,save='ams101.png'):
+    l = len(files)
+    rows = int(np.ceil(np.sqrt(l)))
     cols = int( np.ceil( l / rows) )
     fig, axes = plt.subplots(rows,cols, figsize=( 1.5*cols, 1.5*rows ))
-    axes = [i for j in axes for i in j]
+    if rows==1 and cols==1:
+        axes = [axes]
+    elif rows == 1:
+        axes = axes
+    else:
+        axes = [i for j in axes for i in j]  
     for ax in axes:
         ax.axis('off')
     for k, (file, ax) in enumerate(zip(files, axes)):
         v, a = readpss(file)
-        myfitplotax(v, a, ax, k, 'b')
+        myfitplotax(v, a, ax, k, 'b',axislabel=axislabel)
     plt.tight_layout()
     plt.savefig(save)
     plt.close()
-    
+
+
+keystoplot = []
+PLOT_INTERVAL = 4
+AXIS_LABEL = True
 if __name__ == "__main__":
 
     with open('pstracelog_DONT_TOUCH.json', 'rt') as f:
         logs = json.load(f)
-    print('start collecting data') 
+    print('start collecting data')
     amskeys = {}
     for folder, data in logs.items():
         for file, amskey, time, timepoint in data:
@@ -201,10 +210,15 @@ if __name__ == "__main__":
 
     print('start plotting...')
     for key, files in amskeys.items():
-         
-        print('plotting ' + key)
-        plottogrid(files, save=os.path.join('curve_fit_output', key + '.png'))
-        print('plotting ' + key +  ' Done.' )
+        if key in keystoplot:
+            print('plotting ' + key)
+            plottogrid(files[::PLOT_INTERVAL], axislabel=AXIS_LABEL,save=os.path.join('curve_fit_output', key + '.png'))
+            print('plotting ' + key +  ' Done.' )
+        elif len(keystoplot) == 0:
+            print('plotting ' + key)
+            plottogrid(files[::PLOT_INTERVAL], axislabel=AXIS_LABEL,save=os.path.join('curve_fit_output', key + '.png'))
+            print('plotting ' + key +  ' Done.' )
 
     print('all done.')
-                
+
+    input('Press enter to continue')
