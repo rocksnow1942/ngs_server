@@ -7,6 +7,7 @@ TODO:
 1. test on more messy data.
 2. heuristic for finding tangent.
 3. ways to measure fitting error by the angle between tangent line and curve slope at contact point.
+update 6/29: added myright and myleft in findtangent
 update 6/9:
 change intercept to account for min(0,) in whole 
 change peak finding prominence requirements.
@@ -55,8 +56,8 @@ def sway(x, center, step, fixpoint):
 
 
 def find_tangent(x, center):
-    left = center - 1
-    right = center + 1
+    newleft = left = center - 1
+    newright = right = center + 1
     while intercept(x, left, right, True):
         if intercept(x, left, right):
             newleft = sway(x, left, -1, right)
