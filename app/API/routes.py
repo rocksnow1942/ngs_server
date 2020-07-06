@@ -1,17 +1,21 @@
 from app import db,mongo
 from flask import current_app,render_template, flash, redirect, url_for, request, current_app, jsonify
-from flask_login import current_user,login_required
+# from flask_login import current_user,login_required
 from app.API import bp
-from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
+# from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
 from app.plojo_models import Plojo_Data, Plojo_Project
 from datetime import datetime
 from app.tasks.myfit import myfitpeak
-import numpy as np
+from app.mongomodels import Experiment,Project,EchemData
+from dateutil import parser
+from bson import ObjectId
 
 @bp.route('/testapi', methods=['POST','GET'])
 def testapi():
     data = request.json
     print(data)
+    # if request.method == 'GET':
+    #     return render_template('sudoku/index.html')
     return jsonify(data)
 
 
@@ -54,9 +58,8 @@ def add_echem_pstrace():
         fittingerror = ""
         if potential and amp:
             try:
-                xydataIn = np.array([potential, amp])
-                res = myfitpeak(xydataIn)
-                peakcurrent = round(float(res[5]), 6)
+                res = myfitpeak(potential, amp)
+                peakcurrent = round(float(res['pc']), 6)
             except Exception as e:
                 fittingerror = str(e)
                 peakcurrent = -100  # to indicate fitting error
@@ -119,11 +122,198 @@ def get_plojo_data():
     return jsonify("Error-Invalid request")
 
 
-@bp.route('/add_echem_data',methods=['POST'])
-def add_echem_data():
-    """
-    add echem data to mongodb collection. 
-    """
-    data = request.json
+# @bp.route('/upsert_echem_experiment',methods=['POST'])
+# def add_echem_data():
+#     """
+#     add echem data to mongodb collection. 
+#     json format:
+#     {
+#         experiment:{} # add new experiment , refer to create_echem_experiment for formatting
+#         project: {} # add new project , refer to create_echem_project for formatting
+#         rawdata: {} # add to EchemData, refer to create_echem_rawdata for formatting
+#     }
+#     """
+#     package = request.json
+#     response = {}
+#     for key, payload in package.items():
+#         try:
+#             if key == 'experiment':
+#                 res = create_echem_experiment(payload)
+#             elif key == 'project':
+#                 res = create_echem_project(payload)
+#             elif key == 'rawdata':
+#                 res = create_echem_rawdata(payload)
+#             else:
+#                 res = {key: {'status': 'error', 'err': 'Error -  invalid key.'}}
+#         except Exception as e:
+#             res = {key: {'status': 'error', 'err': str(e)}}
+#         response.update(res)
+#     return response
 
-    return 'WOOW'
+def get_Unassigned_Project():
+    project = Project.objects(name='Unassigned experiments').first()
+    if not project:
+        project = Project(name='Unassigned experiments',
+                        desc="To store experiments that doesn't belong to any project.").save()
+    return project
+
+def get_Unassigned_Experiment():
+    exp = Experiment.objects(name='Unassigned Raw Data').first()
+    if not exp:
+        project = get_Unassigned_Project()
+        exp = Experiment(name='Unassigned Raw Data', author='Unknown', note="", project = project,
+                        desc="Data that don't belong to any other experiments.").save()
+    return exp
+
+
+@bp.route('/upsert_echem_experiment', methods=['POST'])
+def upsert_echem_experiment():
+    """create a new echem experiment
+    payload format:
+    {   
+        id: string, if id is provided, will update the experiment with the same id.
+        name : string, 
+        author : string, 
+        note: string, 
+        desc: string, 
+        project: string, id of the project it need to add to.
+        if other key is passed in, will use it. 
+    }
+    """
+    payload = request.json
+    try:
+        id = payload.pop('id',None)
+        project = payload.get('project', None)
+        if project:
+            payload.update(project=ObjectId(project))
+        
+        if id==None:
+            if not project:
+                project = get_Unassigned_Project()
+                payload.update(project=project)
+            exp = Experiment(**payload)
+            exp.save()
+            id = exp.id
+        else:
+            Experiment.objects(id=id).update_one(**payload)
+        return  {'status': 'ok', 'id': str(id)}
+    except Exception as e:
+        return {'status': 'error', 'err': str(e)}
+
+
+@bp.route('/upsert_echem_project', methods=['POST'])
+def upsert_echem_project():
+    """
+    create echemproject 
+    payload format:
+    {   
+        id: string of project id. if id is provided, will update the existing document.
+        name: string, 
+        desc: string ,
+        other keys will be saved.
+    }
+    """
+    payload = request.json
+    try:
+        id = payload.pop('id',None)
+        if id == None:
+            project = Project(**payload).save()
+            id = project.id
+        else:
+            Project.objects(id=id).update_one(**payload)
+        return {'status':'ok','id':str(id)}
+    except Exception as e:
+        return {'status':'error','err':str(e)}
+
+
+@bp.route('/upsert_echem_rawdata', methods=['POST'])
+def upsert_echem_rawdata():
+    """
+    raw data format:
+    id: if no id, then create new EchemData. if have id, then append data or update data.
+    dtype: also required, this determine how the payload is read.
+    name: string, name of echem data. 
+    desc: string, description of data. 
+    author: string , author of data
+    exp: id of experiment, if not, will create a new experiment to add data. 
+    data: data package 
+    dtype=='covid-trace' payload data format:
+    {
+        time: [timestamp ... ]
+        rawdata: [[v,a]...]
+        fit: [{...},{...}...]
+    }
+    """
+    payload = request.json
+
+    data = payload.pop('data',None)
+
+    id = payload.get('id',None)
+    # if no data provided and id is provided, will update other fields.
+    if (not data) and id:
+        EchemData.objects(id=id).update_one(**payload)
+        return  {'status': 'ok', 'response': 'updated raw data meta info', 'id':id}
+
+    # return error if dtype is not supported by EchemData class.
+    dtype = payload.get('dtype', None)
+    if dtype not in EchemData.DTYPE:
+        return  {'status': 'error', 'response': 'invalid dtype'}
+    
+    # place holder for generate echem data. 
+    echemdata = None 
+    # create a new EchemData document if id is not provided.
+    exp = payload.get('exp', "").strip()
+    if exp:
+        # check if exp is an ObjectId 
+        if ObjectId.is_valid(exp):
+            payload.update(exp=ObjectId(exp))
+        else: # if exp is a normal string, 
+            tempExp = Experiment.objects(name=exp).first()
+            print(tempExp)
+            if not tempExp:
+                project = get_Unassigned_Project()
+                tempExp = Experiment(name=exp,author=payload.get('author','Unknown'),project=project)
+                tempExp.save()
+            payload.update(exp=tempExp)
+
+    if not id:
+        # if id for echem data is not provided, need to put it in new experiment.
+        if not exp:
+            exp = get_Unassigned_Experiment()
+            payload.update(exp=exp)
+       
+        echemdata = EchemData(**payload)
+        echemdata.save()
+        id = echemdata.id
+
+
+    # parse the data according to dtype
+    if dtype == 'covid-trace':
+        updatedict = payload
+        try:
+            t = [parser.parse(i) for i in data['time']]
+            rawdata = data['rawdata']
+            # fitres = [myfitpeak(v, a) for v, a in rawdata]
+            fitres = data['fit']
+            updatedict["push_all__data__time"] = t
+            updatedict["push_all__data__rawdata"] = rawdata
+            updatedict["push_all__data__fit"] = fitres
+            EchemData.objects(id=id).update_one(**updatedict)
+            return  {'status': 'ok', 'id':  str(id)}
+        except Exception as e:
+            # roll back:
+            if echemdata: echemdata.delete()
+            return   {'status': 'error', 'response': str(e)}
+
+    return  {'status': 'error', 'response': "weird, nobody can reach here."}
+
+
+@bp.route('/get_echem_data',methods=['GET'])
+def get_echem_data():
+    "return data."
+    data = request.json 
+    
+    
+    res = EchemData.objects(id=data['id']) 
+
+    return jsonify(res)

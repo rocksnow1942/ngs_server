@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import platform
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,19 +34,30 @@ class Config():
 
     APP_ERROR_LOG = os.environ.get('APP_ERROR_LOG') or None
 
-
+        
     DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'
 
     ANIMAL_DATA_PATH = os.environ.get('ANIMAL_DATA_PATH') or '.'
 
     # MONGO_URI = os.environ.get('MONGO_URI') or "mongodb://hui:kanghui@pi.hole:27017/test"
 
+    if platform.node() != 'mbp':
+        dev_server = [
+            "mongodb://hui:kanghui@pi.hole:27017/test",
+            "mongodb://buglogger:buglogger@pi.hole:27017/buglogger"
+        ]
+    else:
+        dev_server = [
+            "mongodb://hui:kanghui@sshserver.h-kang.com:37926/test",
+            "mongodb://buglogger:buglogger@sshserver.h-kang.com:37926/buglogger"
+        ]
+
     MONGODB_SETTINGS = [{
         'ALIAS':'default',
         'host': os.environ.get(
-        'MONGO_DATABASE_1') or "mongodb://hui:kanghui@pi.hole:27017/test"},
-        {
+            'MONGO_DATABSE_1') or dev_server[0]},  # 
+        { 
             'ALIAS': 'echem',
             'host': os.environ.get(
-            'MONGO_DATABASE_2') or "mongodb://buglogger:buglogger@pi.hole:27017/buglogger"},
+                'MONGO_DATABSE_2') or dev_server[1]},  #
         ]

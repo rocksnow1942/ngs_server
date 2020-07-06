@@ -167,3 +167,8 @@ def save_animal_data():
 def get_animal_data_figure(filename):
     data_path = current_app.config['ANIMAL_DATA_PATH']
     return send_from_directory(data_path, filename, as_attachment=False)
+
+
+@bp.route('/sudoku',methods=['GET'])
+def sudoku():
+    return render_template('sudoku/index.html')
