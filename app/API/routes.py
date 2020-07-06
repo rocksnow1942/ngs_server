@@ -150,6 +150,21 @@ def get_plojo_data():
 #         response.update(res)
 #     return response
 
+def get_Unassigned_Project():
+    project = Project.objects(name='Unassigned experiments').first()
+    if not project:
+        project = Project(name='Unassigned experiments',
+                        desc="To store experiments that doesn't belong to any project.").save()
+    return project
+
+def get_Unassigned_Experiment():
+    exp = Experiment.objects(name='Unassigned Raw Data').first()
+    if not exp:
+        project = get_Unassigned_Project()
+        exp = Experiment(name='Unassigned Raw Data', author='Unknown', note="", project = project,
+                        desc="Data that don't belong to any other experiments.").save()
+    return exp
+
 
 @bp.route('/upsert_echem_experiment', methods=['POST'])
 def upsert_echem_experiment():
@@ -174,13 +189,8 @@ def upsert_echem_experiment():
         
         if id==None:
             if not project:
-                project = Project.objects(name='Unassigned experiments').first()
-                if not project:
-                    project = Project(name='Unassigned experiments',
-                                    desc="To store experiments that doesn't belong to any project.").save()
+                project = get_Unassigned_Project()
                 payload.update(project=project)
-           
-                
             exp = Experiment(**payload)
             exp.save()
             id = exp.id
@@ -224,6 +234,7 @@ def upsert_echem_rawdata():
     dtype: also required, this determine how the payload is read.
     name: string, name of echem data. 
     desc: string, description of data. 
+    author: string , author of data
     exp: id of experiment, if not, will create a new experiment to add data. 
     data: data package 
     dtype=='covid-trace' payload data format:
@@ -251,16 +262,24 @@ def upsert_echem_rawdata():
     # place holder for generate echem data. 
     echemdata = None 
     # create a new EchemData document if id is not provided.
-    exp = payload.get('exp', None)
+    exp = payload.get('exp', "").strip()
     if exp:
-        payload.update(exp=ObjectId(exp))
+        # check if exp is an ObjectId 
+        if ObjectId.is_valid(exp):
+            payload.update(exp=ObjectId(exp))
+        else: # if exp is a normal string, 
+            tempExp = Experiment.objects(name=exp).first()
+            print(tempExp)
+            if not tempExp:
+                project = get_Unassigned_Project()
+                tempExp = Experiment(name=exp,author=payload.get('author','Unknown'),project=project)
+                tempExp.save()
+            payload.update(exp=tempExp)
+
     if not id:
         # if id for echem data is not provided, need to put it in new experiment.
         if not exp:
-            exp = Experiment.objects(name='Unassigned experiments').first()
-            if not exp:
-                exp = Experiment(name='Unassigned Data', author='Unknown',
-                                desc="Data that don't belong to any experiments.").save()
+            exp = get_Unassigned_Experiment()
             payload.update(exp=exp)
        
         echemdata = EchemData(**payload)
@@ -279,7 +298,6 @@ def upsert_echem_rawdata():
             updatedict["push_all__data__time"] = t
             updatedict["push_all__data__rawdata"] = rawdata
             updatedict["push_all__data__fit"] = fitres
-            updatedict["set__modified"] = datetime.now()
             EchemData.objects(id=id).update_one(**updatedict)
             return  {'status': 'ok', 'id':  str(id)}
         except Exception as e:
@@ -296,5 +314,6 @@ def get_echem_data():
     data = request.json 
     
     
-    
-    return {}
+    res = EchemData.objects(id=data['id']) 
+
+    return jsonify(res)

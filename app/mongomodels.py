@@ -62,6 +62,7 @@ class EchemData(DynamicDocument):
     name: 
     desc: 
     exp: 
+    author:
     data : {
         time: [timestamp,...]
         rawdata: [[v,a],[...]]
@@ -72,11 +73,11 @@ class EchemData(DynamicDocument):
     dtype = StringField(max_length=100, choices=DTYPE)
     name = StringField(max_length=1000)
     desc = StringField(max_length=1000)
+    author = StringField(max_length=100)
     data = DictField()
     exp = ReferenceField('Experiment', reverse_delete_rule=CASCADE)
     created = DateTimeField(default=datetime.now)
-    modified = DateTimeField(default=datetime.now)
-
+    
     meta = {
         'indexes': [
             {
