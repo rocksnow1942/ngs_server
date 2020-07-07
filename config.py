@@ -34,7 +34,7 @@ class Config():
 
     APP_ERROR_LOG = os.environ.get('APP_ERROR_LOG') or None
 
-        
+
     DATABASE_FOLDER = os.environ.get('DATABASE_FOLDER') or '.'
 
     ANIMAL_DATA_PATH = os.environ.get('ANIMAL_DATA_PATH') or '.'
@@ -55,9 +55,9 @@ class Config():
     MONGODB_SETTINGS = [{
         'ALIAS':'default',
         'host': os.environ.get(
-            'MONGO_DATABSE_1') or dev_server[0]},  # 
-        { 
+            'MONGO_DATABASE_1') or dev_server[0]},  #
+        {
             'ALIAS': 'echem',
             'host': os.environ.get(
-                'MONGO_DATABSE_2') or dev_server[1]},  #
+                'MONGO_DATABASE_1') or dev_server[1]},  #
         ]
