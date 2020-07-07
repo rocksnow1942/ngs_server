@@ -1,5 +1,5 @@
 from app import db,mongo
-from flask import current_app,render_template, flash, redirect, url_for, request, current_app, jsonify
+from flask import current_app,render_template, flash, redirect, url_for, request, current_app, jsonify,abort
 # from flask_login import current_user,login_required
 from app.API import bp
 # from app.models import AccessLog,Selection, Rounds, models_table_name_dictionary, SeqRound, Project, PPT, Slide, Task, NGSSampleGroup, Analysis
@@ -244,16 +244,14 @@ def upsert_echem_rawdata():
         fit: [{...},{...}...]
     }
     """
+    action = request.json.pop('action',None)
     payload = request.json
 
     data = payload.pop('data',None)
 
     id = payload.get('id',None)
     # if no data provided and id is provided, will update other fields.
-    if (not data) and id:
-        EchemData.objects(id=id).update_one(**payload)
-        return  {'status': 'ok', 'response': 'updated raw data meta info', 'id':id}
-
+    
     # return error if dtype is not supported by EchemData class.
     dtype = payload.get('dtype', None)
     if dtype not in EchemData.DTYPE:
@@ -269,23 +267,26 @@ def upsert_echem_rawdata():
             payload.update(exp=ObjectId(exp))
         else: # if exp is a normal string, 
             tempExp = Experiment.objects(name=exp).first()
-            print(tempExp)
             if not tempExp:
                 project = get_Unassigned_Project()
                 tempExp = Experiment(name=exp,author=payload.get('author','Unknown'),project=project)
                 tempExp.save()
-            payload.update(exp=tempExp)
+            payload.update(exp=tempExp) 
+    else:
+        exp = get_Unassigned_Experiment()
+        payload.update(exp=exp)
+
+
+    if (not data) and id: # if no data and id, then update meta info. 
+        EchemData.objects(id=id).update_one(**payload)
+        return  {'status': 'ok', 'response': 'updated raw data meta info', 'id':id}
+
 
     if not id:
         # if id for echem data is not provided, need to put it in new experiment.
-        if not exp:
-            exp = get_Unassigned_Experiment()
-            payload.update(exp=exp)
-       
         echemdata = EchemData(**payload)
         echemdata.save()
         id = echemdata.id
-
 
     # parse the data according to dtype
     if dtype == 'covid-trace':
@@ -307,13 +308,43 @@ def upsert_echem_rawdata():
 
     return  {'status': 'error', 'response': "weird, nobody can reach here."}
 
+@bp.route('/delete_echem_data', methods=['DELETE'])
+def delete_echem_data():
+    "delete an item from mongodb, format: {id: , type: }"
+    data = request.json 
+    id = data.get('id',None)
+    ob = data.get('type',None)
+    model = {'Experiment':Experiment,'Project':Project,'EchemData':EchemData}
+    try:
+        model[ob].objects(id=id).delete()
+        return {'status':'ok'}
+    except Exception as e:
+        return {'status':'error','err':str(e)}
+
+
+@bp.route('/echem_main',methods=['DELETE','POST','GET'])
+def echem_main():
+    "main gate for all data activities"
+    method = request.method 
+    action = request.json.pop('action',None)
+    if method == 'DELETE':
+        return delete_echem_data()
+    elif method == 'POST':
+        if action == 'upsert_rawdata':
+            return upsert_echem_rawdata()
+    elif method == 'GET':
+        return get_echem_data()
+
+    return abort(404)
+
 
 @bp.route('/get_echem_data',methods=['GET'])
 def get_echem_data():
     "return data."
     data = request.json 
+
     
-    
+    print(data,'get_echem_data')
     res = EchemData.objects(id=data['id']) 
 
     return jsonify(res)
