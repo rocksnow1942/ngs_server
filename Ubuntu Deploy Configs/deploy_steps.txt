@@ -82,7 +82,7 @@
     $ sudo supervisorctl reload
     To start or reload the process.
     if no such file or directory file: usr/lib/python2.7/socket.py
-    check the /etc/supervisor/supervisor.conf
+    check the /etc/supervisor/supervisord.conf
     change
     [unix_http_server]
     file=<path to supervisor.sock> sometimes it's in /tmp/supervisor.sock, sometimes its in /run/supervisor.sock
@@ -92,6 +92,13 @@
     To check status
     $ sudo supervisorctl status all
     Or go to 127.0.0.1:9001 to check. (with password and user name above.)
+
+    20200717 update:
+	Based on this post on stack overflow [Here](https://stackoverflow.com/questions/41286526/supervisor-no-such-file-socket-py)
+	I tried the following and made it work:
+	cd /usr/bin 
+	sudo supervisord 
+	This seem to created the /var/run/supervisor.sock file.
 
 9. create ssl certificate if need to use https://
     $ mkdir certs
