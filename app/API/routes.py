@@ -295,7 +295,7 @@ def upsert_echem_rawdata():
         created = parser.parse(meta.pop('created',"2000-01-01"))
         meta.update(result=payload.get('result',""))
         data.update(meta=meta)
-        newdata = EchemData(id=payload['_id'],dtype=dtype,name=name,desc=desc,exp=exp,
+        newdata = EchemData(id=payload['_id'],dtype=dtype,name=name,desc=desc,exp=payload['exp'],
                     author=author, data=data,created=created)
         try:
             newdata.save()
