@@ -69,7 +69,7 @@ class EchemData(DynamicDocument):
         fit:[{fx:,fy:,pc:,pv:,err:,},...]
     }
     """
-    DTYPE = ['covid-trace', ]
+    DTYPE = ['covid-trace', 'device-trace' ]
     dtype = StringField(max_length=100, choices=DTYPE)
     name = StringField(max_length=1000)
     desc = StringField(max_length=1000)

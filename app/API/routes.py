@@ -243,6 +243,13 @@ def upsert_echem_rawdata():
         rawdata: [[v,a]...]
         fit: [{...},{...}...]
     }
+    dtype=='device-trace'
+    data is the same, 
+    _id: Object ID to use for store data. 
+    meta : {method,deltaT,temp,name,exp,desc,device,created}
+    status: 'ok' or abort
+    data: {'time': [timepoint in minutes], 'rawdata': [[v,a]...], 'fit': [{fitresult}...], 'temp':[]} 
+    result: posotive or negative
     """
     action = request.json.pop('action',None)
     payload = request.json
@@ -261,6 +268,9 @@ def upsert_echem_rawdata():
     echemdata = None 
     # create a new EchemData document if id is not provided.
     exp = payload.get('exp', "").strip()
+
+    if dtype == 'device-trace':
+        exp = payload.get('meta',{}).pop('exp',"Unknown Device Exp")
     if exp:
         # check if exp is an ObjectId 
         if ObjectId.is_valid(exp):
@@ -275,6 +285,23 @@ def upsert_echem_rawdata():
     else:
         exp = get_Unassigned_Experiment()
         payload.update(exp=exp)
+
+    # device-trace update directly.
+    if dtype=='device-trace':
+        meta = payload.get('meta',{})
+        name = meta.pop('name','Device No Name')
+        desc = meta.pop('desc','')
+        author = meta.pop('device',"Unknown Device")
+        created = parser.parse(meta.pop('created',"2000-01-01"))
+        meta.update(result=payload.get('result',""))
+        data.update(meta=meta)
+        newdata = EchemData(id=payload['_id'],dtype=dtype,name=name,desc=desc,exp=exp,
+                    author=author, data=data,created=created)
+        try:
+            newdata.save()
+            return {'status': 'ok', 'id':  str(newdata.id)}
+        except Exception as e:
+            return {'status':'error','error':str(e)}
 
 
     if (not data) and id: # if no data and id, then update meta info. 
