@@ -271,6 +271,7 @@ def upsert_echem_rawdata():
 
     if dtype == 'device-trace':
         exp = payload.get('meta',{}).pop('exp',"Unknown Device Exp")
+        payload.update(author = 'Device') # payload author is used for experiment author
     if exp:
         # check if exp is an ObjectId 
         if ObjectId.is_valid(exp):
@@ -291,7 +292,7 @@ def upsert_echem_rawdata():
         meta = payload.get('meta',{})
         name = meta.pop('name','Device No Name')
         desc = meta.pop('desc','')
-        author = meta.pop('device',"Unknown Device")
+        author = meta.pop('device',"Unknown Device") # device author is device ID.
         created = parser.parse(meta.pop('created',"2000-01-01"))
         meta.update(result=payload.get('result',""))
         data.update(meta=meta)
