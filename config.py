@@ -59,5 +59,5 @@ class Config():
         {
             'ALIAS': 'echem',
             'host': os.environ.get(
-                'MONGO_DATABASE_1') or dev_server[1]},  #
+                'MONGO_DATABASE_2') or dev_server[1]},  #
         ]
