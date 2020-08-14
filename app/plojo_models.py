@@ -7,11 +7,11 @@ from sqlalchemy.orm import relationship
 def JSON_descriptor(name):
     class Desc():
         def __get__(self,instance,cls):
-            return json.loads(getattr(instance,name))
+            return json.loads(getattr(instance,name) or "{}")
 
         def __set__(self,instance,value):
             setattr(instance, name, json.dumps(value, separators=(',', ':')))
-        
+
         def __delete__(self,instance):
             setattr(instance, name, json.dumps({}, separators=(',', ':')))
     return Desc()
@@ -44,12 +44,12 @@ class Plojonior_Data(db.Model):
                 u.exp_id,u.run = newkey.split('-')
             if meta!=None:
                 u.meta=meta
-            if raw!=None: 
+            if raw!=None:
                 u.raw=raw
             db.session.commit()
         except Exception as e:
             print(e)
-                  
+
 class Plojonior_Index(db.Model):
     __tablename__ = 'plojo_nior_index'
     exp = Column(String(20), primary_key=True)
@@ -94,7 +94,7 @@ class Plojo_Data(db.Model):
             db.session.commit()
         except Exception as e:
             print(e)
-    
+
     @staticmethod
     def next_index( ):
         entry = [i[0] for i in db.session.query(Plojo_Data.index).all()]
@@ -114,7 +114,7 @@ class Plojo_Project(db.Model):
 
     def __repr__(self):
         return f"Project {self.index}"
-    
+
     @staticmethod
     def sync_obj(key,newkey=None, data=None):
         u = Plojo_Project.query.get(key)
@@ -127,7 +127,7 @@ class Plojo_Project(db.Model):
         if newkey!=None:
             u.index=newkey
         db.session.commit()
-    
+
     @staticmethod
     def next_index(projectname):
         allprojects = [i[0]
