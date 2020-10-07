@@ -123,11 +123,11 @@ def user_follow_slides():
     totalpages = entries.total
     start, end = pagination_gaps(page, totalpages, pagelimit, gap=15)
 
-    next_url = url_for('ppt.slide_cart',
+    next_url = url_for('ppt.user_follow_slides',
                        page=entries.next_num,) if entries.has_next else None
-    prev_url = url_for('ppt.index',
+    prev_url = url_for('ppt.user_follow_slides',
                        page=entries.prev_num, ) if entries.has_prev else None
-    page_url = [(i, url_for('ppt.slide_cart',  page=i, ))
+    page_url = [(i, url_for('ppt.user_follow_slides',  page=i, ))
                 for i in range(start, end+1)]
     return render_template('ppt/slide_comparison.html', title='PPT Updates', entries=entries.items,
                            next_url=next_url, prev_url=prev_url, tags_list=Slide.tags_list(),
@@ -149,7 +149,7 @@ def slide_cart():
 
     next_url = url_for('ppt.slide_cart',
                        page=entries.next_num,) if entries.has_next else None
-    prev_url = url_for('ppt.index',
+    prev_url = url_for('ppt.slide_cart',
                        page=entries.prev_num, ) if entries.has_prev else None
     page_url = [(i, url_for('ppt.slide_cart',  page=i, ))
                 for i in range(start, end+1)]
