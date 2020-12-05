@@ -9,14 +9,18 @@ from app.tasks.myfit import myfitpeak
 from app.mongomodels import Experiment,Project,EchemData
 from dateutil import parser
 from bson import ObjectId
+import time
 
-@bp.route('/testapi', methods=['POST','GET'])
+
+@bp.route('/testapi', methods=['PUT'])
 def testapi():
     data = request.json
     print(data)
+    time.sleep(600)
+    return
     # if request.method == 'GET':
     #     return render_template('sudoku/index.html')
-    return jsonify(data)
+    
 
 
 @bp.route('/add_echem_pstrace',methods=['POST'])
@@ -376,3 +380,4 @@ def get_echem_data():
     res = EchemData.objects(id=data['id']) 
 
     return jsonify(res)
+ 

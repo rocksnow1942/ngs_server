@@ -7,19 +7,41 @@ from NUPACK import *
 
 defect(['ATCG'],'....')
 
-import RNA
-s=S('ATCATC')
-RNA.get_xy_coordinates(s1)
-s.fold(method='ViennaRNA')
+from RNAstructure import RNA
 
-fc=RNA.fold_compound('ACGAGAG')
+s=S('ACGAGATCACGAGATCGAGATCTAAGGAGAACGAGATCGAGATCTAAGTCTAAG')
+
+
+RNA.get_xy_coordinates(s1)
+
+
+s = s.fold(method='RNAstructure',backbone='dna')
+
+s.restrict_fold(window=1)
+
+s.init_dotgraph()
+
+s.pairtuple[0]
+
+
+s.dot
+
+
+
+s.plot_fold()
+
+
+fc=RNA.fold_compound('ACGAGATCGAGATCTAAG')
+
+
+
 
 s1='.....((((.....)))).....((...{{{..))..}}}.{{{....}}}.'
 s2='.....((((.....)))).....((...{{{..))..}}}.{{{....}}}.'
 sq='ATATAATTTTTAAGCGC'
 s0='.((...{{{..))..}}}.(((....))).'
 s0='(((((..&.....)))))'
- RNA.bp_distance(s1,s2)
+RNA.bp_distance(s1,s2)
 pt=dotbracket_to_tuple(s0)
 pt
 dg=DotGraph(sq, s0, -1,[0.1]*len(s0),pt)
