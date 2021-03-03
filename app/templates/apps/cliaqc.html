@@ -1,0 +1,156 @@
+{% extends "base.html" %} {% block app_content %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.4/dayjs.min.js"
+  integrity="sha512-0fcCRl828lBlrSCa8QJY51mtNqTcHxabaXVLPgw/jPA5Nutujh6CbTdDgRzl9aSPYW/uuE7c4SffFUQFBAy6lg=="
+  crossorigin="anonymous"
+></script>
+<div style="margin: auto; max-width: 1200px; text-align: center">
+  <div>
+    <h1 align="center">Plates QC Info Viewer</h1>
+  </div>
+  <div>
+    <div
+      class="row"
+      style="
+        display: flex;
+        align-items: center;
+        width: fit-content;
+        margin: auto;
+      "
+    >
+      <label style="width: 6em; margin: 1em">From Date:</label>
+      <input
+        id="fromDate"
+        style="width: 20em; margin: 1em"
+        type="date"
+        class="form-control"
+        value=""
+      />
+      <label style="width: 6em; margin: 1em">End Date:</label>
+      <input
+        id="toDate"
+        style="width: 20em; margin: 1em"
+        type="date"
+        class="form-control"
+        value=""
+      />
+      <input
+        id="plot"
+        style="width: 5em; margin: 1em"
+        type="button"
+        class="btn btn-primary"
+        value="Plot"
+      />
+      <input
+        id="save"
+        style="width: 5em; margin: 1em"
+        type="button"
+        class="btn btn-primary"
+        value="Save"
+      />
+    </div>
+  </div>
+  <div style="width: 1200px; height: 700px; display: flex">
+    <div
+      style="
+        width: 600px;
+        height: 500px;
+        border: 1px solid #f0f0f0;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 4px;
+      "
+    >
+      <canvas id="N7-chart" width="400" height="330"></canvas>
+    </div>
+    <div
+      style="
+        width: 600px;
+        height: 500px;
+        border: 1px solid #f0f0f0;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 4px;
+      "
+    >
+      <canvas id="RP4-chart" width="400" height="330"></canvas>
+    </div>
+  </div>
+
+  <script>
+    var N7datasets = [];
+    var RP4datasets = [];
+    const makeChart = (ctx, title) =>
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [],
+        },
+        options: {
+          responsive: true,
+          tooltips: {
+            mode: "x",
+            intersect: false,
+          },
+          pointHoverBorderColor: "red",
+
+          legend: { display: true, position: "bottom" },
+          onHover: (e, ae) => {
+            if (ae.length) {
+              $("html,body").css("cursor", "pointer");
+            } else {
+              $("html,body").css("cursor", "default");
+            }
+          },
+          title: {
+            display: true,
+            text: title,
+          },
+
+          scales: {
+            xAxes: [
+              {
+                id: "time",
+                display: true,
+                scaleLabel: { display: true, labelString: "Date" },
+              },
+            ],
+            yAxes: [
+              {
+                id: "Value",
+                type: "linear",
+                display: true,
+                position: "left",
+                scaleLabel: {
+                  display: true,
+                  labelString: "Value",
+                },
+              },
+            ],
+          },
+        },
+      });
+
+    const N7Chart = makeChart(
+      document.getElementById("N7-chart").getContext("2d"),
+      "N7 Plate QC History"
+    );
+    const RP4Chart = makeChart(
+      document.getElementById("RP4-chart").getContext("2d"),
+      "RP4 Plate QC History"
+    );
+  </script>
+
+  <!-- 
+<script src="{{url_for('static',filename='js/cliaqc.js')}}">
+    
+
+</script> -->
+
+  <script src="../../static/js/cliaqc.js"></script>
+
+  {% endblock %}
+</div>

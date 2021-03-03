@@ -172,3 +172,8 @@ def get_animal_data_figure(filename):
 @bp.route('/sudoku',methods=['GET'])
 def sudoku():
     return render_template('sudoku/index.html')
+
+@bp.route('/cliaqc',methods=['GET'])
+def cliaqc():
+    return render_template('apps/cliaqc.html',title='Plate QC Viewer')
+
