@@ -13,7 +13,7 @@ const updateChart = (chart, data, type) => {
     { label: "NBC_CV", backgroundColor: "#45545E", borderColor: "#45545E" },
     { label: "NTC_CV", backgroundColor: "#0091ad", borderColor: "#0091ad" },
     { label: "PTC_CV", backgroundColor: "#2b9348", borderColor: "#2b9348" },
-    { label: "Ratio", backgroundColor: "#000", borderColor: "#000" },
+    // { label: "Ratio", backgroundColor: "#000", borderColor: "#000" },
   ];
   chart.data.labels = data.map((r) => dayjs(r.created).format("YYYY/MM/DD"));
   chart.data.datasets = fields.map(
@@ -55,27 +55,28 @@ document.getElementById("plot").addEventListener("click", (e) => {
     .then((data) => {
       const N7result = data
         .filter((d) => !d.layout.endsWith("RP4Ctrl") && d.result)
-        .map((r) => ({
-          ...r,
-          result: {
-            ...r.result,
-            N7_Ratio: Number(
-              (r.result.N7_PTC_Avg / r.result.N7_NBC_Avg).toFixed(2)
-            ),
-          },
-        }));
+        // .map((r) => ({
+        //   ...r,
+        //   result: {
+        //     ...r.result,
+        //     N7_Ratio: Number(
+        //       (r.result.N7_PTC_Avg / r.result.N7_NBC_Avg).toFixed(2)
+        //     ),
+        //   },
+        // }));
 
       const RP4result = data
         .filter((d) => d.layout.endsWith("RP4Ctrl") && d.result)
-        .map((r) => ({
-          ...r,
-          result: {
-            ...r.result,
-            RP4_Ratio: Number(
-              (r.result.RP4_PTC_Avg / r.result.RP4_NBC_Avg).toFixed(2)
-            ),
-          },
-        }));
+        // .map((r) => ({
+        //   ...r,
+        //   result: {
+        //     ...r.result,
+        //     RP4_Ratio: Number(
+        //       (r.result.RP4_PTC_Avg / r.result.RP4_NBC_Avg).toFixed(2)
+        //     ),
+        //   },
+        // }));
+        
       updateChart(N7Chart, N7result, "N7");
       updateChart(RP4Chart, RP4result, "RP4");
       N7datasets = [];
