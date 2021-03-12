@@ -13,6 +13,7 @@ const updateChart = (chart, data, type) => {
     { label: "NBC_CV", backgroundColor: "#45545E", borderColor: "#45545E" },
     { label: "NTC_CV", backgroundColor: "#0091ad", borderColor: "#0091ad" },
     { label: "PTC_CV", backgroundColor: "#2b9348", borderColor: "#2b9348" },
+    { label: "Ratio", backgroundColor: "#000", borderColor: "#000" },
   ];
   chart.data.labels = data.map((r) => dayjs(r.created).format("YYYY/MM/DD"));
   chart.data.datasets = fields.map(
@@ -60,18 +61,20 @@ document.getElementById("plot").addEventListener("click", (e) => {
       );
       updateChart(N7Chart, N7result, "N7");
       updateChart(RP4Chart, RP4result, "RP4");
-
-      datasets = [];
+      N7datasets = []
       N7result.forEach((r) =>
         N7datasets.push({
           date: dayjs(r.created).format("YYYY/MM/DD"),
           ...r.result,
+          N7_Ratio:Number((r.result.N7_PTC_Avg/r.result.N7_NBC_Avg).toFixed(2))
         })
       );
+      RP4datasets = []
       RP4result.forEach((r) =>
         RP4datasets.push({
           date: dayjs(r.created).format("YYYY/MM/DD"),
           ...r.result,
+          RP4_Ratio:Number((r.result.RP4_PTC_Avg/r.result.RP4_NBC_Avg).toFixed(2))
         })
       );
     })
