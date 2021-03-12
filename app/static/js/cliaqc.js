@@ -5,8 +5,8 @@ $(document).ready(() => {
 
 const updateChart = (chart, data, type) => {
   const fields = [
-      { label: "NTC", backgroundColor: "#ff5a5f", borderColor: "#ff5a5f" },
-      { label: "PTC", backgroundColor: "#fb8b24", borderColor: "#fb8b24" },
+    { label: "NTC", backgroundColor: "#ff5a5f", borderColor: "#ff5a5f" },
+    { label: "PTC", backgroundColor: "#fb8b24", borderColor: "#fb8b24" },
     { label: "NBC_Avg", backgroundColor: "#2862CC", borderColor: "#2862CC" },
     { label: "NTC_Avg", backgroundColor: "#390099", borderColor: "#390099" },
     { label: "PTC_Avg", backgroundColor: "#0466c8", borderColor: "#0466c8" },
@@ -53,30 +53,27 @@ document.getElementById("plot").addEventListener("click", (e) => {
       return res.json();
     })
     .then((data) => {
-      const N7result = data.filter(
-        (d) => !d.layout.endsWith("RP4Ctrl") && d.result
-      );
-      const RP4result = data.filter(
-        (d) => d.layout.endsWith("RP4Ctrl") && d.result
-      );
+      N7datasets = data
+        .filter((d) => !d.layout.endsWith("RP4Ctrl") && d.result)
+        .map((r) => ({
+          date: dayjs(r.created).format("YYYY/MM/DD"),
+          ...r.result,
+          N7_Ratio: Number(
+            (r.result.N7_PTC_Avg / r.result.N7_NBC_Avg).toFixed(2)
+          ),
+        }));
+
+      RP4datasets = data
+        .filter((d) => d.layout.endsWith("RP4Ctrl") && d.result)
+        .map((r) => ({
+          date: dayjs(r.created).format("YYYY/MM/DD"),
+          ...r.result,
+          RP4_Ratio: Number(
+            (r.result.RP4_PTC_Avg / r.result.RP4_NBC_Avg).toFixed(2)
+          ),
+        }));
       updateChart(N7Chart, N7result, "N7");
       updateChart(RP4Chart, RP4result, "RP4");
-      N7datasets = []
-      N7result.forEach((r) =>
-        N7datasets.push({
-          date: dayjs(r.created).format("YYYY/MM/DD"),
-          ...r.result,
-          N7_Ratio:Number((r.result.N7_PTC_Avg/r.result.N7_NBC_Avg).toFixed(2))
-        })
-      );
-      RP4datasets = []
-      RP4result.forEach((r) =>
-        RP4datasets.push({
-          date: dayjs(r.created).format("YYYY/MM/DD"),
-          ...r.result,
-          RP4_Ratio:Number((r.result.RP4_PTC_Avg/r.result.RP4_NBC_Avg).toFixed(2))
-        })
-      );
     })
     .catch((err) => {
       console.log(err);
