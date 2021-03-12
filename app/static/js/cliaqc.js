@@ -72,8 +72,8 @@ document.getElementById("plot").addEventListener("click", (e) => {
             (r.result.RP4_PTC_Avg / r.result.RP4_NBC_Avg).toFixed(2)
           ),
         }));
-      updateChart(N7Chart, N7result, "N7");
-      updateChart(RP4Chart, RP4result, "RP4");
+      updateChart(N7Chart, N7datasets, "N7");
+      updateChart(RP4Chart, RP4datasets, "RP4");
     })
     .catch((err) => {
       console.log(err);
